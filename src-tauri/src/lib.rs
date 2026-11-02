@@ -25,6 +25,17 @@ const CHARACTER_HOOK: &str = r#"
   // "visible" so every window keeps streaming snapshots and battle-log events.
   Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
   Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
+  // Auto-accept the game's "遊戲已更新" banner/toast by clicking its 重新整理 button
+  // (idle progress lives on the server). At most once per 10 min so a stale CDN can't loop.
+  setInterval(() => {
+    const btn = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === '重新整理'
+      && (b.parentElement?.parentElement ?? b.parentElement)?.textContent.includes('遊戲已更新'));
+    if (!btn) return;
+    const last = Number(sessionStorage.getItem('roIdleAutoReload') || 0);
+    if (Date.now() - last < 600000) return;
+    sessionStorage.setItem('roIdleAutoReload', String(Date.now()));
+    btn.click();
+  }, 30000);
   let last = '', lastAt = 0, streamId = null;
   const cache = {};
   const num = v => Number.isFinite(v) ? v : null;
