@@ -1,4 +1,5 @@
 mod api;
+mod chat;
 mod ai;
 #[cfg(target_os = "macos")]
 mod js_dialogs;
@@ -452,6 +453,7 @@ pub fn run() {
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .manage(chat::ChatLock::default())
         .manage(PendingUpdate(Mutex::new(None)))
         .manage(PanelHiddenAt(Mutex::new(None)))
         .manage(PanelWidth(Mutex::new(360.0)))
@@ -475,6 +477,9 @@ pub fn run() {
             ai::ai_get_settings,
             ai::ai_save_settings,
             ai::ai_test_connection,
+            chat::chat_history,
+            chat::chat_send,
+            chat::chat_new,
             quit
         ])
         .setup(|app| {

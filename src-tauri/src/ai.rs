@@ -182,7 +182,7 @@ fn config_path(app: &AppHandle) -> Option<std::path::PathBuf> {
     app.path().app_config_dir().ok().map(|d| d.join("ai.json"))
 }
 
-fn load_config(app: &AppHandle) -> AiConfig {
+pub(crate) fn load_config(app: &AppHandle) -> AiConfig {
     config_path(app)
         .and_then(|p| std::fs::read_to_string(p).ok())
         .and_then(|s| serde_json::from_str(&s).ok())
@@ -197,7 +197,7 @@ fn save_config(app: &AppHandle, cfg: &AiConfig) -> Result<(), String> {
 }
 
 #[cfg(target_os = "macos")]
-mod keychain {
+pub(crate) mod keychain {
     use security_framework::passwords;
     const NOT_FOUND: i32 = -25300; // errSecItemNotFound
 
@@ -216,14 +216,14 @@ mod keychain {
 }
 
 #[cfg(not(target_os = "macos"))]
-mod keychain {
+pub(crate) mod keychain {
     pub fn get() -> Result<Option<String>, String> { Ok(None) }
     pub fn set(_: &str) -> Result<(), String> { Err("Key storage needs the macOS Keychain".into()) }
 }
 
 // ---- commands (panel window only) ----
 
-fn panel_only(w: &WebviewWindow) -> Result<(), String> {
+pub(crate) fn panel_only(w: &WebviewWindow) -> Result<(), String> {
     if w.label() == "panel" { Ok(()) } else { Err("Not allowed from this window".into()) }
 }
 

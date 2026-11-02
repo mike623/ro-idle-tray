@@ -1,3 +1,4 @@
+import { showPanel, closeSettings } from "./panel.js";
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
@@ -486,9 +487,7 @@ $("update").addEventListener("click", () => invoke("update_app"));
 // AI provider settings. The key is write-only here: Rust keeps it in the Keychain
 // and only reports whether one is saved.
 function aiShow(open) {
-  $("ai").hidden = !open;
-  $("list").hidden = open;
-  $("ai-open").setAttribute("aria-expanded", String(open));
+  if (open) showPanel("ai"); else closeSettings();
   // Board view widens the panel; settings use the normal width.
   if (open) { invoke("set_panel_width", { width: 360 }); aiLoad(); }
   else setView(view);

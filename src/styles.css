@@ -338,3 +338,21 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .ai-result.err { color: var(--z-err); }
 .gear { padding: 0 6px; font-size: 13px; color: var(--btn-text); }
 .gear[aria-expanded="true"] { border-color: var(--select); color: var(--select); }
+
+/* Assistant cards reuse the panel palette; all model text is rendered as text. */
+.chat-tabs { display: flex; gap: 4px; padding: 6px 10px; background: var(--face); }
+.chat-tabs button { flex: 1; padding: 7px; border: 1px solid var(--edge-mid); border-radius: 6px; color: var(--text); background: var(--face-2); }
+.chat-tabs button[aria-pressed="true"] { color: var(--ink-blue); border-color: var(--select); }
+.assistant { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 10px; gap: 10px; background: var(--face-2); user-select: text; -webkit-user-select: text; }
+.chat-head { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+.chat-status { display: flex; flex-wrap: wrap; gap: 4px; max-height: 62px; overflow: auto; }
+.chat-messages { flex: 1; min-height: 120px; overflow: auto; }
+.chat-card { border: 1px solid var(--edge-mid); border-radius: 8px; padding: 10px; margin-bottom: 8px; background: var(--face); }
+.chat-user { margin-left: 24px; }
+.chat-body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; margin-top: 6px; }
+.chat-chip { display: inline-block; font-size: 10px; border: 1px solid var(--edge-mid); border-radius: 5px; padding: 2px 5px; overflow-wrap: anywhere; }
+.chat-tools { margin-top: 6px; }
+#chat-form { display: flex; flex-wrap: wrap; gap: 6px; }
+#chat-form label { width: 100%; }
+#chat-input { flex: 1; min-width: 100px; font: inherit; padding: 8px; color: var(--text); background: var(--face); border: 1px solid var(--edge-mid); border-radius: 6px; }
+#chat-error { color: var(--danger); white-space: pre-wrap; margin: 0; }

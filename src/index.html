@@ -6,6 +6,7 @@
     <title>RO Idle Tray</title>
     <link rel="stylesheet" href="styles.css" />
     <script type="module" src="main.js" defer></script>
+    <script type="module" src="chat.js" defer></script>
   </head>
   <body>
     <main class="panel">
@@ -50,7 +51,23 @@
           <div class="ai-result" id="ai-result" role="status" hidden></div>
         </div>
       </section>
+      <nav class="chat-tabs" aria-label="Panel tabs">
+        <button type="button" id="characters-tab" aria-pressed="true">角色</button>
+        <button type="button" id="assistant-tab" aria-pressed="false">✦ 助理</button>
+      </nav>
       <div class="list" id="list"></div>
+      <section id="assistant" class="assistant" hidden aria-label="助理">
+        <div class="chat-head"><span>✦ 助理</span><button type="button" class="btn" id="chat-new">新對話</button></div>
+        <div id="chat-status" class="chat-status" aria-label="角色狀態"></div>
+        <div id="chat-messages" class="chat-messages" role="log" aria-label="對話"></div>
+        <div id="chat-suggestions" class="row"></div>
+        <form id="chat-form">
+          <label for="chat-input" class="dim">詢問角色近況 · @ 選擇角色</label>
+          <input id="chat-input" placeholder="今晚怎麼排？" maxlength="2000" autocomplete="off" required />
+            <button type="submit" class="btn" id="chat-send">送出</button>
+        </form>
+        <p id="chat-error" role="alert" hidden></p>
+      </section>
       <footer class="foot">
         <button type="button" class="ghost" id="login" aria-pressed="false" title="Launch RO Idle Tray when you log in">
           Start at Login <span class="switch" aria-hidden="true"><span></span></span>
