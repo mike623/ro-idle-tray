@@ -1,24 +1,18 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "ro-idle-tray",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "identifier": "com.mikewong.ro-idle-tray",
   "build": {
     "frontendDist": "../src"
   },
   "app": {
     "withGlobalTauri": true,
-    "windows": [
-      {
-        "title": "RO 放置仙境",
-        "width": 1100,
-        "height": 760,
-        "visible": false
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
-    }
+    },
+    "macOSPrivateApi": true
   },
   "bundle": {
     "active": true,

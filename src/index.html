@@ -1,39 +1,83 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
-    <script type="module" src="/main.js" defer></script>
+    <title>RO Idle Tray</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="main.js" defer></script>
   </head>
-
   <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
-
-      <div class="row">
-        <a href="https://tauri.app" target="_blank">
-          <img src="/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
-        </a>
-        <a
-          href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
-          target="_blank"
-        >
-          <img
-            src="/assets/javascript.svg"
-            class="logo vanilla"
-            alt="JavaScript logo"
-          />
-        </a>
-      </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
-
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
+    <main class="panel">
+      <header class="top">
+        <div>
+          <div class="title">RO 放置仙境</div>
+          <div class="dim small" id="summary">Loading…</div>
+        </div>
+        <button type="button" class="icon-btn" id="update" hidden></button>
+      </header>
+      <div class="list" id="list"></div>
+      <footer class="foot">
+        <div class="dim tiny">
+          <div id="version">RO Idle Tray</div>
+          <div>Labels update live</div>
+        </div>
+        <div class="row">
+          <button type="button" class="ghost" id="login" aria-pressed="false">
+            Start at Login <span class="switch"><span></span></span>
+          </button>
+          <button type="button" class="btn" id="exports" title="Open ~/Downloads/RO Idle Tray">Exports</button>
+          <button type="button" class="btn" id="quit">Quit</button>
+        </div>
+      </footer>
     </main>
+    <template id="card">
+      <section class="account">
+        <div class="head">
+          <div class="who"><span class="name"></span><span class="dim small cls"></span></div>
+          <span class="dim small acct"></span>
+        </div>
+        <div class="card">
+          <div class="levels">
+            <div class="lv"><div class="between"><span>Base Lv.</span><b class="base"></b></div><div class="bar"><i class="base-bar"></i></div><div class="pct base-pct"></div></div>
+            <div class="lv"><div class="between"><span>Job Lv.</span><b class="job"></b></div><div class="bar"><i class="job-bar"></i></div><div class="pct job-pct"></div></div>
+          </div>
+          <div class="vitals">
+            <span class="hp-label">HP</span><div class="bar thick"><i class="hp-bar"></i></div><span class="hp"></span>
+            <span class="sp-label">SP</span><div class="bar thick"><i class="sp-bar"></i></div><span class="sp"></span>
+          </div>
+          <div class="misc">
+            <div class="between"><span class="weight"></span><span class="zeny"></span></div>
+            <div class="points" hidden></div>
+          </div>
+          <div class="where">
+            <div class="between"><span class="dim">地圖</span><b class="map"></b></div>
+            <div class="between"><span class="dim">行動</span><span class="action"></span></div>
+            <div class="between"><span class="dim">目標</span><span class="target"></span></div>
+            <div class="bar thick" hidden><i class="target-bar"></i></div>
+          </div>
+          <button type="button" class="idle"></button>
+          <div class="between">
+            <span class="status"><i></i><span></span></span>
+            <span class="row">
+              <button type="button" class="link remove">Remove</button>
+              <button type="button" class="btn open">Open</button>
+            </span>
+          </div>
+        </div>
+      </section>
+    </template>
+    <template id="empty">
+      <section class="account">
+        <div class="head"><span class="name dim">Not signed in</span><span class="dim small acct"></span></div>
+        <div class="card empty">
+          <div class="dim small">Sign in with Google once.<br />The session is kept for this profile.</div>
+          <span class="row">
+            <button type="button" class="link remove">Remove</button>
+            <button type="button" class="btn accent open">Open</button>
+          </span>
+        </div>
+      </section>
+    </template>
   </body>
 </html>

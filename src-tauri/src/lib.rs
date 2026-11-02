@@ -1,9 +1,10 @@
+use std::collections::HashMap;
 use std::sync::Mutex;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::{
-    AppHandle, Listener, Manager, WebviewUrl, WebviewWindowBuilder, Wry,
+    AppHandle, Emitter, Listener, Manager, WebviewUrl, WebviewWindowBuilder,
     image::Image,
-    menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu},
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    tray::{MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 use tauri_plugin_positioner::WindowExt;
 use tauri_plugin_updater::{Update, UpdaterExt};
@@ -11,14 +12,42 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 // Runs before the game bundle. The game calls global fetch for
 // GET /api/characters/{id}?deferCatchup=1 and opens a global EventSource on
 // /api/characters/{id}/stream whose `snapshot` events carry live levels. Both
-// payloads hold snapshot.character.{name,baseLv,jobLv}.
+// payloads hold the snapshot (character, derived, activity) the game's own
+// 角色 info box renders. POST /commands replies carry it too (view.snapshot).
 const CHARACTER_HOOK: &str = r#"
 (() => {
   let last = '', streamId = null;
   const cache = {};
-  const send = c => {
+  const num = v => Number.isFinite(v) ? v : null;
+  // Map and action names come from tables inside the game bundle, so read the
+  // game's own rendered 地點與戰況 rows (<span>地圖</span><b>name</b>).
+  const domText = label => {
+    const el = [...document.querySelectorAll('span')].find(e => e.textContent === label);
+    return el?.nextElementSibling?.textContent?.trim() || null;
+  };
+  // Defer so React has rendered this snapshot before the DOM is read.
+  let latest = null, timer = 0;
+  const send = s => {
+    latest = s;
+    clearTimeout(timer);
+    timer = setTimeout(() => flush(latest), 500);
+  };
+  const flush = s => {
+    const c = s?.character, d = s?.derived || {};
     if (!c || typeof c.name !== 'string' || !Number.isInteger(c.baseLv) || !Number.isInteger(c.jobLv)) return;
-    const payload = { profile: RO_IDLE_PROFILE, name: c.name, class: typeof c.job === 'string' ? c.job : '', base: c.baseLv, job: c.jobLv, points: Number.isInteger(c.statPoints) ? c.statPoints : 0 };
+    const running = typeof s.activity === 'string' ? s.activity !== 'stopped' : null;
+    const payload = {
+      profile: RO_IDLE_PROFILE, name: c.name, class: typeof c.job === 'string' ? c.job : '',
+      base: c.baseLv, job: c.jobLv, points: Number.isInteger(c.statPoints) ? c.statPoints : 0,
+      baseExp: num(c.baseExp), baseExpNext: num(s.baseExpNext), jobExp: num(c.jobExp), jobExpNext: num(s.jobExpNext),
+      hp: num(c.hp), maxHp: num(d.maxHp), sp: num(c.sp), maxSp: num(d.maxSp),
+      weight: num(s.weight), weightMax: num(d.weightMax), zeny: num(c.zeny),
+      running, stopping: running === true && s.pendingStop != null,
+      map: domText('地圖') ?? (typeof s.mapId === 'string' ? s.mapId : null),
+      action: domText('行動'),
+      target: s.target && typeof s.target.name === 'string'
+        ? { name: s.target.name, lv: num(s.target.lv), hp: num(s.target.hp), maxHp: num(s.target.maxHp) } : null,
+    };
     const key = JSON.stringify(payload);
     if (key === last) return;
     last = key;
@@ -29,13 +58,14 @@ const CHARACTER_HOOK: &str = r#"
   const origFetch = window.fetch;
   window.fetch = function (input) {
     const p = origFetch.apply(this, arguments);
-    const id = (String(input?.url ?? input).match(/\/api\/characters\/([^/?]+)\?deferCatchup/) || [])[1];
+    const url = String(input?.url ?? input);
+    const id = (url.match(/\/api\/characters\/([^/?]+)(?:\?deferCatchup|\/commands$)/) || [])[1];
     if (id) p.then(r => r.ok ? r.clone().json() : null).then(d => {
-      const c = d?.snapshot?.character;
-      if (!c) return;
-      cache[id] = c;
+      const snap = d?.snapshot ?? d?.view?.snapshot;
+      if (!snap?.character) return;
+      cache[id] = snap;
       // ponytail: other-character previews hit the same URL; only trust the streamed one.
-      if (streamId === null || streamId === id) send(c);
+      if (streamId === null || streamId === id) send(snap);
     }).catch(() => {});
     return p;
   };
@@ -48,9 +78,20 @@ const CHARACTER_HOOK: &str = r#"
       streamId = id;
       if (cache[id]) send(cache[id]);
       this.addEventListener('snapshot', e => {
-        try { if (streamId === id) send(JSON.parse(e.data)?.snapshot?.character); } catch {}
+        try { if (streamId === id) send(JSON.parse(e.data)?.snapshot); } catch {}
       });
     }
+  };
+  // Hidden windows skip the game's own visible-only refresh, so poll the same read-only URL.
+  setInterval(() => {
+    if (streamId !== null) window.fetch(`/api/characters/${streamId}?deferCatchup=1`, { credentials: 'same-origin' }).catch(() => {});
+  }, 60000);
+  // Called by the tray panel: press the game's own 開始掛機 / 停止掛機 button.
+  window.__roIdleToggle = () => {
+    const btn = [...document.querySelectorAll('button.xp-btn.primary')]
+      .find(b => /停止掛機|開始掛機|停止中/.test(b.textContent));
+    if (btn && !btn.disabled) btn.click();
+    return !!btn;
   };
   // Auto-enter the first playable character once per page load (select screen
   // is a list `ul[aria-label="角色列表"]`, each row's primary button is 進入).
@@ -79,12 +120,15 @@ const CHARACTER_HOOK: &str = r#"
 struct Profiles {
     /// Sorted profile numbers; each maps to its own WebKit data store.
     ids: Mutex<Vec<u8>>,
-    menu: Menu<Wry>,
-    remove_menu: Submenu<Wry>,
+    /// Latest character data per profile, shown in the tray panel.
+    info: Mutex<HashMap<u8, CharacterLabel>>,
 }
 
-#[derive(serde::Deserialize)]
+/// Sent by CHARACTER_HOOK; mirrors the game's 角色 info box.
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 struct CharacterLabel {
+    #[serde(skip_serializing)]
     profile: String,
     name: String,
     #[serde(default)]
@@ -94,6 +138,41 @@ struct CharacterLabel {
     /// Unspent stat points (the game's red 尚有 N 點屬性點可分配 notice).
     #[serde(default)]
     points: u32,
+    base_exp: Option<f64>,
+    base_exp_next: Option<f64>,
+    job_exp: Option<f64>,
+    job_exp_next: Option<f64>,
+    hp: Option<f64>,
+    max_hp: Option<f64>,
+    sp: Option<f64>,
+    max_sp: Option<f64>,
+    weight: Option<f64>,
+    weight_max: Option<f64>,
+    zeny: Option<f64>,
+    running: Option<bool>,
+    #[serde(default)]
+    stopping: bool,
+    /// Map name as the game shows it (地圖), e.g. 普隆德拉原野 09.
+    map: Option<String>,
+    /// Current action as the game shows it (行動), e.g. 戰鬥中.
+    action: Option<String>,
+    target: Option<Target>,
+    /// Unix seconds when the tray received it.
+    #[serde(default)]
+    updated: u64,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct Target {
+    name: String,
+    lv: Option<f64>,
+    hp: Option<f64>,
+    max_hp: Option<f64>,
+}
+
+fn notify(app: &AppHandle) {
+    let _ = app.emit_to("panel", "state-changed", ());
 }
 
 // Copied from the game bundle's job table (snapshot.character.job -> display name).
@@ -197,26 +276,6 @@ fn profile_ids_parse() {
     assert!(parse_ids("").is_empty());
 }
 
-fn remove_item(app: &AppHandle, n: u8) -> tauri::Result<MenuItem<Wry>> {
-    MenuItem::with_id(
-        app,
-        format!("remove-profile-{n}"),
-        format!("Account {n}"),
-        true,
-        None::<&str>,
-    )
-}
-
-fn profile_item(app: &AppHandle, n: u8) -> tauri::Result<MenuItem<Wry>> {
-    MenuItem::with_id(
-        app,
-        format!("profile-{n}"),
-        format!("RO放置仙境 — Account {n}"),
-        true,
-        None::<&str>,
-    )
-}
-
 /// Returns the profile number when `id` is `profile-N` and N exists.
 fn profile_number(app: &AppHandle, id: &str) -> Option<u8> {
     let n: u8 = id.strip_prefix("profile-")?.parse().ok()?;
@@ -232,48 +291,27 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(PendingUpdate(Mutex::new(None)))
+        .manage(PanelHiddenAt(Mutex::new(None)))
+        .invoke_handler(tauri::generate_handler![
+            get_state,
+            open_account,
+            toggle_idle,
+            add_account,
+            remove_account,
+            set_login,
+            update_app,
+            open_export_folder,
+            quit
+        ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             let handle = app.handle().clone();
 
             let ids = load_profile_ids(&handle);
-            let remove_menu = Submenu::with_id(app, "remove-profile", "Remove Profile", true)?;
-
-            let menu = Menu::new(app)?;
-            for &n in &ids {
-                menu.append(&profile_item(&handle, n)?)?;
-                remove_menu.append(&remove_item(&handle, n)?)?;
-            }
-            menu.append(&PredefinedMenuItem::separator(app)?)?;
-            menu.append(&MenuItem::with_id(
-                app,
-                "add-profile",
-                "Add Profile…",
-                true,
-                None::<&str>,
-            )?)?;
-            menu.append(&remove_menu)?;
-            menu.append(&CheckMenuItem::with_id(
-                app,
-                "autostart",
-                "Start at Login",
-                true,
-                launch_agent_path().is_some_and(|p| p.exists()),
-                None::<&str>,
-            )?)?;
-            menu.append(&MenuItem::with_id(
-                app,
-                "version",
-                format!("RO Idle Tray v{}", app.package_info().version),
-                false,
-                None::<&str>,
-            )?)?;
-            menu.append(&MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?)?;
             app.manage(Profiles {
                 ids: Mutex::new(ids.clone()),
-                menu: menu.clone(),
-                remove_menu,
+                info: Mutex::new(HashMap::new()),
             });
 
             let listen_handle = handle.clone();
@@ -292,31 +330,36 @@ pub fn run() {
                     .take(40)
                     .collect();
                 let class = job_name(data.class.trim());
-                let text = if class.is_empty() {
-                    format!("{name} — Base Lv{} / Job Lv{}", data.base, data.job)
-                } else {
-                    format!(
-                        "{name}（{class}） — Base Lv{} / Job Lv{}",
-                        data.base, data.job
-                    )
-                };
-                let text = if data.points > 0 {
-                    format!("{text} · ⚠ 尚有 {} 點屬性點可分配", data.points)
-                } else {
-                    text
-                };
-                eprintln!("[ro-idle-tray] {} => {text}", data.profile);
+                eprintln!(
+                    "[ro-idle-tray] {} => {name}（{class}） Base Lv{} / Job Lv{} @ {}",
+                    data.profile,
+                    data.base,
+                    data.job,
+                    data.map.as_deref().unwrap_or("?")
+                );
                 let profiles = listen_handle.state::<Profiles>();
-                let remove_id = format!("remove-{}", data.profile);
-                for item in [
-                    profiles.menu.get(&data.profile),
-                    profiles.remove_menu.get(&remove_id),
-                ]
-                .into_iter()
-                .flatten()
-                .filter_map(|k| k.as_menuitem().cloned())
-                {
-                    let _ = item.set_text(&text);
+                if let Some(n) = profile_number(&listen_handle, &data.profile) {
+                    let mut info = data.clone();
+                    info.name = name.clone();
+                    info.class = class.clone();
+                    info.updated = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .map_or(0, |d| d.as_secs());
+                    let prev = profiles.info.lock().unwrap().insert(n, info);
+                    // Only on a real increase for the same character, never on first sight.
+                    if let Some(p) = prev.filter(|p| p.name == name) {
+                        let mut ups = Vec::new();
+                        if data.base > p.base {
+                            ups.push(format!("Base Lv{}", data.base));
+                        }
+                        if data.job > p.job {
+                            ups.push(format!("Job Lv{}", data.job));
+                        }
+                        if !ups.is_empty() {
+                            toast(&format!("{name}（{class}）升級！"), &ups.join(" · "));
+                        }
+                    }
+                    notify(&listen_handle);
                 }
             });
 
@@ -334,31 +377,34 @@ pub fn run() {
                 ))
                 .icon_as_template(false)
                 .tooltip("RO 放置仙境")
-                .menu(&menu)
-                .show_menu_on_left_click(true)
-                .on_menu_event(|app, event| match event.id().as_ref() {
-                    "quit" => app.exit(0),
-                    "add-profile" => add_profile(app),
-                    "autostart" => toggle_autostart(app),
-                    "update" => install_update(app),
-                    id if id.starts_with("remove-profile-") => confirm_remove(app, id),
-                    id => open_profile(app, id, true),
-                })
                 .on_tray_icon_event(|tray, event| {
+                    tauri_plugin_positioner::on_tray_event(tray.app_handle(), &event);
                     if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
                         button_state: MouseButtonState::Up,
                         ..
                     } = event
                     {
-                        let app = tray.app_handle();
-                        let first = app.state::<Profiles>().ids.lock().unwrap().first().copied();
-                        if let Some(n) = first {
-                            open_profile(app, &format!("profile-{n}"), true);
-                        }
+                        toggle_panel(tray.app_handle());
                     }
                 })
                 .build(app)?;
+            let panel =
+                WebviewWindowBuilder::new(app, "panel", WebviewUrl::App("index.html".into()))
+                    .title("RO Idle Tray")
+                    .inner_size(360.0, 900.0)
+                    .resizable(false)
+                    .decorations(false)
+                    .transparent(true)
+                    .always_on_top(true)
+                    .skip_taskbar(true)
+                    .visible(false)
+                    .build()?;
+            let blur_handle = handle.clone();
+            panel.on_window_event(move |event| {
+                if let tauri::WindowEvent::Focused(false) = event {
+                    hide_panel(&blur_handle);
+                }
+            });
             // Boot every profile hidden so it logs in, enters its first
             // character and fills the tray label without a click.
             for n in ids {
@@ -419,20 +465,12 @@ fn set_autostart(on: bool) -> std::io::Result<()> {
 }
 
 fn toggle_autostart(app: &AppHandle) {
-    let menu = &app.state::<Profiles>().menu;
-    let Some(item) = menu
-        .get("autostart")
-        .and_then(|k| k.as_check_menuitem().cloned())
-    else {
-        return;
-    };
     let want = launch_agent_path().is_none_or(|p| !p.exists());
     let result = set_autostart(want);
     if let Err(e) = &result {
         eprintln!("[ro-idle-tray] autostart: {e}");
     }
-    // Reflect the file on disk, whatever the click toggled.
-    let _ = item.set_checked(launch_agent_path().is_some_and(|p| p.exists()));
+    notify(app);
 }
 
 fn add_profile(app: &AppHandle) {
@@ -441,16 +479,10 @@ fn add_profile(app: &AppHandle) {
     let Some(next) = ids.last().copied().unwrap_or(0).checked_add(1) else {
         return;
     };
-    let (Ok(item), Ok(rm)) = (profile_item(app, next), remove_item(app, next)) else {
-        return;
-    };
-    if profiles.menu.insert(&item, ids.len()).is_err() {
-        return;
-    }
-    let _ = profiles.remove_menu.append(&rm);
     ids.push(next);
     save_profile_ids(app, &ids);
     drop(ids);
+    notify(app);
     open_profile(app, &format!("profile-{next}"), true);
 }
 
@@ -473,6 +505,14 @@ fn dialog(message: &str, ok: &str, cancel: Option<&str>) -> bool {
         .is_ok_and(|o| o.status.success())
 }
 
+/// macOS banner via osascript. ponytail: shows as "Script Editor"; switch to
+/// tauri-plugin-notification if the app's own name/icon matters.
+fn toast(title: &str, body: &str) {
+    let q = |s: &str| format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""));
+    let script = format!("display notification {} with title {} sound name \"Glass\"", q(body), q(title));
+    let _ = std::process::Command::new("/usr/bin/osascript").arg("-e").arg(script).spawn();
+}
+
 fn confirm_remove(app: &AppHandle, id: &str) {
     let Some(n) = id
         .strip_prefix("remove-")
@@ -482,12 +522,15 @@ fn confirm_remove(app: &AppHandle, id: &str) {
     };
     let profiles = app.state::<Profiles>();
     let last = profiles.ids.lock().unwrap().len() <= 1;
-    let label = profiles
-        .menu
-        .get(&format!("profile-{n}"))
-        .and_then(|k| k.as_menuitem().cloned())
-        .and_then(|i| i.text().ok())
-        .unwrap_or_else(|| format!("Account {n}"));
+    let label = profiles.info.lock().unwrap().get(&n).map_or_else(
+        || "Not signed in".to_string(),
+        |i| {
+            format!(
+                "{}（{}） Base Lv{} / Job Lv{}",
+                i.name, i.class, i.base, i.job
+            )
+        },
+    );
     let app = app.clone();
     // Dialog blocks, so keep it off the main thread.
     std::thread::spawn(move || {
@@ -512,17 +555,13 @@ fn remove_profile(app: &AppHandle, n: u8) {
         let _ = window.destroy();
     }
     let profiles = app.state::<Profiles>();
-    if let Some(item) = profiles.menu.get(&id) {
-        let _ = profiles.menu.remove(&item);
-    }
-    if let Some(item) = profiles.remove_menu.get(&format!("remove-{id}")) {
-        let _ = profiles.remove_menu.remove(&item);
-    }
     {
         let mut ids = profiles.ids.lock().unwrap();
         ids.retain(|x| *x != n);
         save_profile_ids(app, &ids);
     }
+    profiles.info.lock().unwrap().remove(&n);
+    notify(app);
     let handle = app.clone();
     std::thread::spawn(move || {
         // ponytail: fixed wait for the WebView to let go of its store; retry if WebKit ever reports "in use".
@@ -564,7 +603,19 @@ fn open_profile(app: &AppHandle, profile: &str, show: bool) {
     .min_inner_size(800.0, 580.0)
     .data_store_identifier(profile_store_id(n))
     .visible(show)
-    .initialization_script(script);
+    .initialization_script(script)
+    .on_download(|_, event| {
+        match event {
+            tauri::webview::DownloadEvent::Requested { destination, .. } => {
+                if let Some(path) = export_path(destination) {
+                    *destination = path;
+                }
+            }
+            tauri::webview::DownloadEvent::Finished { success: true, .. } => open_exports(),
+            _ => {}
+        }
+        true
+    });
     match builder.build() {
         Ok(window) => {
             let close_window = window.clone();
@@ -581,7 +632,7 @@ fn open_profile(app: &AppHandle, profile: &str, show: bool) {
 
 struct PendingUpdate(Mutex<Option<Update>>);
 
-/// Checks GitHub for a newer release and, if found, shows "Update to vX…" in the tray.
+/// Checks GitHub for a newer release; the panel then shows "Update to vX".
 // ponytail: never installs on its own; the idle game keeps running until the user clicks.
 async fn check_update(app: &AppHandle) {
     let checked = match app.updater() {
@@ -593,53 +644,178 @@ async fn check_update(app: &AppHandle) {
         Ok(None) => return,
         Err(e) => return eprintln!("[ro-idle-tray] update check: {e}"),
     };
-    let text = format!("Update to v{}…", update.version);
     *app.state::<PendingUpdate>().0.lock().unwrap() = Some(update);
-    let menu = &app.state::<Profiles>().menu;
-    if let Some(item) = menu.get("update").and_then(|k| k.as_menuitem().cloned()) {
-        let _ = item.set_text(text);
-        return;
-    }
-    let Ok(item) = MenuItem::with_id(app, "update", text, true, None::<&str>) else {
-        return;
-    };
-    // Above the version label and Quit.
-    let pos = menu.items().map_or(0, |i| i.len().saturating_sub(2));
-    if let Err(e) = menu.insert(&item, pos) {
-        eprintln!("[ro-idle-tray] update menu: {e}");
-    }
+    notify(app);
 }
 
 fn install_update(app: &AppHandle) {
     let Some(update) = app.state::<PendingUpdate>().0.lock().unwrap().take() else {
         return;
     };
-    if let Some(item) = app
-        .state::<Profiles>()
-        .menu
-        .get("update")
-        .and_then(|k| k.as_menuitem().cloned())
-    {
-        let _ = item.set_text("Updating…");
-        let _ = item.set_enabled(false);
-    }
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         match update.download_and_install(|_, _| {}, || {}).await {
             Ok(()) => app.restart(),
             Err(e) => {
                 eprintln!("[ro-idle-tray] update install: {e}");
-                if let Some(item) = app
-                    .state::<Profiles>()
-                    .menu
-                    .get("update")
-                    .and_then(|k| k.as_menuitem().cloned())
-                {
-                    let _ = item.set_text(format!("Update to v{}…", update.version));
-                    let _ = item.set_enabled(true);
-                }
                 *app.state::<PendingUpdate>().0.lock().unwrap() = Some(update);
             }
         }
     });
+}
+
+/// When blur hid the panel; a tray click right after must not reopen it.
+struct PanelHiddenAt(Mutex<Option<Instant>>);
+
+fn hide_panel(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("panel") {
+        let _ = w.hide();
+        *app.state::<PanelHiddenAt>().0.lock().unwrap() = Some(Instant::now());
+    }
+}
+
+fn toggle_panel(app: &AppHandle) {
+    let Some(w) = app.get_webview_window("panel") else {
+        return;
+    };
+    let just_hidden = app
+        .state::<PanelHiddenAt>()
+        .0
+        .lock()
+        .unwrap()
+        .is_some_and(|t| t.elapsed() < Duration::from_millis(300));
+    if w.is_visible().unwrap_or(false) {
+        hide_panel(app);
+    } else if !just_hidden {
+        // Tall as the screen allows (below the menu bar), capped so it stays a panel.
+        if let Ok(Some(m)) = w.current_monitor() {
+            let screen_h = m.size().height as f64 / m.scale_factor();
+            let h = (screen_h - 80.0).clamp(480.0, 1100.0);
+            let _ = w.set_size(tauri::LogicalSize::new(360.0, h));
+        }
+        let _ = w.move_window(tauri_plugin_positioner::Position::TrayBottomCenter);
+        let _ = w.show();
+        let _ = w.set_focus();
+        notify(app);
+    }
+}
+
+#[derive(serde::Serialize)]
+struct ProfileView {
+    n: u8,
+    info: Option<CharacterLabel>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PanelState {
+    version: String,
+    autostart: bool,
+    update: Option<String>,
+    profiles: Vec<ProfileView>,
+}
+
+#[tauri::command]
+fn get_state(app: AppHandle) -> PanelState {
+    let profiles = app.state::<Profiles>();
+    let ids = profiles.ids.lock().unwrap().clone();
+    let info = profiles.info.lock().unwrap();
+    let update = app
+        .state::<PendingUpdate>()
+        .0
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|u| u.version.clone());
+    PanelState {
+        version: app.package_info().version.to_string(),
+        autostart: launch_agent_path().is_some_and(|p| p.exists()),
+        update,
+        profiles: ids
+            .into_iter()
+            .map(|n| ProfileView {
+                n,
+                info: info.get(&n).cloned(),
+            })
+            .collect(),
+    }
+}
+
+#[tauri::command]
+fn open_account(app: AppHandle, n: u8) {
+    hide_panel(&app);
+    open_profile(&app, &format!("profile-{n}"), true);
+}
+
+/// Presses the game's own start/stop button inside that profile's hidden window.
+#[tauri::command]
+fn toggle_idle(app: AppHandle, n: u8) {
+    if let Some(w) = app.get_webview_window(&format!("game-profile-{n}")) {
+        let _ = w.eval("window.__roIdleToggle && window.__roIdleToggle()");
+    }
+}
+
+#[tauri::command]
+fn add_account(app: AppHandle) {
+    hide_panel(&app);
+    add_profile(&app);
+}
+
+#[tauri::command]
+fn remove_account(app: AppHandle, n: u8) {
+    hide_panel(&app);
+    confirm_remove(&app, &format!("remove-profile-{n}"));
+}
+
+#[tauri::command]
+fn set_login(app: AppHandle) {
+    toggle_autostart(&app);
+}
+
+#[tauri::command]
+fn update_app(app: AppHandle) {
+    install_update(&app);
+}
+
+#[tauri::command]
+fn quit(app: AppHandle) {
+    app.exit(0);
+}
+
+/// Game exports (settings, local saves) land here instead of loose in ~/Downloads.
+fn export_dir() -> Option<std::path::PathBuf> {
+    let home = std::env::var_os("HOME")?;
+    Some(std::path::Path::new(&home).join("Downloads/RO Idle Tray"))
+}
+
+/// Same file name inside export_dir, with " (n)" added when it already exists.
+fn export_path(suggested: &std::path::Path) -> Option<std::path::PathBuf> {
+    let dir = export_dir()?;
+    std::fs::create_dir_all(&dir).ok()?;
+    let name = suggested.file_name()?.to_string_lossy().to_string();
+    let (stem, ext) = name
+        .split_once('.')
+        .map_or((name.as_str(), String::new()), |(s, e)| {
+            (s, format!(".{e}"))
+        });
+    let mut path = dir.join(&name);
+    let mut n = 1;
+    while path.exists() {
+        path = dir.join(format!("{stem} ({n}){ext}"));
+        n += 1;
+    }
+    Some(path)
+}
+
+fn open_exports() {
+    if let Some(dir) = export_dir() {
+        let _ = std::fs::create_dir_all(&dir);
+        let _ = std::process::Command::new("/usr/bin/open").arg(dir).spawn();
+    }
+}
+
+#[tauri::command]
+fn open_export_folder(app: AppHandle) {
+    hide_panel(&app);
+    open_exports();
 }
