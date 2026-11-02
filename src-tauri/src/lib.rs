@@ -1,3 +1,4 @@
+mod api;
 #[cfg(target_os = "macos")]
 mod js_dialogs;
 
@@ -464,6 +465,11 @@ pub fn run() {
                 roster_handle.state::<Profiles>().roster.lock().unwrap().insert(n, chars);
                 notify(&roster_handle);
             });
+
+            // Local read-only character API on 127.0.0.1 (token in api.json).
+            if let Ok(dir) = handle.path().app_config_dir() {
+                api::start(dir);
+            }
 
             let log_handle = handle.clone();
             app.listen("ro-idle-log", move |event| {
