@@ -14,7 +14,8 @@
 //! ```
 //!
 //! Endpoints (names are URL-encoded character names):
-//! - `GET /characters` — every character's latest snapshot (plus `profile`)
+//! - `GET /characters` — every character's latest snapshot, plus `profile`, and `goal` /
+//!   `nickname` (string or null) from goals.json / nicknames.json
 //! - `GET /characters/{name}` — one character's latest snapshot
 //! - `GET /characters/{name}/log?since=<unix secs>&limit=<n>` — raw log events after `since`
 //! - `GET /characters/{name}/summary?minutes=<n>` — battle summary for the last n minutes
@@ -244,18 +245,30 @@ fn load_characters(dir: &Path) -> Vec<Value> {
     else {
         return Vec::new();
     };
+    let (goals, nicknames) = (name_map(dir, "goals.json"), name_map(dir, "nicknames.json"));
     let mut list: Vec<(u64, Value)> = all
         .into_iter()
         .map(|(k, mut v)| {
             let n = k.parse().unwrap_or(u64::MAX);
             if let Value::Object(m) = &mut v {
+                let name = m.get("name").and_then(Value::as_str).unwrap_or("");
+                let (goal, nickname) = (goals.get(name).cloned(), nicknames.get(name).cloned());
                 m.insert("profile".into(), json!(n));
+                m.insert("goal".into(), json!(goal));
+                m.insert("nickname".into(), json!(nickname));
             }
             (n, v)
         })
         .collect();
     list.sort_by_key(|(n, _)| *n);
     list.into_iter().map(|(_, v)| v).collect()
+}
+
+/// goals.json / nicknames.json: `{ "<character name>": "<text>" }`; empty values count as unset.
+fn name_map(dir: &Path, file: &str) -> BTreeMap<String, String> {
+    let map: BTreeMap<String, String> =
+        std::fs::read_to_string(dir.join(file)).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default();
+    map.into_iter().filter(|(_, v)| !v.trim().is_empty()).collect()
 }
 
 fn find_character(dir: &Path, name: &str) -> Option<Value> {
@@ -661,9 +674,32 @@ mod tests {
         let d = tmp_dir("chars");
         let (st, list) = respond("GET", "/characters", Some(BEARER), TOKEN, &d, T0);
         assert_eq!(st, 200);
-        assert_eq!(list, json!([{"name":"牙暉","base":32,"profile":3},{"name":"嘈嘈嘈","base":20,"zeny":5,"profile":7}]));
+        assert_eq!(
+            list,
+            json!([
+                {"name":"牙暉","base":32,"profile":3,"goal":null,"nickname":null},
+                {"name":"嘈嘈嘈","base":20,"zeny":5,"profile":7,"goal":null,"nickname":null}
+            ])
+        );
         let (st, one) = respond("GET", "/characters/%E5%98%88%E5%98%88%E5%98%88", Some(BEARER), TOKEN, &d, T0);
         assert_eq!((st, one["profile"].as_u64(), one["zeny"].as_u64()), (200, Some(7), Some(5)));
+    }
+
+    #[test]
+    fn merges_goal_and_nickname_into_snapshots() {
+        let d = tmp_dir("goals");
+        std::fs::write(d.join("goals.json"), r#"{"牙暉":"超魔導師","嘈嘈嘈":"  ","ghost":"騎士"}"#).unwrap();
+        std::fs::write(d.join("nicknames.json"), r#"{"嘈嘈嘈":"小嘈"}"#).unwrap();
+        let (_, list) = respond("GET", "/characters", Some(BEARER), TOKEN, &d, T0);
+        assert_eq!(list[0], json!({"name":"牙暉","base":32,"profile":3,"goal":"超魔導師","nickname":null}));
+        // Blank goal is unset; entries for characters without a snapshot are ignored.
+        assert_eq!((&list[1]["goal"], &list[1]["nickname"]), (&Value::Null, &json!("小嘈")));
+        assert_eq!(list.as_array().unwrap().len(), 2);
+        let (_, one) = respond("GET", "/characters/%E7%89%99%E6%9A%89", Some(BEARER), TOKEN, &d, T0);
+        assert_eq!(one["goal"], "超魔導師");
+        // Unreadable files fall back to null rather than failing the request.
+        std::fs::write(d.join("goals.json"), "not json").unwrap();
+        assert_eq!(respond("GET", "/characters/%E7%89%99%E6%9A%89", Some(BEARER), TOKEN, &d, T0).1["goal"], Value::Null);
     }
 
     #[test]
