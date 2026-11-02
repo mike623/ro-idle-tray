@@ -44,3 +44,4 @@ block2 = "0.6"
 objc2-foundation = "0.3"
 # Already in the tree; Keychain storage for the AI API key.
 security-framework = "3"
+mac-notification-sys = "0.6"

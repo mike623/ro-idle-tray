@@ -607,11 +607,11 @@ pub fn run() {
                             ups.push(format!("Job Lv{}", data.job));
                         }
                         if !ups.is_empty() {
-                            toast(&format!("{who}升級！"), &ups.join(" · "));
+                            toast(&listen_handle, n, &format!("{who}升級！"), &ups.join(" · "));
                         }
                         if p.running == Some(true) && data.running == Some(false) {
                             let at = data.map.as_deref().map_or(String::new(), |m| format!(" @ {m}"));
-                            toast(&format!("{who}已停止掛機"), &format!("Base Lv{} / Job Lv{}{at}", data.base, data.job));
+                            toast(&listen_handle, n, &format!("{who}已停止掛機"), &format!("Base Lv{} / Job Lv{}{at}", data.base, data.job));
                         }
                     }
                     update_title(&listen_handle, n);
@@ -761,12 +761,26 @@ fn dialog(message: &str, ok: &str, cancel: Option<&str>) -> bool {
         .is_ok_and(|o| o.status.success())
 }
 
-/// macOS banner via osascript. ponytail: shows as "Script Editor"; switch to
-/// tauri-plugin-notification if the app's own name/icon matters.
-fn toast(title: &str, body: &str) {
-    let q = |s: &str| format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""));
-    let script = format!("display notification {} with title {} sound name \"Glass\"", q(body), q(title));
-    let _ = std::process::Command::new("/usr/bin/osascript").arg("-e").arg(script).spawn();
+/// macOS banner under the app's own name and icon. Clicking it opens that profile's game window.
+fn toast(app: &AppHandle, n: u8, title: &str, body: &str) {
+    #[cfg(target_os = "macos")]
+    {
+        let (app, title, body) = (app.clone(), title.to_string(), body.to_string());
+        // send() with wait_for_click blocks until the banner is clicked or dismissed.
+        std::thread::spawn(move || {
+            let _ = mac_notification_sys::set_application(&app.config().identifier);
+            let clicked = mac_notification_sys::Notification::new()
+                .title(&title)
+                .message(&body)
+                .sound("Glass")
+                .wait_for_click(true)
+                .send();
+            if matches!(clicked, Ok(mac_notification_sys::NotificationResponse::Click)) {
+                let h = app.clone();
+                let _ = app.run_on_main_thread(move || open_profile(&h, &format!("profile-{n}"), true));
+            }
+        });
+    }
 }
 
 fn confirm_remove(app: &AppHandle, id: &str) {
