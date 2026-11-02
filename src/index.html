@@ -9,13 +9,14 @@
   </head>
   <body>
     <main class="panel">
-      <header class="top">
-        <div class="top-text">
-          <div class="title">RO 放置仙境 <span class="pill" id="overall" hidden></span></div>
-          <div class="dim small" id="summary">Loading…</div>
+      <header class="top" data-tauri-drag-region>
+        <div class="top-text" data-tauri-drag-region>
+          <div class="title" data-tauri-drag-region>RO 放置仙境 <span class="pill" id="overall" hidden></span></div>
+          <div class="dim small" id="summary" data-tauri-drag-region>Loading…</div>
         </div>
         <div class="top-side">
           <button type="button" class="icon-btn" id="update" hidden></button>
+          <button type="button" class="icon-btn pin" id="pin" title="Pin: keep the panel open when you click elsewhere" aria-label="Pin panel" aria-pressed="false">📌</button>
           <div class="view-tabs" role="tablist" aria-label="Layout">
             <button type="button" role="tab" data-view="list" title="List view" aria-label="List view">☰</button>
             <button type="button" role="tab" data-view="grid" title="Grid view" aria-label="Grid view">▦</button>

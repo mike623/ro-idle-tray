@@ -19,19 +19,10 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 // 角色 info box renders. POST /commands replies carry it too (view.snapshot).
 const CHARACTER_HOOK: &str = r#"
 (() => {
-  // The game closes its live stream 5s after the page goes hidden and reopens it
-  // when visible. While the tray panel is open, Rust calls __roIdleLive(true) so
-  // hidden windows report "visible" and the game keeps its own stream running.
-  const realVis = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState').get;
-  let live = false;
-  const vis = () => (live || realVis.call(document) === 'visible' ? 'visible' : 'hidden');
-  Object.defineProperty(document, 'visibilityState', { get: vis, configurable: true });
-  Object.defineProperty(document, 'hidden', { get: () => vis() === 'hidden', configurable: true });
-  window.__roIdleLive = on => {
-    const before = vis();
-    live = !!on;
-    if (vis() !== before) document.dispatchEvent(new Event('visibilitychange'));
-  };
+  // The game closes its live stream 5s after the page goes hidden. Always report
+  // "visible" so every window keeps streaming snapshots and battle-log events.
+  Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
+  Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
   let last = '', lastAt = 0, streamId = null;
   const cache = {};
   const num = v => Number.isFinite(v) ? v : null;
@@ -95,6 +86,12 @@ const CHARACTER_HOOK: &str = r#"
       if (cache[id]) send(cache[id]);
       this.addEventListener('snapshot', e => {
         try { if (streamId === id) send(JSON.parse(e.data)?.snapshot); } catch {}
+      });
+      // Battle/log lines the game's log window shows; mirrored raw to logs/<profile>.log.
+      this.addEventListener('events', e => {
+        if (streamId !== id || typeof e.data !== 'string') return;
+        window.__TAURI_INTERNALS__?.invoke('plugin:event|emit', { event: 'ro-idle-log', payload: { profile: RO_IDLE_PROFILE, data: e.data } })
+          .catch(() => {});
       });
     }
   };
@@ -412,6 +409,7 @@ pub fn run() {
         .manage(PendingUpdate(Mutex::new(None)))
         .manage(PanelHiddenAt(Mutex::new(None)))
         .manage(PanelWidth(Mutex::new(360.0)))
+        .manage(PanelLayout(Mutex::new(PanelGeom::default())))
         .invoke_handler(tauri::generate_handler![
             get_state,
             open_account,
@@ -426,6 +424,7 @@ pub fn run() {
             set_nickname,
             reorder_profiles,
             set_panel_width,
+            set_pinned,
             quit
         ])
         .setup(|app| {
@@ -440,6 +439,7 @@ pub fn run() {
                 roster: Mutex::new(HashMap::new()),
                 nicknames: Mutex::new(load_nicknames(&handle)),
             });
+            *handle.state::<PanelLayout>().0.lock().unwrap() = load_panel_geometry(&handle);
 
             let roster_handle = handle.clone();
             app.listen("ro-idle-roster", move |event| {
@@ -463,6 +463,38 @@ pub fn run() {
                 eprintln!("[ro-idle-tray] {} roster: {}", r.profile, chars.iter().map(|c| format!("{} {}", c.name, c.detail)).collect::<Vec<_>>().join(" | "));
                 roster_handle.state::<Profiles>().roster.lock().unwrap().insert(n, chars);
                 notify(&roster_handle);
+            });
+
+            let log_handle = handle.clone();
+            app.listen("ro-idle-log", move |event| {
+                #[derive(serde::Deserialize)]
+                struct LogMsg { profile: String, data: String }
+                let Ok(m) = serde_json::from_str::<LogMsg>(event.payload()) else { return };
+                let Some(n) = profile_number(&log_handle, &m.profile) else { return };
+                let Ok(dir) = log_handle.path().app_config_dir().map(|d| d.join("logs")) else { return };
+                let name = log_handle.state::<Profiles>().info.lock().unwrap().get(&n).map(|i| i.name.clone()).unwrap_or_default();
+                // One file per character (profile id until its first snapshot arrives).
+                let stem: String = if name.is_empty() { m.profile.clone() } else {
+                    name.chars().map(|c| if c.is_control() || "/\\:".contains(c) { '_' } else { c }).collect()
+                };
+                let ts = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
+                // Auto-rotate daily (UTC): <char>-YYYY-MM-DD.log. When a new day's file starts,
+                // delete logs not written in the last 3 days.
+                let path = dir.join(format!("{stem}-{}.log", utc_date(ts)));
+                if !path.exists() {
+                    for f in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
+                        let old = f.metadata().and_then(|m| m.modified()).ok()
+                            .and_then(|t| t.elapsed().ok()).is_some_and(|age| age > Duration::from_secs(3 * 86400));
+                        if old && f.path().extension().is_some_and(|e| e == "log") {
+                            let _ = std::fs::remove_file(f.path());
+                        }
+                    }
+                }
+                let line = format!("{ts}\t{name}\t{}\n", m.data.replace('\n', " "));
+                let _ = std::fs::create_dir_all(&dir).and_then(|_| {
+                    use std::io::Write;
+                    std::fs::OpenOptions::new().create(true).append(true).open(&path)?.write_all(line.as_bytes())
+                });
             });
 
             let listen_handle = handle.clone();
@@ -551,7 +583,7 @@ pub fn run() {
                 WebviewWindowBuilder::new(app, "panel", WebviewUrl::App("index.html".into()))
                     .title("RO Idle Tray")
                     .inner_size(360.0, 900.0)
-                    .resizable(false)
+                    .resizable(true)
                     .decorations(false)
                     .transparent(true)
                     .always_on_top(true)
@@ -561,10 +593,12 @@ pub fn run() {
                     .disable_drag_drop_handler()
                     .build()?;
             let blur_handle = handle.clone();
-            panel.on_window_event(move |event| {
-                if let tauri::WindowEvent::Focused(false) = event {
+            panel.on_window_event(move |event| match event {
+                tauri::WindowEvent::Focused(false) if !blur_handle.state::<PanelLayout>().0.lock().unwrap().pinned => {
                     hide_panel(&blur_handle);
                 }
+                tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => save_panel_geometry(&blur_handle),
+                _ => {}
             });
             // Boot every profile hidden so it logs in, enters its first
             // character and fills the tray label without a click.
@@ -841,7 +875,6 @@ fn hide_panel(app: &AppHandle) {
         let _ = w.hide();
         *app.state::<PanelHiddenAt>().0.lock().unwrap() = Some(Instant::now());
     }
-    set_live(app, false);
 }
 
 fn toggle_panel(app: &AppHandle) {
@@ -857,12 +890,13 @@ fn toggle_panel(app: &AppHandle) {
     if w.is_visible().unwrap_or(false) {
         hide_panel(app);
     } else if !just_hidden {
-        place_panel(&w, *app.state::<PanelWidth>().0.lock().unwrap());
+        if !restore_panel(&w) {
+            place_panel(&w, *app.state::<PanelWidth>().0.lock().unwrap());
+        }
         let _ = w.show();
         let _ = w.set_focus();
         notify(app);
         poll_profiles(app);
-        set_live(app, true);
     }
 }
 
@@ -896,18 +930,100 @@ fn set_panel_width(app: AppHandle, width: f64) {
     if std::mem::replace(&mut *state.0.lock().unwrap(), width) == width {
         return;
     }
+    if app.state::<PanelLayout>().0.lock().unwrap().rect.is_some() {
+        return; // user moved/resized it: their size wins
+    }
     if let Some(w) = app.get_webview_window("panel").filter(|w| w.is_visible().unwrap_or(false)) {
         place_panel(&w, width);
     }
 }
 
-/// Panel open: game windows act visible so the game streams live (see __roIdleLive).
-fn set_live(app: &AppHandle, on: bool) {
-    for (label, w) in app.webview_windows() {
-        if label.starts_with("game-") {
-            let _ = w.eval(format!("window.__roIdleLive && window.__roIdleLive({on})"));
-        }
+/// Panel position/size (physical px) the user left it at, and the pin. Saved to panel.json.
+#[derive(serde::Serialize, serde::Deserialize, Default, Clone, Copy)]
+struct PanelGeom {
+    rect: Option<(i32, i32, u32, u32)>,
+    #[serde(default)]
+    pinned: bool,
+}
+struct PanelLayout(Mutex<PanelGeom>);
+
+fn panel_geometry_path(app: &AppHandle) -> Option<std::path::PathBuf> {
+    app.path().app_config_dir().ok().map(|d| d.join("panel.json"))
+}
+
+fn load_panel_geometry(app: &AppHandle) -> PanelGeom {
+    panel_geometry_path(app)
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn write_panel_geometry(app: &AppHandle, g: PanelGeom) {
+    if let Some(p) = panel_geometry_path(app) {
+        let _ = std::fs::write(p, serde_json::to_string(&g).unwrap_or_default());
     }
+}
+
+/// Moved/Resized while visible: remember it. ponytail: writes on every event of a drag (tiny file).
+fn save_panel_geometry(app: &AppHandle) {
+    let Some(w) = app.get_webview_window("panel").filter(|w| w.is_visible().unwrap_or(false)) else { return };
+    let (Ok(p), Ok(s)) = (w.outer_position(), w.inner_size()) else { return };
+    let state = app.state::<PanelLayout>();
+    let g = {
+        let mut g = state.0.lock().unwrap();
+        g.rect = Some((p.x, p.y, s.width, s.height));
+        *g
+    };
+    write_panel_geometry(app, g);
+}
+
+/// Put the panel back where the user left it; false if nothing saved or that screen is gone.
+fn restore_panel(w: &tauri::WebviewWindow) -> bool {
+    let Some((x, y, width, height)) = w.app_handle().state::<PanelLayout>().0.lock().unwrap().rect else { return false };
+    let on_screen = w.available_monitors().unwrap_or_default().iter().any(|m| {
+        let (mp, ms) = (m.position(), m.size());
+        x + 40 > mp.x && x < mp.x + ms.width as i32 - 40 && y >= mp.y && y < mp.y + ms.height as i32 - 40
+    });
+    if on_screen {
+        let _ = w.set_size(tauri::PhysicalSize::new(width, height));
+        let _ = w.set_position(tauri::PhysicalPosition::new(x, y));
+    }
+    on_screen
+}
+
+/// Pinned: the panel stays open when it loses focus (it is always on top).
+#[tauri::command]
+fn set_pinned(app: AppHandle, pinned: bool) {
+    let state = app.state::<PanelLayout>();
+    let g = {
+        let mut g = state.0.lock().unwrap();
+        g.pinned = pinned;
+        *g
+    };
+    write_panel_geometry(&app, g);
+    notify(&app);
+}
+
+/// Unix seconds -> "YYYY-MM-DD" (UTC), civil-from-days (Howard Hinnant).
+fn utc_date(ts: u64) -> String {
+    let z = (ts / 86400) as i64 + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe + era * 400 + i64::from(m <= 2);
+    format!("{y:04}-{m:02}-{d:02}")
+}
+
+#[cfg(test)]
+#[test]
+fn utc_date_known_days() {
+    assert_eq!(utc_date(0), "1970-01-01");
+    assert_eq!(utc_date(951_782_400), "2000-02-29");
+    assert_eq!(utc_date(1_793_637_359), "2026-11-02");
 }
 
 /// Ask every game window to re-fetch its snapshot (CHARACTER_HOOK's __roIdlePoll).
@@ -934,6 +1050,7 @@ struct PanelState {
     update: Option<String>,
     profiles: Vec<ProfileView>,
     nicknames: HashMap<String, String>,
+    pinned: bool,
 }
 
 #[tauri::command]
@@ -962,6 +1079,7 @@ fn get_state(app: AppHandle) -> PanelState {
             })
             .collect(),
         nicknames: profiles.nicknames.lock().unwrap().clone(),
+        pinned: app.state::<PanelLayout>().0.lock().unwrap().pinned,
     }
 }
 

@@ -383,6 +383,7 @@ async function refresh() {
   $("version").textContent = `v${state.version}`;
   $("version").title = `RO Idle Tray v${state.version} · labels update live`;
   $("login").setAttribute("aria-pressed", String(state.autostart));
+  $("pin").setAttribute("aria-pressed", String(!!state.pinned));
   const update = $("update");
   update.hidden = !state.update;
   update.textContent = state.update ? `Update to v${state.update}` : "";
@@ -450,6 +451,7 @@ list.addEventListener("dragend", () => {
 });
 
 $("login").addEventListener("click", () => invoke("set_login"));
+$("pin").addEventListener("click", (e) => invoke("set_pinned", { pinned: e.currentTarget.getAttribute("aria-pressed") !== "true" }));
 $("quit").addEventListener("click", () => invoke("quit"));
 $("add").addEventListener("click", () => invoke("add_account"));
 $("maps").addEventListener("click", () => invoke("open_atlas", { q: null }));
