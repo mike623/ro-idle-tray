@@ -176,6 +176,8 @@ struct Profiles {
     roster: Mutex<HashMap<u8, Vec<RosterChar>>>,
     /// Own-reference nicknames keyed by character name (names are unique per server).
     nicknames: Mutex<HashMap<String, String>>,
+    /// Final job each character is heading for (e.g. "超魔導師"), so the assistant knows the build direction.
+    goals: Mutex<HashMap<String, String>>,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
@@ -329,6 +331,37 @@ fn nicknames_path(app: &AppHandle) -> Option<std::path::PathBuf> {
     app.path().app_config_dir().ok().map(|d| d.join("nicknames.json"))
 }
 
+fn goals_path(app: &AppHandle) -> Option<std::path::PathBuf> {
+    app.path().app_config_dir().ok().map(|d| d.join("goals.json"))
+}
+
+fn load_map(path: Option<std::path::PathBuf>) -> HashMap<String, String> {
+    path.and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn save_map(path: Option<std::path::PathBuf>, map: &HashMap<String, String>) {
+    let Some(p) = path else { return };
+    let saved = p.parent().map_or(Ok(()), std::fs::create_dir_all)
+        .and_then(|_| std::fs::write(&p, serde_json::to_string_pretty(map).unwrap_or_default()));
+    if let Err(e) = saved {
+        eprintln!("[ro-idle-tray] cannot save {}: {e}", p.display());
+    }
+}
+
+/// Empty goal clears it. Stored only in this app (goals.json), never sent to the game.
+#[tauri::command]
+fn set_goal(app: AppHandle, name: String, goal: String) {
+    let goal: String = goal.trim().chars().filter(|c| !c.is_control()).take(20).collect();
+    let state = app.state::<Profiles>();
+    let mut map = state.goals.lock().unwrap();
+    if goal.is_empty() { map.remove(&name); } else { map.insert(name, goal); }
+    save_map(goals_path(&app), &map);
+    drop(map);
+    notify(&app);
+}
+
 fn load_nicknames(app: &AppHandle) -> HashMap<String, String> {
     nicknames_path(app)
         .and_then(|p| std::fs::read_to_string(p).ok())
@@ -422,6 +455,7 @@ pub fn run() {
             open_export_folder,
             open_atlas,
             set_nickname,
+            set_goal,
             reorder_profiles,
             set_panel_width,
             set_pinned,
@@ -438,6 +472,7 @@ pub fn run() {
                 info: Mutex::new(HashMap::new()),
                 roster: Mutex::new(HashMap::new()),
                 nicknames: Mutex::new(load_nicknames(&handle)),
+                goals: Mutex::new(load_map(goals_path(&handle))),
             });
             *handle.state::<PanelLayout>().0.lock().unwrap() = load_panel_geometry(&handle);
 
@@ -1050,6 +1085,7 @@ struct PanelState {
     update: Option<String>,
     profiles: Vec<ProfileView>,
     nicknames: HashMap<String, String>,
+    goals: HashMap<String, String>,
     pinned: bool,
 }
 
@@ -1079,6 +1115,7 @@ fn get_state(app: AppHandle) -> PanelState {
             })
             .collect(),
         nicknames: profiles.nicknames.lock().unwrap().clone(),
+        goals: profiles.goals.lock().unwrap().clone(),
         pinned: app.state::<PanelLayout>().0.lock().unwrap().pinned,
     }
 }

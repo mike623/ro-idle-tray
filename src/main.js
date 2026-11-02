@@ -8,6 +8,21 @@ const el = (tag, className, textContent = "") => Object.assign(document.createEl
 // Buttons stay disabled briefly after a start/stop click until the game confirms.
 const pending = new Map();
 let nicknames = {};
+let goals = {};
+// Final (transcendent) jobs and the classes on the way there. Novice can pick any.
+const GOALS = [
+  ["騎士領主", "劍士", "騎士"], ["聖殿十字軍", "劍士", "十字軍"],
+  ["超魔導師", "魔法師", "巫師"], ["智者", "魔法師", "賢者"],
+  ["神射手", "弓箭手", "獵人"], ["搞笑藝人", "弓箭手", "吟遊詩人"], ["冷豔舞姬", "弓箭手", "舞孃"],
+  ["神官", "服事", "祭司"], ["武術宗師", "服事", "武道家"],
+  ["神工匠", "商人", "鐵匠"], ["創造者", "商人", "鍊金術師"],
+  ["十字刺客", "盜賊", "刺客"], ["神行太保", "盜賊", "流氓"],
+  ["超級初心者"],
+];
+const goalsFor = (cls = "") => {
+  const base = cls.replace("（轉生）", "");
+  return base === "初學者" || base === "" ? GOALS.map((g) => g[0]) : GOALS.filter((g) => g.includes(base)).map((g) => g[0]);
+};
 // Don't re-render while a nickname is being typed.
 let editing = false;
 // Profile n whose detail popup is showing; survives the full re-render on every refresh.
@@ -214,7 +229,17 @@ function card(n, info, othersIdling) {
   nickBtn.classList.toggle("unset", !nick);
   nickBtn.setAttribute("aria-label", nick ? `Nickname ${nick}, click to edit` : `Add nickname for ${info.name}`);
   nickBtn.addEventListener("click", () => editNickname(nickBtn, info.name));
-  q(".cls").textContent = info.class ?? "";
+  const goal = goals[info.name];
+  q(".cls").textContent = goal && goal !== info.class ? `${info.class ?? ""} → ${goal}` : info.class ?? "";
+  const sel = q(".goal");
+  sel.append(el("option", "", "未設定"), ...goalsFor(info.class).map((g) => el("option", "", g)));
+  sel.firstChild.value = "";
+  if (goal && !goalsFor(info.class).includes(goal)) sel.append(el("option", "", goal));
+  sel.value = goal ?? "";
+  sel.setAttribute("aria-label", `Job direction for ${info.name}`);
+  sel.addEventListener("focus", () => { editing = true; });
+  sel.addEventListener("blur", () => { editing = false; });
+  sel.addEventListener("change", () => { editing = false; invoke("set_goal", { name: info.name, goal: sel.value }); });
   q(".base").textContent = info.base ?? "–";
   q(".job").textContent = info.job ?? "–";
 
@@ -356,6 +381,7 @@ async function refresh() {
   if (editing || dragging != null) return;
   const state = await invoke("get_state");
   nicknames = state.nicknames ?? {};
+  goals = state.goals ?? {};
   const list = $("list");
   const idling = state.profiles.filter((p) => p.info?.running).length;
   const scroll = list.scrollTop;

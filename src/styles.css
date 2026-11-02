@@ -292,3 +292,4 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .col-body > * { flex-shrink: 0; }
 .add-col { flex: 0 0 34px; align-self: stretch; padding: 0; font-size: 14px; }
 .col-input { font: inherit; font-size: 12px; font-weight: 700; width: 100%; min-width: 0; padding: 1px 4px; border: 1px solid var(--select); border-radius: 4px; background: var(--face); color: var(--ink-name); }
+.goal { font: inherit; font-size: 11px; height: 18px; padding: 0 2px; border: 1px solid var(--line, #8884); border-radius: 3px; background: var(--face); color: var(--text); }
