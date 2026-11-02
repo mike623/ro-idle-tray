@@ -26,6 +26,7 @@ function environment(alertInfo={unread:0,nudge:''},alertRows=[{role:'assistant',
   let finish;
   const window = {events:{},addEventListener(type,fn){this.events[type]=fn;}};
   window.top=window;
+  window.roIdleTutorial=()=>({refresh:async()=>{}});
   window.__TAURI__={core:{Channel:class {},invoke:async(cmd,args)=>{
     calls.push({cmd,args});
     if(cmd==='chat_character') return {name:serverCharacter,class:'弓箭手',base:18,hp:72,maxHp:100};

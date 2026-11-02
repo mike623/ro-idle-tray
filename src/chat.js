@@ -6,6 +6,7 @@ let busy = false;
 let loaded = false;
 let characters = [];
 let groupContext = "";
+const tutorial = window.roIdleTutorial($("chat-tutorial"),invoke);
 function error(text = "") { $("chat-error").textContent = text; $("chat-error").hidden = !text; }
 function scroll() { $("chat-messages").scrollTop = $("chat-messages").scrollHeight; }
 function card(role, text, tools = []) {
@@ -62,6 +63,7 @@ async function show(assistant) {
   if (!assistant) return;
   try {
     await roster();
+    await tutorial.refresh();
     await memory();
     if (!loaded) { render(await invoke("chat_history")); loaded = true; }
     $("chat-input").focus();

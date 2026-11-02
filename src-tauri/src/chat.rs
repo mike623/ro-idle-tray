@@ -1161,3 +1161,23 @@ pub async fn chat_alert_ack(
         now(),
     )?))
 }
+
+#[tauri::command]
+pub async fn chat_tutorial(
+    window: WebviewWindow,
+    app: AppHandle,
+    character: Option<String>,
+    enabled: Option<bool>,
+    learned: Option<String>,
+) -> Result<Value, String> {
+    let scope = window_scope(&window, &app, character.as_deref())?;
+    let lock = app.state::<ChatLock>();
+    let _guard = lock.0.try_lock().map_err(|_| "Chat is busy")?;
+    crate::tutorial::status(
+        &app.path().app_config_dir().map_err(|e| e.to_string())?,
+        scope.as_deref(),
+        enabled,
+        learned.as_deref(),
+        now(),
+    )
+}

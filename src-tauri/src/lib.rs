@@ -1,4 +1,5 @@
 mod api;
+mod tutorial;
 mod alerts;
 mod memory;
 mod storage;
@@ -491,6 +492,7 @@ pub fn run() {
             chat::chat_alerts,
             chat::chat_alert_open,
             chat::chat_alert_ack,
+            chat::chat_tutorial,
             quit
         ])
         .setup(|app| {
@@ -815,7 +817,7 @@ fn open_profile(app: &AppHandle, profile: &str, show: bool) {
         let _ = window.move_window(tauri_plugin_positioner::Position::TrayCenter);
         return;
     }
-    let script = format!("const RO_IDLE_PROFILE = {profile:?};{CHARACTER_HOOK}{}", include_str!("../../src/bubble.js"));
+    let script = format!("const RO_IDLE_PROFILE = {profile:?};{CHARACTER_HOOK}{}", format!("{}{}", include_str!("../../src/tutorial-ui.js"), include_str!("../../src/bubble.js")));
     let builder = WebviewWindowBuilder::new(
         app,
         &label,

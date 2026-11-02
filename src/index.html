@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RO Idle Tray</title>
     <link rel="stylesheet" href="styles.css" />
+    <script src="tutorial-ui.js"></script>
     <script type="module" src="main.js" defer></script>
     <script type="module" src="chat.js" defer></script>
   </head>
@@ -58,6 +59,7 @@
       <div class="list" id="list"></div>
       <section id="assistant" class="assistant" hidden aria-label="助理">
         <div class="chat-head"><span>✦ 助理</span><button type="button" class="btn" id="chat-new">新對話</button></div>
+        <div id="chat-tutorial"></div>
         <div id="chat-status" class="chat-status" aria-label="角色狀態"></div>
         <div id="chat-messages" class="chat-messages" role="log" aria-label="對話"></div>
         <div id="chat-suggestions" class="row"></div>

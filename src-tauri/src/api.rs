@@ -305,7 +305,7 @@ fn log_files(logs: &Path, name: &str, min_date: &str) -> Vec<PathBuf> {
 /// Events after `since_ms` for a character, oldest first, de-duplicated by event
 /// sequence (seq + wallMs, so a game reload that restarts seq is not mistaken for a
 /// replay). None when the character is neither in characters.json nor has logs.
-fn character_events(dir: &Path, name: &str, since_ms: u64) -> Option<Vec<Value>> {
+pub(crate) fn character_events(dir: &Path, name: &str, since_ms: u64) -> Option<Vec<Value>> {
     let logs = dir.join("logs");
     // Lines are written as they arrive; allow a day of slack for the date filter.
     let min_date = crate::utc_date((since_ms / 1000).saturating_sub(86_400));
