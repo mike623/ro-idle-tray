@@ -22,6 +22,8 @@ pub struct Row {
     message: Option<Value>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     tools: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    event_id: Option<String>,
 }
 
 fn now() -> u64 {
@@ -48,6 +50,7 @@ fn row(role: &str, text: &str, turn: u64) -> Row {
         turn,
         message: None,
         tools: vec![],
+        event_id: None,
     }
 }
 fn load(file_path: &Path) -> Result<Vec<Row>, String> {
@@ -1066,4 +1069,95 @@ pub async fn chat_memory(
         &app.path().app_config_dir().map_err(|e| e.to_string())?,
         scope.as_deref(),
     )
+}
+
+#[tauri::command]
+pub async fn chat_alerts(
+    window: WebviewWindow,
+    app: AppHandle,
+    character: Option<String>,
+) -> Result<Value, String> {
+    let name =
+        window_scope(&window, &app, character.as_deref())?.ok_or("Use a character window")?;
+    let lock = app.state::<ChatLock>();
+    let _guard = lock.0.try_lock().map_err(|_| "Chat is busy")?;
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    Ok(crate::alerts::badge(&crate::alerts::poll(
+        &dir,
+        &name,
+        now(),
+    )?))
+}
+#[derive(Serialize)]
+pub struct AlertView {
+    rows: Vec<Row>,
+    ids: Vec<String>,
+}
+#[tauri::command]
+pub async fn chat_alert_open(
+    window: WebviewWindow,
+    app: AppHandle,
+    character: Option<String>,
+) -> Result<AlertView, String> {
+    let name =
+        window_scope(&window, &app, character.as_deref())?.ok_or("Use a character window")?;
+    let lock = app.state::<ChatLock>();
+    let _guard = lock.0.try_lock().map_err(|_| "Chat is busy")?;
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    let state = crate::alerts::poll(&dir, &name, now())?;
+    let file = thread_path(&dir, Some(&name));
+    let rows = load(&file)?;
+    let mut turn = rows.iter().map(|r| r.turn).max().unwrap_or(0);
+    let mut saved = vec![];
+    for alert in &state.pending {
+        if rows
+            .iter()
+            .any(|r| r.event_id.as_deref() == Some(alert.id.as_str()))
+        {
+            continue;
+        }
+        turn += 1;
+        let mut prompt = row("user", "", turn);
+        prompt.message = Some(
+            serde_json::to_value(Message::user("請說明這個紀錄事件")).map_err(|e| e.to_string())?,
+        );
+        let mut canonical = row("assistant", "", turn);
+        canonical.message = Some(
+            serde_json::to_value(Message::assistant(&alert.explanation))
+                .map_err(|e| e.to_string())?,
+        );
+        let mut visible = row("assistant", &alert.explanation, turn);
+        visible.event_id = Some(alert.id.clone());
+        saved.extend([prompt, canonical, visible]);
+    }
+    if !saved.is_empty() {
+        append(&file, &saved)?;
+    }
+    Ok(AlertView {
+        rows: load(&file)?,
+        ids: state.pending.iter().map(|a| a.id.clone()).collect(),
+    })
+}
+
+#[tauri::command]
+pub async fn chat_alert_ack(
+    window: WebviewWindow,
+    app: AppHandle,
+    character: Option<String>,
+    ids: Vec<String>,
+) -> Result<Value, String> {
+    let name =
+        window_scope(&window, &app, character.as_deref())?.ok_or("Use a character window")?;
+    if ids.len() > 1000 || ids.iter().any(|id| id.len() > 80) {
+        return Err("Invalid alert IDs".into());
+    }
+    let lock = app.state::<ChatLock>();
+    let _guard = lock.0.try_lock().map_err(|_| "Chat is busy")?;
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    crate::alerts::acknowledge(&dir, &name, now(), &ids)?;
+    Ok(crate::alerts::badge(&crate::alerts::poll(
+        &dir,
+        &name,
+        now(),
+    )?))
 }

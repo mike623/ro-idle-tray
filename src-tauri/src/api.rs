@@ -209,9 +209,16 @@ pub(crate) fn respond(method: &str, target: &str, auth: Option<&str>, token: &st
             };
             let limit = q.get("limit").and_then(|l| l.parse().ok()).unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT);
             let since_ms = (since * 1000.0) as u64;
-            let Some(mut events) = character_events(dir, name, since_ms) else {
+            let cursor = match (q.get("afterWallMs"), q.get("afterSeq")) {
+                (None,None) => None,
+                (Some(wall),Some(seq)) => match (wall.parse::<u64>(),seq.parse::<u64>()) { (Ok(w),Ok(s)) => Some((w,s)), _ => return err(400,"afterWallMs and afterSeq must be unsigned integers") },
+                _ => return err(400,"afterWallMs and afterSeq must be provided together"),
+            };
+            let from = cursor.map_or(since_ms, |(wall,_)|wall.saturating_sub(1));
+            let Some(mut events) = character_events(dir, name, from) else {
                 return err(404, "unknown character");
             };
+            if let Some(cursor)=cursor { events.retain(|e|(e["wallMs"].as_u64().unwrap_or(0),e["seq"].as_u64().unwrap_or(0))>cursor); }
             let truncated = events.len() > limit;
             events.truncate(limit);
             (200, json!({ "character": name, "since": since, "truncated": truncated, "events": events }))

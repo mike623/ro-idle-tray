@@ -1,4 +1,5 @@
 mod api;
+mod alerts;
 mod memory;
 mod storage;
 mod knowledge;
@@ -487,6 +488,9 @@ pub fn run() {
             chat::chat_new,
             chat::chat_character,
             chat::chat_memory,
+            chat::chat_alerts,
+            chat::chat_alert_open,
+            chat::chat_alert_ack,
             quit
         ])
         .setup(|app| {
