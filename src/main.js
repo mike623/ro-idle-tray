@@ -483,6 +483,56 @@ $("add").addEventListener("click", () => invoke("add_account"));
 $("maps").addEventListener("click", () => invoke("open_atlas", { q: null }));
 $("exports").addEventListener("click", () => invoke("open_export_folder"));
 $("update").addEventListener("click", () => invoke("update_app"));
+// AI provider settings. The key is write-only here: Rust keeps it in the Keychain
+// and only reports whether one is saved.
+function aiShow(open) {
+  $("ai").hidden = !open;
+  $("list").hidden = open;
+  $("ai-open").setAttribute("aria-expanded", String(open));
+  // Board view widens the panel; settings use the normal width.
+  if (open) { invoke("set_panel_width", { width: 360 }); aiLoad(); }
+  else setView(view);
+}
+function aiFill(s) {
+  $("ai-url").value = s.baseUrl;
+  $("ai-model").value = s.model;
+  $("ai-key").value = "";
+  $("ai-key").placeholder = s.hasKey ? "•••••••• (leave blank to keep)" : "Paste key";
+  $("ai-keystate").hidden = !s.hasKey;
+}
+function aiResult(kind, text) {
+  const r = $("ai-result");
+  r.hidden = false;
+  r.className = `ai-result ${kind}`;
+  r.textContent = text;
+}
+async function aiLoad() {
+  $("ai-result").hidden = true;
+  try { aiFill(await invoke("ai_get_settings")); } catch (e) { aiResult("err", String(e)); }
+}
+async function aiSave() {
+  aiFill(await invoke("ai_save_settings", { baseUrl: $("ai-url").value, model: $("ai-model").value, apiKey: $("ai-key").value || null }));
+}
+async function aiBusy(btn, label, work) {
+  const was = btn.textContent;
+  document.querySelectorAll(".ai-btn").forEach((b) => (b.disabled = true));
+  btn.textContent = label;
+  try { await work(); } catch (e) { aiResult("err", String(e)); } finally {
+    document.querySelectorAll(".ai-btn").forEach((b) => (b.disabled = false));
+    btn.textContent = was;
+  }
+}
+$("ai-open").addEventListener("click", () => aiShow($("ai").hidden));
+$("ai-close").addEventListener("click", () => aiShow(false));
+$("ai-save").addEventListener("click", (e) => aiBusy(e.currentTarget, "Saving…", async () => { await aiSave(); aiResult("ok", "Saved"); }));
+$("ai-test").addEventListener("click", (e) => aiBusy(e.currentTarget, "Testing…", async () => {
+  await aiSave();
+  const r = await invoke("ai_test_connection");
+  const cache = r.caching == null ? "unknown (proxy reports no cache usage)" : r.caching ? "works" : "not working";
+  if (r.ok) aiResult("ok", `OK · ${r.model}\nPrompt caching: ${r.message === "OK" ? cache : r.message}`);
+  else aiResult("err", r.message);
+}));
+
 listen("state-changed", refresh);
 setInterval(refresh, 30000);
 // Tick the "Ns ago" labels every second without re-rendering rows.

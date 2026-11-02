@@ -293,3 +293,48 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .add-col { flex: 0 0 34px; align-self: stretch; padding: 0; font-size: 14px; }
 .col-input { font: inherit; font-size: 12px; font-weight: 700; width: 100%; min-width: 0; padding: 1px 4px; border: 1px solid var(--select); border-radius: 4px; background: var(--face); color: var(--ink-name); }
 .goal { font: inherit; font-size: 11px; height: 18px; padding: 0 2px; border: 1px solid var(--line, #8884); border-radius: 3px; background: var(--face); color: var(--text); }
+
+/* AI provider settings: shadcn-style card (zinc tokens), separate from the game palette. */
+.ai {
+  --z-bg: #fff; --z-fg: #09090b; --z-muted: #f4f4f5; --z-muted-fg: #71717a;
+  --z-border: #e4e4e7; --z-primary: #18181b; --z-primary-fg: #fafafa; --z-ring: #a1a1aa;
+  --z-ok: #16a34a; --z-err: #dc2626;
+  flex: 1; min-height: 0; overflow-y: auto; padding: 8px;
+  font-family: ui-sans-serif, -apple-system, "PingFang TC", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  .ai {
+    --z-bg: #09090b; --z-fg: #fafafa; --z-muted: #27272a; --z-muted-fg: #a1a1aa;
+    --z-border: #27272a; --z-primary: #fafafa; --z-primary-fg: #18181b; --z-ring: #52525b;
+    --z-ok: #4ade80; --z-err: #f87171;
+  }
+}
+.ai-card { background: var(--z-bg); color: var(--z-fg); border: 1px solid var(--z-border); border-radius: 10px; padding: 12px; display: grid; gap: 10px; box-shadow: 0 1px 3px #0000001a; }
+.ai-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.ai-title { font-size: 14px; font-weight: 600; }
+.ai-desc { font-size: 11px; color: var(--z-muted-fg); margin-top: 2px; }
+.ai-x { width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--z-muted-fg); font-size: 16px; line-height: 1; }
+.ai-x:hover { background: var(--z-muted); color: var(--z-fg); }
+.ai-field { display: grid; gap: 4px; font-size: 12px; font-weight: 500; }
+.ai-field > span { display: flex; align-items: center; gap: 6px; }
+.ai-field input {
+  height: 30px; padding: 0 9px; border: 1px solid var(--z-border); border-radius: 6px;
+  background: var(--z-bg); color: var(--z-fg); font: 12px ui-monospace, "SF Mono", Menlo, monospace;
+  user-select: text; -webkit-user-select: text;
+}
+.ai-field input::placeholder { color: var(--z-muted-fg); }
+.ai-field input:focus { outline: none; border-color: var(--z-ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--z-ring) 35%, transparent); }
+.ai-badge { font-style: normal; font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 9px; background: var(--z-muted); color: var(--z-muted-fg); }
+.ai-actions { display: flex; gap: 6px; }
+.ai-btn { height: 30px; padding: 0 12px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+.ai-btn.primary { background: var(--z-primary); color: var(--z-primary-fg); border: 1px solid var(--z-primary); }
+.ai-btn.outline { background: var(--z-bg); color: var(--z-fg); border: 1px solid var(--z-border); }
+.ai-btn.outline:hover:not(:disabled) { background: var(--z-muted); }
+.ai-btn.primary:hover:not(:disabled) { opacity: .9; }
+.ai-btn:disabled { opacity: .5; }
+.ai-btn:focus-visible, .ai-x:focus-visible { outline: 2px solid var(--z-ring); outline-offset: 1px; }
+.ai-result { font-size: 12px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; padding: 7px 9px; border-radius: 6px; border: 1px solid var(--z-border); background: var(--z-muted); user-select: text; -webkit-user-select: text; }
+.ai-result.ok { color: var(--z-ok); }
+.ai-result.err { color: var(--z-err); }
+.gear { padding: 0 6px; font-size: 13px; color: var(--btn-text); }
+.gear[aria-expanded="true"] { border-color: var(--select); color: var(--select); }
