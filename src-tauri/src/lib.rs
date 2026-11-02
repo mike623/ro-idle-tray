@@ -1,3 +1,4 @@
+mod ai;
 #[cfg(target_os = "macos")]
 mod js_dialogs;
 
@@ -426,6 +427,9 @@ pub fn run() {
             set_nickname,
             reorder_profiles,
             set_panel_width,
+            ai::ai_get_settings,
+            ai::ai_save_settings,
+            ai::ai_test_connection,
             quit
         ])
         .setup(|app| {

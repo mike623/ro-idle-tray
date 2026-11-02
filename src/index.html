@@ -16,6 +16,7 @@
         </div>
         <div class="top-side">
           <button type="button" class="icon-btn" id="update" hidden></button>
+          <button type="button" class="icon-btn gear" id="ai-open" title="AI provider settings" aria-label="AI provider settings" aria-expanded="false">⚙</button>
           <div class="view-tabs" role="tablist" aria-label="Layout">
             <button type="button" role="tab" data-view="list" title="List view" aria-label="List view">☰</button>
             <button type="button" role="tab" data-view="grid" title="Grid view" aria-label="Grid view">▦</button>
@@ -23,6 +24,31 @@
           </div>
         </div>
       </header>
+      <section class="ai" id="ai" hidden aria-label="AI provider settings">
+        <div class="ai-card">
+          <div class="ai-head">
+            <div>
+              <div class="ai-title">AI provider</div>
+              <div class="ai-desc">Anthropic Messages API, e.g. your local CLIProxyAPI.</div>
+            </div>
+            <button type="button" class="ai-x" id="ai-close" aria-label="Close settings">×</button>
+          </div>
+          <label class="ai-field"><span>Base URL</span>
+            <input id="ai-url" type="url" placeholder="http://127.0.0.1:8317" spellcheck="false" autocomplete="off" />
+          </label>
+          <label class="ai-field"><span>API key <em class="ai-badge" id="ai-keystate" hidden>Saved in Keychain</em></span>
+            <input id="ai-key" type="password" placeholder="Paste key" spellcheck="false" autocomplete="off" />
+          </label>
+          <label class="ai-field"><span>Model</span>
+            <input id="ai-model" placeholder="claude-opus-5-5" spellcheck="false" autocomplete="off" />
+          </label>
+          <div class="ai-actions">
+            <button type="button" class="ai-btn primary" id="ai-save">Save</button>
+            <button type="button" class="ai-btn outline" id="ai-test">Test connection</button>
+          </div>
+          <div class="ai-result" id="ai-result" role="status" hidden></div>
+        </div>
+      </section>
       <div class="list" id="list"></div>
       <footer class="foot">
         <button type="button" class="ghost" id="login" aria-pressed="false" title="Launch RO Idle Tray when you log in">
