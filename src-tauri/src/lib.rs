@@ -1,4 +1,5 @@
 mod api;
+mod knowledge;
 mod chat;
 mod ai;
 #[cfg(target_os = "macos")]

@@ -683,6 +683,8 @@ fn data_tools(dir: &Path, scope: Option<&str>) -> Vec<DynamicTool> {
         ("list_characters", "List signed-in characters and their real current state, goals and nicknames.", json!({"type":"object","properties":{},"additionalProperties":false})),
         ("get_character", "Read one character's live state. Never guess HP, levels, EXP or map.", json!({"type":"object","properties":{"character":{"type":"string"}},"required":["character"],"additionalProperties":false})),
         ("get_log_summary", "Read a character's battle summary: EXP/hour, damage by monster, deaths, potions, zeny and warnings.", json!({"type":"object","properties":{"character":{"type":"string"},"minutes":{"type":"integer","minimum":1,"maximum":4320}},"required":["character"],"additionalProperties":false})),
+        ("game_lookup", "Look up official monster stats, skills, elements, drops, maps/travel/spawns, or player skills by exact name/ID. Partial queries return candidates.", json!({"type":"object","properties":{"kind":{"type":"string","enum":["monsters","maps","skills"]},"query":{"type":"string"}},"required":["kind","query"],"additionalProperties":false})),
+        ("rank_maps", "Rank farming maps for named characters using their real max HP and levels. Includes raw-attack danger flags, density, EXP/HP and same-map/even-share rules. This is a heuristic, not predicted EXP/hour.", json!({"type":"object","properties":{"characters":{"type":"array","items":{"type":"string"},"minItems":1,"maxItems":12}},"required":["characters"],"additionalProperties":false})),
     ].into_iter().map(|(name, desc, schema)| {
         let dir = dir.to_path_buf();
         let scope = scope.map(str::to_string);
@@ -912,6 +914,39 @@ impl rig_agent::agent::AgentHook for ContextBudget {
 }
 
 fn read_scoped_data(dir: &Path, scope: Option<&str>, operation: &str, args: &Value) -> Value {
+    if operation == "game_lookup" {
+        return crate::knowledge::lookup(
+            args["kind"].as_str().unwrap_or(""),
+            args["query"].as_str().unwrap_or(""),
+        );
+    }
+    if operation == "rank_maps" {
+        let Some(names) = args["characters"]
+            .as_array()
+            .filter(|n| !n.is_empty() && n.len() <= 12)
+        else {
+            return json!({"error":"Choose 1–12 characters"});
+        };
+        let mut members = vec![];
+        let mut seen = std::collections::HashSet::new();
+        for name in names {
+            let Some(name) = name.as_str().filter(|n| !n.trim().is_empty()) else {
+                return json!({"error":"Invalid character name"});
+            };
+            if !seen.insert(name) {
+                return json!({"error":"Duplicate character"});
+            }
+            if scope.is_some_and(|own| own != name) {
+                return json!({"error":"This chat can only rank its own character"});
+            }
+            let state = read_data(dir, "get_character", &json!({"character":name}));
+            if state.get("error").is_some() {
+                return state;
+            }
+            members.push(state);
+        }
+        return crate::knowledge::rank(&members);
+    }
     if let Some(name) = scope {
         if operation == "list_characters" {
             return json!([read_data(dir, "get_character", &json!({"character":name}))]);
