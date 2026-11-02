@@ -249,8 +249,13 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .list.grid > :not(.prow), .list.grid > .roster, .list.grid > .empty, .list.grid > .open { grid-column: 1 / -1; }
 :is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .sum { grid-template-columns: 9px minmax(0, 1fr) 26px 26px; column-gap: 5px; padding: 5px 5px 5px 6px; }
 :is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .l1, :is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .l2 { flex-wrap: wrap; row-gap: 3px; }
-:is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .cls, :is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .ago, :is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .chev { display: none; }
-:is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .name { flex: 1 0 100%; }
+:is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .ago, :is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .chev { display: none; }
+/* Row 1: name + class; ::after forces the break; row 2: nickname + Lv. */
+:is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .name { flex: 0 1 auto; order: 1; }
+:is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .cls { flex: 1 1 0; order: 2; }
+:is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .l1::after { content: ""; flex-basis: 100%; order: 3; height: 0; margin-top: -3px; }
+:is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .nick { order: 4; }
+:is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .lvl { order: 5; }
 :is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .nick { max-width: 56px; }
 :is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .lvl { margin-left: 0; }
 :is(.list.grid, .col-body) > .prow:not(.open):not(.roster):not(.empty) .minibars { width: 100%; }
