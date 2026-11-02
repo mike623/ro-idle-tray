@@ -1,9 +1,8 @@
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicU8, Ordering};
 use tauri::{
     AppHandle, Listener, Manager, WebviewUrl, WebviewWindowBuilder, Wry,
     image::Image,
-    menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
+    menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 use tauri_plugin_positioner::WindowExt;
@@ -19,7 +18,7 @@ const CHARACTER_HOOK: &str = r#"
   const cache = {};
   const send = c => {
     if (!c || typeof c.name !== 'string' || !Number.isInteger(c.baseLv) || !Number.isInteger(c.jobLv)) return;
-    const payload = { profile: RO_IDLE_PROFILE, name: c.name, class: typeof c.job === 'string' ? c.job : '', base: c.baseLv, job: c.jobLv };
+    const payload = { profile: RO_IDLE_PROFILE, name: c.name, class: typeof c.job === 'string' ? c.job : '', base: c.baseLv, job: c.jobLv, points: Number.isInteger(c.statPoints) ? c.statPoints : 0 };
     const key = JSON.stringify(payload);
     if (key === last) return;
     last = key;
@@ -78,8 +77,10 @@ const CHARACTER_HOOK: &str = r#"
 "#;
 
 struct Profiles {
-    count: AtomicU8,
+    /// Sorted profile numbers; each maps to its own WebKit data store.
+    ids: Mutex<Vec<u8>>,
     menu: Menu<Wry>,
+    remove_menu: Submenu<Wry>,
 }
 
 #[derive(serde::Deserialize)]
@@ -90,6 +91,9 @@ struct CharacterLabel {
     class: String,
     base: u32,
     job: u32,
+    /// Unspent stat points (the game's red 尚有 N 點屬性點可分配 notice).
+    #[serde(default)]
+    points: u32,
 }
 
 // Copied from the game bundle's job table (snapshot.character.job -> display name).
@@ -147,11 +151,60 @@ fn job_names() {
     assert_eq!(job_name("new_job"), "new_job");
 }
 
-fn count_file(app: &AppHandle) -> Option<std::path::PathBuf> {
-    app.path()
-        .app_config_dir()
-        .ok()
-        .map(|d| d.join("profile-count"))
+fn parse_ids(s: &str) -> Vec<u8> {
+    let mut ids: Vec<u8> = s
+        .split(',')
+        .filter_map(|x| x.trim().parse().ok())
+        .filter(|n| *n >= 1)
+        .collect();
+    ids.sort_unstable();
+    ids.dedup();
+    ids
+}
+
+/// `profiles` holds e.g. "1,2,4". Falls back to the old `profile-count` file, then [1, 2].
+fn load_profile_ids(app: &AppHandle) -> Vec<u8> {
+    let dir = app.path().app_config_dir().ok();
+    let read = |name: &str| {
+        dir.as_ref()
+            .and_then(|d| std::fs::read_to_string(d.join(name)).ok())
+    };
+    let ids = match read("profiles") {
+        Some(s) => parse_ids(&s),
+        None => read("profile-count")
+            .and_then(|s| s.trim().parse::<u8>().ok())
+            .map(|n| (1..=n).collect())
+            .unwrap_or_default(),
+    };
+    if ids.is_empty() { vec![1, 2] } else { ids }
+}
+
+fn save_profile_ids(app: &AppHandle, ids: &[u8]) {
+    let Ok(dir) = app.path().app_config_dir() else {
+        return;
+    };
+    let list: Vec<String> = ids.iter().map(u8::to_string).collect();
+    let result = std::fs::create_dir_all(&dir)
+        .and_then(|_| std::fs::write(dir.join("profiles"), list.join(",")));
+    if let Err(e) = result {
+        eprintln!("[ro-idle-tray] cannot save profiles: {e}");
+    }
+}
+
+#[test]
+fn profile_ids_parse() {
+    assert_eq!(parse_ids("4, 1,2,2,x,0"), vec![1, 2, 4]);
+    assert!(parse_ids("").is_empty());
+}
+
+fn remove_item(app: &AppHandle, n: u8) -> tauri::Result<MenuItem<Wry>> {
+    MenuItem::with_id(
+        app,
+        format!("remove-profile-{n}"),
+        format!("Account {n}"),
+        true,
+        None::<&str>,
+    )
 }
 
 fn profile_item(app: &AppHandle, n: u8) -> tauri::Result<MenuItem<Wry>> {
@@ -167,8 +220,9 @@ fn profile_item(app: &AppHandle, n: u8) -> tauri::Result<MenuItem<Wry>> {
 /// Returns the profile number when `id` is `profile-N` and N exists.
 fn profile_number(app: &AppHandle, id: &str) -> Option<u8> {
     let n: u8 = id.strip_prefix("profile-")?.parse().ok()?;
-    let count = app.state::<Profiles>().count.load(Ordering::SeqCst);
-    (1..=count).contains(&n).then_some(n)
+    let profiles = app.state::<Profiles>();
+    let found = profiles.ids.lock().unwrap().contains(&n);
+    found.then_some(n)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -183,15 +237,13 @@ pub fn run() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             let handle = app.handle().clone();
 
-            let count = count_file(&handle)
-                .and_then(|f| std::fs::read_to_string(f).ok())
-                .and_then(|s| s.trim().parse::<u8>().ok())
-                .filter(|n| *n >= 1)
-                .unwrap_or(2);
+            let ids = load_profile_ids(&handle);
+            let remove_menu = Submenu::with_id(app, "remove-profile", "Remove Profile", true)?;
 
             let menu = Menu::new(app)?;
-            for n in 1..=count {
+            for &n in &ids {
                 menu.append(&profile_item(&handle, n)?)?;
+                remove_menu.append(&remove_item(&handle, n)?)?;
             }
             menu.append(&PredefinedMenuItem::separator(app)?)?;
             menu.append(&MenuItem::with_id(
@@ -201,6 +253,7 @@ pub fn run() {
                 true,
                 None::<&str>,
             )?)?;
+            menu.append(&remove_menu)?;
             menu.append(&CheckMenuItem::with_id(
                 app,
                 "autostart",
@@ -218,8 +271,9 @@ pub fn run() {
             )?)?;
             menu.append(&MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?)?;
             app.manage(Profiles {
-                count: AtomicU8::new(count),
+                ids: Mutex::new(ids.clone()),
                 menu: menu.clone(),
+                remove_menu,
             });
 
             let listen_handle = handle.clone();
@@ -246,13 +300,23 @@ pub fn run() {
                         data.base, data.job
                     )
                 };
+                let text = if data.points > 0 {
+                    format!("{text} · ⚠ 尚有 {} 點屬性點可分配", data.points)
+                } else {
+                    text
+                };
                 eprintln!("[ro-idle-tray] {} => {text}", data.profile);
-                let menu = &listen_handle.state::<Profiles>().menu;
-                if let Some(item) = menu
-                    .get(&data.profile)
-                    .and_then(|k| k.as_menuitem().cloned())
+                let profiles = listen_handle.state::<Profiles>();
+                let remove_id = format!("remove-{}", data.profile);
+                for item in [
+                    profiles.menu.get(&data.profile),
+                    profiles.remove_menu.get(&remove_id),
+                ]
+                .into_iter()
+                .flatten()
+                .filter_map(|k| k.as_menuitem().cloned())
                 {
-                    let _ = item.set_text(text);
+                    let _ = item.set_text(&text);
                 }
             });
 
@@ -277,6 +341,7 @@ pub fn run() {
                     "add-profile" => add_profile(app),
                     "autostart" => toggle_autostart(app),
                     "update" => install_update(app),
+                    id if id.starts_with("remove-profile-") => confirm_remove(app, id),
                     id => open_profile(app, id, true),
                 })
                 .on_tray_icon_event(|tray, event| {
@@ -286,13 +351,17 @@ pub fn run() {
                         ..
                     } = event
                     {
-                        open_profile(tray.app_handle(), "profile-1", true);
+                        let app = tray.app_handle();
+                        let first = app.state::<Profiles>().ids.lock().unwrap().first().copied();
+                        if let Some(n) = first {
+                            open_profile(app, &format!("profile-{n}"), true);
+                        }
                     }
                 })
                 .build(app)?;
             // Boot every profile hidden so it logs in, enters its first
             // character and fills the tray label without a click.
-            for n in 1..=count {
+            for n in ids {
                 open_profile(&handle, &format!("profile-{n}"), false);
             }
             let update_handle = handle.clone();
@@ -368,22 +437,102 @@ fn toggle_autostart(app: &AppHandle) {
 
 fn add_profile(app: &AppHandle) {
     let profiles = app.state::<Profiles>();
-    let n = profiles.count.load(Ordering::SeqCst);
-    let Some(next) = n.checked_add(1) else { return };
-    let Ok(item) = profile_item(app, next) else {
+    let mut ids = profiles.ids.lock().unwrap();
+    let Some(next) = ids.last().copied().unwrap_or(0).checked_add(1) else {
         return;
     };
-    if profiles.menu.insert(&item, n as usize).is_err() {
+    let (Ok(item), Ok(rm)) = (profile_item(app, next), remove_item(app, next)) else {
+        return;
+    };
+    if profiles.menu.insert(&item, ids.len()).is_err() {
         return;
     }
-    profiles.count.store(next, Ordering::SeqCst);
-    if let Some(file) = count_file(app) {
-        let _ = std::fs::create_dir_all(file.parent().unwrap());
-        if let Err(e) = std::fs::write(&file, next.to_string()) {
-            eprintln!("[ro-idle-tray] cannot save profile count: {e}");
-        }
-    }
+    let _ = profiles.remove_menu.append(&rm);
+    ids.push(next);
+    save_profile_ids(app, &ids);
+    drop(ids);
     open_profile(app, &format!("profile-{next}"), true);
+}
+
+/// Native macOS dialog via osascript (no dialog plugin). True when `ok` was clicked.
+fn dialog(message: &str, ok: &str, cancel: Option<&str>) -> bool {
+    let q = |s: &str| format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""));
+    let buttons = match cancel {
+        Some(c) => format!("{{{}, {}}} cancel button {}", q(c), q(ok), q(c)),
+        None => format!("{{{}}}", q(ok)),
+    };
+    let script = format!(
+        "display dialog {} with title \"RO Idle Tray\" buttons {buttons} default button {} with icon caution",
+        q(message),
+        q(ok)
+    );
+    std::process::Command::new("/usr/bin/osascript")
+        .arg("-e")
+        .arg(script)
+        .output()
+        .is_ok_and(|o| o.status.success())
+}
+
+fn confirm_remove(app: &AppHandle, id: &str) {
+    let Some(n) = id
+        .strip_prefix("remove-")
+        .and_then(|p| profile_number(app, p))
+    else {
+        return;
+    };
+    let profiles = app.state::<Profiles>();
+    let last = profiles.ids.lock().unwrap().len() <= 1;
+    let label = profiles
+        .menu
+        .get(&format!("profile-{n}"))
+        .and_then(|k| k.as_menuitem().cloned())
+        .and_then(|i| i.text().ok())
+        .unwrap_or_else(|| format!("Account {n}"));
+    let app = app.clone();
+    // Dialog blocks, so keep it off the main thread.
+    std::thread::spawn(move || {
+        if last {
+            dialog("You can't remove the last profile.", "OK", None);
+            return;
+        }
+        let message = format!(
+            "Remove Account {n}?\n\n{label}\n\nThis closes its window and deletes this profile's saved Google login and game data. This cannot be undone."
+        );
+        if !dialog(&message, "Remove", Some("Cancel")) {
+            return;
+        }
+        let handle = app.clone();
+        let _ = app.run_on_main_thread(move || remove_profile(&handle, n));
+    });
+}
+
+fn remove_profile(app: &AppHandle, n: u8) {
+    let id = format!("profile-{n}");
+    if let Some(window) = app.get_webview_window(&format!("game-{id}")) {
+        let _ = window.destroy();
+    }
+    let profiles = app.state::<Profiles>();
+    if let Some(item) = profiles.menu.get(&id) {
+        let _ = profiles.menu.remove(&item);
+    }
+    if let Some(item) = profiles.remove_menu.get(&format!("remove-{id}")) {
+        let _ = profiles.remove_menu.remove(&item);
+    }
+    {
+        let mut ids = profiles.ids.lock().unwrap();
+        ids.retain(|x| *x != n);
+        save_profile_ids(app, &ids);
+    }
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        // ponytail: fixed wait for the WebView to let go of its store; retry if WebKit ever reports "in use".
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        if let Err(e) =
+            tauri::async_runtime::block_on(handle.remove_data_store(profile_store_id(n)))
+        {
+            eprintln!("[ro-idle-tray] cannot delete data store for {n}: {e}");
+        }
+    });
 }
 
 /// Stable per-profile WebKit data store. Profiles 1 and 2 keep their original IDs.
