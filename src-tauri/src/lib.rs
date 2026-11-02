@@ -496,7 +496,15 @@ pub fn run() {
                     info.updated = SystemTime::now()
                         .duration_since(UNIX_EPOCH)
                         .map_or(0, |d| d.as_secs());
-                    let prev = profiles.info.lock().unwrap().insert(n, info);
+                    let prev = {
+                        let mut all = profiles.info.lock().unwrap();
+                        let prev = all.insert(n, info);
+                        // ponytail: rewrites whole file per update (~3s, few KB); fine for a handful of profiles.
+                        if let Ok(dir) = listen_handle.path().app_config_dir() {
+                            let _ = std::fs::write(dir.join("characters.json"), serde_json::to_string_pretty(&*all).unwrap_or_default());
+                        }
+                        prev
+                    };
                     // Only on a real increase for the same character, never on first sight.
                     let who = match profiles.nicknames.lock().unwrap().get(&name) {
                         Some(nick) => format!("{name}「{nick}」"),

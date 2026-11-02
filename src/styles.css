@@ -94,7 +94,7 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 @media (prefers-color-scheme: dark) { .account { box-shadow: inset 0 0 0 1px #ffffff10, 1px 2px 5px #00000066; } }
 /* Stopped while others idle: a red edge on the left. */
 .account.alert { border-left: 4px solid var(--danger); }
-.account.open { border-color: var(--select); }
+.account.open, .account.peek { border-color: var(--select); }
 
 .sum {
   display: grid;
@@ -164,8 +164,15 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .sp-bar { background-color: var(--sp); }
 .target-bar { background-color: var(--target); }
 
-/* Expanded detail. */
-.detail { padding: 6px 8px 4px; display: grid; gap: 5px; font-size: 11px; }
+/* Detail popup: floats beside the hovered card (placed by placePopup in main.js). */
+.detail {
+  position: fixed; z-index: 50; width: 230px;
+  padding: 6px 8px 4px; display: grid; gap: 5px; font-size: 11px;
+  background: linear-gradient(180deg, var(--face) 0%, var(--face-2) 100%);
+  border: 1px solid var(--select); border-radius: 5px;
+  box-shadow: inset 0 0 0 1px #ffffff80, 2px 4px 12px #001e0059;
+}
+@media (prefers-color-scheme: dark) { .detail { box-shadow: inset 0 0 0 1px #ffffff10, 2px 4px 12px #000000a0; } }
 .dgrid { display: grid; grid-template-columns: 30px minmax(0, 1fr) 92px; align-items: center; gap: 3px 6px; }
 .lbl { font-weight: 700; color: var(--text-dim); }
 .num { text-align: right; color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }

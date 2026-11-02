@@ -10,7 +10,7 @@ const pending = new Map();
 let nicknames = {};
 // Don't re-render while a nickname is being typed.
 let editing = false;
-// Profile n whose row is expanded; survives the full re-render on every refresh.
+// Profile n whose detail popup is showing; survives the full re-render on every refresh.
 let expanded = null;
 // Profile number being dragged; refresh waits while a drag is in progress.
 let dragging = null;
@@ -313,38 +313,39 @@ function card(n, info, othersIdling) {
     setTimeout(refresh, 4100);
   });
 
-  // Expand/collapse: the Lv button is the keyboard target; clicking empty row space works too.
+  // Hover (or keyboard focus) shows the detail as a floating popup beside the card.
   const lvl = q(".lvl");
   const detail = q(".detail");
-  const sum = q(".sum");
-  lvl.title = isOpen ? "Hide details" : "Show details";
+  lvl.title = "Show details";
   lvl.setAttribute("aria-label", `Base Lv ${info.base ?? "–"}, Job Lv ${info.job ?? "–"}. ${lvl.title}`);
-  const apply = (open) => {
+  const show = (open) => {
+    expanded = open ? n : expanded === n ? null : expanded;
     detail.hidden = !open;
-    section.classList.toggle("open", open);
+    section.classList.toggle("peek", open);
     lvl.setAttribute("aria-expanded", String(open));
+    if (open) requestAnimationFrame(() => placePopup(section, detail));
   };
-  apply(isOpen);
-  const toggle = () => {
-    const open = expanded !== n;
-    // Collapse any other open row in place (no re-render needed).
-    for (const other of document.querySelectorAll(".prow.open")) {
-      if (other !== section) {
-        other.classList.remove("open");
-        other.querySelector(".detail").hidden = true;
-        other.querySelector(".lvl")?.setAttribute("aria-expanded", "false");
-      }
-    }
-    expanded = open ? n : null;
-    apply(open);
-    if (open) section.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  };
-  lvl.addEventListener("click", (e) => { e.stopPropagation(); toggle(); });
-  sum.addEventListener("click", (e) => {
-    if (e.target.closest("button, input, a")) return;
-    toggle();
+  show(isOpen);
+  // Short grace period so the pointer can cross the gap into the popup (a child of the card).
+  let hideTimer;
+  section.addEventListener("mouseenter", () => { clearTimeout(hideTimer); show(true); });
+  section.addEventListener("mouseleave", () => {
+    hideTimer = setTimeout(() => { if (!section.contains(document.activeElement)) show(false); }, 150);
   });
+  section.addEventListener("focusin", () => show(true));
+  section.addEventListener("focusout", (e) => { if (!section.contains(e.relatedTarget) && !section.matches(":hover")) show(false); });
   return tpl;
+}
+
+// Fixed position escapes the scrolling column; prefer the card's right side, else left.
+function placePopup(card, pop) {
+  const r = card.getBoundingClientRect();
+  const w = pop.offsetWidth, h = pop.offsetHeight, gap = 6;
+  let left = r.right + gap;
+  if (left + w > innerWidth - 4) left = r.left - gap - w;
+  left = Math.max(4, Math.min(left, innerWidth - w - 4));
+  pop.style.left = `${left}px`;
+  pop.style.top = `${Math.max(4, Math.min(r.top, innerHeight - h - 4))}px`;
 }
 
 function setBar(node, value) {
