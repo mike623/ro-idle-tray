@@ -26,6 +26,7 @@ rig-core = { version = "=0.46.0", default-features = false }
 rig-agent = { version = "=0.46.0", default-features = false }
 rig-reqwest = { version = "=0.46.0", features = ["rustls"] }
 futures-util = "0.3"
+sha2 = "0.10"
 tokio = { version = "1", features = ["sync", "time"] }
 tauri-plugin-positioner = { version = "2.4.0", features = ["tray-icon"] }
 tauri-plugin-updater = "2"

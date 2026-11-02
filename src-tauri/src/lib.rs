@@ -65,6 +65,7 @@ const CHARACTER_HOOK: &str = r#"
       target: s.target && typeof s.target.name === 'string'
         ? { name: s.target.name, lv: num(s.target.lv), hp: num(s.target.hp), maxHp: num(s.target.maxHp) } : null,
     };
+    window.dispatchEvent(new CustomEvent("ro-idle-chat-state", {detail: payload}));
     const key = JSON.stringify(payload);
     // Remember the character in play (per-profile storage) so auto-enter picks it next launch.
     try { localStorage.setItem('roIdleTray.lastCharacter', c.name); } catch {}
@@ -73,7 +74,7 @@ const CHARACTER_HOOK: &str = r#"
     last = key;
     lastAt = Date.now();
     console.info('[ro-idle-tray] character', payload);
-    window.__TAURI_INTERNALS__?.invoke('plugin:event|emit', { event: 'ro-idle-character', payload })
+    window.__TAURI_INTERNALS__?.invoke('character_report', { data: payload })
       .catch(e => console.warn('[ro-idle-tray] emit failed', e));
   };
   const origFetch = window.fetch;
@@ -460,6 +461,7 @@ pub fn run() {
         .manage(PanelLayout(Mutex::new(PanelGeom::default())))
         .invoke_handler(tauri::generate_handler![
             get_state,
+            character_report,
             open_account,
             toggle_idle,
             enter_character,
@@ -480,6 +482,7 @@ pub fn run() {
             chat::chat_history,
             chat::chat_send,
             chat::chat_new,
+            chat::chat_character,
             quit
         ])
         .setup(|app| {
@@ -558,71 +561,7 @@ pub fn run() {
                 });
             });
 
-            let listen_handle = handle.clone();
-            app.listen("ro-idle-character", move |event| {
-                let Ok(data) = serde_json::from_str::<CharacterLabel>(event.payload()) else {
-                    eprintln!("[ro-idle-tray] bad character payload");
-                    return;
-                };
-                if profile_number(&listen_handle, &data.profile).is_none() {
-                    return;
-                }
-                let name: String = data
-                    .name
-                    .chars()
-                    .filter(|c| !c.is_control())
-                    .take(40)
-                    .collect();
-                let class = job_name(data.class.trim());
-                eprintln!(
-                    "[ro-idle-tray] {} => {name}（{class}） Base Lv{} / Job Lv{} @ {}",
-                    data.profile,
-                    data.base,
-                    data.job,
-                    data.map.as_deref().unwrap_or("?")
-                );
-                let profiles = listen_handle.state::<Profiles>();
-                if let Some(n) = profile_number(&listen_handle, &data.profile) {
-                    let mut info = data.clone();
-                    info.name = name.clone();
-                    info.class = class.clone();
-                    info.updated = SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .map_or(0, |d| d.as_secs());
-                    let prev = {
-                        let mut all = profiles.info.lock().unwrap();
-                        let prev = all.insert(n, info);
-                        // ponytail: rewrites whole file per update (~3s, few KB); fine for a handful of profiles.
-                        if let Ok(dir) = listen_handle.path().app_config_dir() {
-                            let _ = std::fs::write(dir.join("characters.json"), serde_json::to_string_pretty(&*all).unwrap_or_default());
-                        }
-                        prev
-                    };
-                    // Only on a real increase for the same character, never on first sight.
-                    let who = match profiles.nicknames.lock().unwrap().get(&name) {
-                        Some(nick) => format!("{name}「{nick}」"),
-                        None => format!("{name}（{class}）"),
-                    };
-                    if let Some(p) = prev.filter(|p| p.name == name) {
-                        let mut ups = Vec::new();
-                        if data.base > p.base {
-                            ups.push(format!("Base Lv{}", data.base));
-                        }
-                        if data.job > p.job {
-                            ups.push(format!("Job Lv{}", data.job));
-                        }
-                        if !ups.is_empty() {
-                            toast(&listen_handle, n, &format!("{who}升級！"), &ups.join(" · "));
-                        }
-                        if p.running == Some(true) && data.running == Some(false) {
-                            let at = data.map.as_deref().map_or(String::new(), |m| format!(" @ {m}"));
-                            toast(&listen_handle, n, &format!("{who}已停止掛機"), &format!("Base Lv{} / Job Lv{}{at}", data.base, data.job));
-                        }
-                    }
-                    update_title(&listen_handle, n);
-                    notify(&listen_handle);
-                }
-            });
+
 
             TrayIconBuilder::new()
                 // Sleepy Jelly, black + alpha; macOS tints template icons for light/dark bars.
@@ -868,7 +807,7 @@ fn open_profile(app: &AppHandle, profile: &str, show: bool) {
         let _ = window.move_window(tauri_plugin_positioner::Position::TrayCenter);
         return;
     }
-    let script = format!("const RO_IDLE_PROFILE = {profile:?};{CHARACTER_HOOK}");
+    let script = format!("const RO_IDLE_PROFILE = {profile:?};{CHARACTER_HOOK}{}", include_str!("../../src/bubble.js"));
     let builder = WebviewWindowBuilder::new(
         app,
         &label,
@@ -1281,4 +1220,83 @@ fn open_atlas(app: AppHandle, q: Option<String>) {
 fn open_export_folder(app: AppHandle) {
     hide_panel(&app);
     open_exports();
+}
+
+// The hosted game supplies snapshot contents; its profile identity comes from the caller.
+#[tauri::command]
+fn character_report(window: tauri::WebviewWindow, app: AppHandle, mut data: CharacterLabel) {
+    let Ok(n) = chat::game_profile(&window, &app) else {
+        return;
+    };
+    data.profile = format!("profile-{n}");
+    let listen_handle = app;
+    if profile_number(&listen_handle, &data.profile).is_none() {
+        return;
+    }
+    let name: String = data
+        .name
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(40)
+        .collect();
+    let class = job_name(data.class.trim());
+    eprintln!(
+        "[ro-idle-tray] {} => {name}（{class}） Base Lv{} / Job Lv{} @ {}",
+        data.profile,
+        data.base,
+        data.job,
+        data.map.as_deref().unwrap_or("?")
+    );
+    let profiles = listen_handle.state::<Profiles>();
+    if let Some(n) = profile_number(&listen_handle, &data.profile) {
+        let mut info = data.clone();
+        info.name = name.clone();
+        info.class = class.clone();
+        info.updated = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs());
+        let prev = {
+            let mut all = profiles.info.lock().unwrap();
+            let prev = all.insert(n, info);
+            // ponytail: rewrites whole file per update (~3s, few KB); fine for a handful of profiles.
+            if let Ok(dir) = listen_handle.path().app_config_dir() {
+                let _ = std::fs::write(
+                    dir.join("characters.json"),
+                    serde_json::to_string_pretty(&*all).unwrap_or_default(),
+                );
+            }
+            prev
+        };
+        // Only on a real increase for the same character, never on first sight.
+        let who = match profiles.nicknames.lock().unwrap().get(&name) {
+            Some(nick) => format!("{name}「{nick}」"),
+            None => format!("{name}（{class}）"),
+        };
+        if let Some(p) = prev.filter(|p| p.name == name) {
+            let mut ups = Vec::new();
+            if data.base > p.base {
+                ups.push(format!("Base Lv{}", data.base));
+            }
+            if data.job > p.job {
+                ups.push(format!("Job Lv{}", data.job));
+            }
+            if !ups.is_empty() {
+                toast(&listen_handle, n, &format!("{who}升級！"), &ups.join(" · "));
+            }
+            if p.running == Some(true) && data.running == Some(false) {
+                let at = data
+                    .map
+                    .as_deref()
+                    .map_or(String::new(), |m| format!(" @ {m}"));
+                toast(
+                    &listen_handle,
+                    n,
+                    &format!("{who}已停止掛機"),
+                    &format!("Base Lv{} / Job Lv{}{at}", data.base, data.job),
+                );
+            }
+        }
+        update_title(&listen_handle, n);
+        notify(&listen_handle);
+    }
 }

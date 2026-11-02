@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/remote-schema.json",
   "identifier": "ro-idle-remote",
-  "description": "Lets the hosted game page emit character events to the tray. Emit only.",
+  "description": "Lets the hosted game page emit character events. Custom chat commands validate the calling game window and restrict all reads to its active character.",
   "windows": ["game-*"],
   "remote": {
     "urls": ["https://ro-idle.app", "https://ro-idle.app/*"]
