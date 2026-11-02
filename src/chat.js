@@ -53,11 +53,16 @@ async function roster() {
   }
   $("chat-status").replaceChildren(...labels);
 }
+async function memory() {
+  const info = await invoke("chat_memory");
+  $("chat-memory").textContent = `已記住 ${info.count} 則${info.fact ? ` · ${info.fact}` : ""}`;
+}
 async function show(assistant) {
   showPanel(assistant ? "assistant" : "list");
   if (!assistant) return;
   try {
     await roster();
+    await memory();
     if (!loaded) { render(await invoke("chat_history")); loaded = true; }
     $("chat-input").focus();
   } catch (e) { error(String(e)); }
@@ -87,6 +92,7 @@ $("chat-form").addEventListener("submit", async (e) => {
   };
   try {
     render(await invoke("chat_send", { text, groups: groupContext, onEvent }));
+    await memory();
     $("chat-input").value = "";
   } catch (e) {
     error(String(e));

@@ -28,6 +28,7 @@ function environment() {
   window.__TAURI__={core:{Channel:class {},invoke:async(cmd,args)=>{
     calls.push({cmd,args});
     if(cmd==='chat_character') return {name:'Alice',class:'弓箭手',base:18,hp:72,maxHp:100};
+    if(cmd==='chat_memory') return {count:1,fact:'Safe farming'};
     if(cmd==='chat_history') return [{role:'assistant',text:`History for ${args.character}`}];
     if(cmd==='chat_send') return new Promise((resolve)=>{finish=resolve;});
     return [];

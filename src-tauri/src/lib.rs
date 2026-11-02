@@ -1,4 +1,6 @@
 mod api;
+mod memory;
+mod storage;
 mod knowledge;
 mod chat;
 mod ai;
@@ -484,6 +486,7 @@ pub fn run() {
             chat::chat_send,
             chat::chat_new,
             chat::chat_character,
+            chat::chat_memory,
             quit
         ])
         .setup(|app| {
