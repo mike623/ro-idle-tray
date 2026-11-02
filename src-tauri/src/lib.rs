@@ -16,7 +16,20 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 // 角色 info box renders. POST /commands replies carry it too (view.snapshot).
 const CHARACTER_HOOK: &str = r#"
 (() => {
-  let last = '', streamId = null;
+  // The game closes its live stream 5s after the page goes hidden and reopens it
+  // when visible. While the tray panel is open, Rust calls __roIdleLive(true) so
+  // hidden windows report "visible" and the game keeps its own stream running.
+  const realVis = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState').get;
+  let live = false;
+  const vis = () => (live || realVis.call(document) === 'visible' ? 'visible' : 'hidden');
+  Object.defineProperty(document, 'visibilityState', { get: vis, configurable: true });
+  Object.defineProperty(document, 'hidden', { get: () => vis() === 'hidden', configurable: true });
+  window.__roIdleLive = on => {
+    const before = vis();
+    live = !!on;
+    if (vis() !== before) document.dispatchEvent(new Event('visibilitychange'));
+  };
+  let last = '', lastAt = 0, streamId = null;
   const cache = {};
   const num = v => Number.isFinite(v) ? v : null;
   // Map and action names come from tables inside the game bundle, so read the
@@ -25,13 +38,9 @@ const CHARACTER_HOOK: &str = r#"
     const el = [...document.querySelectorAll('span')].find(e => e.textContent === label);
     return el?.nextElementSibling?.textContent?.trim() || null;
   };
-  // Defer so React has rendered this snapshot before the DOM is read.
-  let latest = null, timer = 0;
-  const send = s => {
-    latest = s;
-    clearTimeout(timer);
-    timer = setTimeout(() => flush(latest), 500);
-  };
+  // Sent straight away: hidden pages run timers seconds late. ponytail: map/action
+  // DOM text may lag one snapshot (~3s) behind; fine for a tray label.
+  const send = s => flush(s);
   const flush = s => {
     const c = s?.character, d = s?.derived || {};
     if (!c || typeof c.name !== 'string' || !Number.isInteger(c.baseLv) || !Number.isInteger(c.jobLv)) return;
@@ -49,8 +58,12 @@ const CHARACTER_HOOK: &str = r#"
         ? { name: s.target.name, lv: num(s.target.lv), hp: num(s.target.hp), maxHp: num(s.target.maxHp) } : null,
     };
     const key = JSON.stringify(payload);
-    if (key === last) return;
+    // Remember the character in play (per-profile storage) so auto-enter picks it next launch.
+    try { localStorage.setItem('roIdleTray.lastCharacter', c.name); } catch {}
+    // Re-send unchanged data after 20s so the panel's "updated" time stays honest.
+    if (key === last && Date.now() - lastAt < 20000) return;
     last = key;
+    lastAt = Date.now();
     console.info('[ro-idle-tray] character', payload);
     window.__TAURI_INTERNALS__?.invoke('plugin:event|emit', { event: 'ro-idle-character', payload })
       .catch(e => console.warn('[ro-idle-tray] emit failed', e));
@@ -82,10 +95,11 @@ const CHARACTER_HOOK: &str = r#"
       });
     }
   };
-  // Hidden windows skip the game's own visible-only refresh, so poll the same read-only URL.
-  setInterval(() => {
+  // Hidden windows skip the game's own visible-only refresh and WebKit throttles
+  // their timers, so Rust calls this on its own clock (see poll_profiles).
+  window.__roIdlePoll = () => {
     if (streamId !== null) window.fetch(`/api/characters/${streamId}?deferCatchup=1`, { credentials: 'same-origin' }).catch(() => {});
-  }, 60000);
+  };
   // Called by the tray panel: press the game's own 開始掛機 / 停止掛機 button.
   window.__roIdleToggle = () => {
     const btn = [...document.querySelectorAll('button.xp-btn.primary')]
@@ -93,22 +107,58 @@ const CHARACTER_HOOK: &str = r#"
     if (btn && !btn.disabled) btn.click();
     return !!btn;
   };
+  // Character select screen: report its rows so the panel can list them.
+  const rows = () => [...document.querySelectorAll('ul[aria-label="角色列表"] li')];
+  // Name = direct text of the row's bold line (its <span> holds （掛機中）).
+  const rowName = li => [...(li.firstElementChild?.firstElementChild?.childNodes ?? [])]
+    .filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
+  let lastRoster = '';
+  const scanRoster = () => {
+    // Row markup (game's character row): li > div > [div.font-bold "name" <span>（掛機中）</span>, div "盜賊 Lv.22 / Job 8・map", div? delete notice].
+    const chars = rows().map(li => {
+      const [head, line, note] = li.firstElementChild?.children ?? [];
+      if (!head) return null;
+      const name = rowName(li);
+      const status = [...head.querySelectorAll('span')].map(e => e.textContent.trim().replace(/^[(（]|[)）]$/g, '')).join(' ') || null;
+      const detail = [line, note].filter(Boolean).map(e => e.textContent.trim()).join(' · ');
+      return name ? { name, status, detail } : null;
+    }).filter(Boolean);
+    const key = JSON.stringify(chars);
+    if (key === lastRoster) return;
+    lastRoster = key;
+    window.__TAURI_INTERNALS__?.invoke('plugin:event|emit', { event: 'ro-idle-roster', payload: { profile: RO_IDLE_PROFILE, chars } })
+      .catch(() => {});
+  };
+  let rosterTimer = 0;
+  const rosterObs = new MutationObserver(() => { clearTimeout(rosterTimer); rosterTimer = setTimeout(scanRoster, 300); });
+  // Called by the tray panel: press 進入 on row i of the select screen.
+  window.__roIdleEnter = i => {
+    const btn = [...(rows()[i]?.querySelectorAll('button') ?? [])].find(b => b.textContent.trim() === '進入');
+    if (btn && !btn.disabled) btn.click();
+  };
   // Auto-enter the first playable character once per page load (select screen
   // is a list `ul[aria-label="角色列表"]`, each row's primary button is 進入).
   let entered = false;
   const tryEnter = () => {
     if (entered) return;
-    const btn = [...document.querySelectorAll('ul[aria-label="角色列表"] li button.xp-btn.primary')]
+    const enterBtn = li => [...li.querySelectorAll('button.xp-btn.primary')]
       .find(b => !b.disabled && b.textContent.trim() === '進入');
-    if (!btn) return;
+    const list = rows().filter(enterBtn);
+    if (!list.length) return;
+    let lastName = null;
+    try { lastName = localStorage.getItem('roIdleTray.lastCharacter'); } catch {}
+    // Last character played on this profile, else the first one.
+    const li = list.find(r => rowName(r) === lastName) ?? list[0];
     entered = true;
     obs.disconnect();
-    console.info('[ro-idle-tray] auto-enter first character');
-    btn.click();
+    console.info('[ro-idle-tray] auto-enter', rowName(li));
+    enterBtn(li).click();
   };
   const obs = new MutationObserver(tryEnter);
   const start = () => {
     obs.observe(document.documentElement, { childList: true, subtree: true });
+    rosterObs.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+    scanRoster();
     // ponytail: give up after 2 min so a later manual "switch character" isn't hijacked.
     setTimeout(() => { entered = true; obs.disconnect(); }, 120000);
     tryEnter();
@@ -118,10 +168,27 @@ const CHARACTER_HOOK: &str = r#"
 "#;
 
 struct Profiles {
-    /// Sorted profile numbers; each maps to its own WebKit data store.
+    /// Profile numbers in display order (user-sortable); each maps to its own WebKit data store.
     ids: Mutex<Vec<u8>>,
     /// Latest character data per profile, shown in the tray panel.
     info: Mutex<HashMap<u8, CharacterLabel>>,
+    /// Character select rows per profile; empty when not on that screen.
+    roster: Mutex<HashMap<u8, Vec<RosterChar>>>,
+    /// Own-reference nicknames keyed by character name (names are unique per server).
+    nicknames: Mutex<HashMap<String, String>>,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
+struct RosterChar {
+    name: String,
+    status: Option<String>,
+    detail: String,
+}
+
+#[derive(serde::Deserialize)]
+struct Roster {
+    profile: String,
+    chars: Vec<RosterChar>,
 }
 
 /// Sent by CHARACTER_HOOK; mirrors the game's 角色 info box.
@@ -230,14 +297,14 @@ fn job_names() {
     assert_eq!(job_name("new_job"), "new_job");
 }
 
+/// Keeps the saved order (it is the panel's display order), dropping duplicates.
 fn parse_ids(s: &str) -> Vec<u8> {
-    let mut ids: Vec<u8> = s
-        .split(',')
-        .filter_map(|x| x.trim().parse().ok())
-        .filter(|n| *n >= 1)
-        .collect();
-    ids.sort_unstable();
-    ids.dedup();
+    let mut ids: Vec<u8> = Vec::new();
+    for n in s.split(',').filter_map(|x| x.trim().parse::<u8>().ok()) {
+        if n >= 1 && !ids.contains(&n) {
+            ids.push(n);
+        }
+    }
     ids
 }
 
@@ -258,6 +325,39 @@ fn load_profile_ids(app: &AppHandle) -> Vec<u8> {
     if ids.is_empty() { vec![1, 2] } else { ids }
 }
 
+fn nicknames_path(app: &AppHandle) -> Option<std::path::PathBuf> {
+    app.path().app_config_dir().ok().map(|d| d.join("nicknames.json"))
+}
+
+fn load_nicknames(app: &AppHandle) -> HashMap<String, String> {
+    nicknames_path(app)
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+/// Empty nickname clears it. Stored only in this app, never sent to the game.
+#[tauri::command]
+fn set_nickname(app: AppHandle, name: String, nickname: String) {
+    let nick: String = nickname.trim().chars().filter(|c| !c.is_control()).take(30).collect();
+    let state = app.state::<Profiles>();
+    let mut map = state.nicknames.lock().unwrap();
+    if nick.is_empty() {
+        map.remove(&name);
+    } else {
+        map.insert(name, nick);
+    }
+    if let Some(p) = nicknames_path(&app) {
+        let saved = p.parent().map_or(Ok(()), std::fs::create_dir_all)
+            .and_then(|_| std::fs::write(&p, serde_json::to_string_pretty(&*map).unwrap_or_default()));
+        if let Err(e) = saved {
+            eprintln!("[ro-idle-tray] cannot save nicknames: {e}");
+        }
+    }
+    drop(map);
+    notify(&app);
+}
+
 fn save_profile_ids(app: &AppHandle, ids: &[u8]) {
     let Ok(dir) = app.path().app_config_dir() else {
         return;
@@ -272,7 +372,7 @@ fn save_profile_ids(app: &AppHandle, ids: &[u8]) {
 
 #[test]
 fn profile_ids_parse() {
-    assert_eq!(parse_ids("4, 1,2,2,x,0"), vec![1, 2, 4]);
+    assert_eq!(parse_ids("4, 1,2,2,x,0"), vec![4, 1, 2]);
     assert!(parse_ids("").is_empty());
 }
 
@@ -296,11 +396,15 @@ pub fn run() {
             get_state,
             open_account,
             toggle_idle,
+            enter_character,
             add_account,
             remove_account,
             set_login,
             update_app,
             open_export_folder,
+            open_atlas,
+            set_nickname,
+            reorder_profiles,
             quit
         ])
         .setup(|app| {
@@ -312,6 +416,32 @@ pub fn run() {
             app.manage(Profiles {
                 ids: Mutex::new(ids.clone()),
                 info: Mutex::new(HashMap::new()),
+                roster: Mutex::new(HashMap::new()),
+                nicknames: Mutex::new(load_nicknames(&handle)),
+            });
+
+            let roster_handle = handle.clone();
+            app.listen("ro-idle-roster", move |event| {
+                let Ok(r) = serde_json::from_str::<Roster>(event.payload()) else {
+                    return;
+                };
+                let Some(n) = profile_number(&roster_handle, &r.profile) else {
+                    return;
+                };
+                let clip = |t: &str, k| t.chars().filter(|c| !c.is_control()).take(k).collect::<String>();
+                let chars = r
+                    .chars
+                    .into_iter()
+                    .take(10)
+                    .map(|c| RosterChar {
+                        name: clip(&c.name, 40),
+                        status: c.status.map(|s| clip(&s, 20)),
+                        detail: clip(&c.detail, 80),
+                    })
+                    .collect::<Vec<_>>();
+                eprintln!("[ro-idle-tray] {} roster: {}", r.profile, chars.iter().map(|c| format!("{} {}", c.name, c.detail)).collect::<Vec<_>>().join(" | "));
+                roster_handle.state::<Profiles>().roster.lock().unwrap().insert(n, chars);
+                notify(&roster_handle);
             });
 
             let listen_handle = handle.clone();
@@ -347,6 +477,10 @@ pub fn run() {
                         .map_or(0, |d| d.as_secs());
                     let prev = profiles.info.lock().unwrap().insert(n, info);
                     // Only on a real increase for the same character, never on first sight.
+                    let who = match profiles.nicknames.lock().unwrap().get(&name) {
+                        Some(nick) => format!("{name}「{nick}」"),
+                        None => format!("{name}（{class}）"),
+                    };
                     if let Some(p) = prev.filter(|p| p.name == name) {
                         let mut ups = Vec::new();
                         if data.base > p.base {
@@ -356,7 +490,11 @@ pub fn run() {
                             ups.push(format!("Job Lv{}", data.job));
                         }
                         if !ups.is_empty() {
-                            toast(&format!("{name}（{class}）升級！"), &ups.join(" · "));
+                            toast(&format!("{who}升級！"), &ups.join(" · "));
+                        }
+                        if p.running == Some(true) && data.running == Some(false) {
+                            let at = data.map.as_deref().map_or(String::new(), |m| format!(" @ {m}"));
+                            toast(&format!("{who}已停止掛機"), &format!("Base Lv{} / Job Lv{}{at}", data.base, data.job));
                         }
                     }
                     notify(&listen_handle);
@@ -364,18 +502,9 @@ pub fn run() {
             });
 
             TrayIconBuilder::new()
-                .icon(Image::new_owned(
-                    vec![
-                        40, 160, 240, 255, 40, 160, 240, 255, 40, 160, 240, 255, 40, 160, 240, 255,
-                        40, 160, 240, 255, 255, 255, 255, 255, 255, 255, 255, 255, 40, 160, 240,
-                        255, 40, 160, 240, 255, 40, 160, 240, 255, 255, 255, 255, 255, 255, 255,
-                        255, 255, 40, 160, 240, 255, 40, 160, 240, 255, 40, 160, 240, 255, 40, 160,
-                        240, 255,
-                    ],
-                    4,
-                    4,
-                ))
-                .icon_as_template(false)
+                // Sleepy Jelly, black + alpha; macOS tints template icons for light/dark bars.
+                .icon(Image::from_bytes(include_bytes!("../icons/tray.png"))?)
+                .icon_as_template(true)
                 .tooltip("RO 放置仙境")
                 .on_tray_icon_event(|tray, event| {
                     tauri_plugin_positioner::on_tray_event(tray.app_handle(), &event);
@@ -398,6 +527,8 @@ pub fn run() {
                     .always_on_top(true)
                     .skip_taskbar(true)
                     .visible(false)
+                    // Tauri's file-drop handler swallows HTML5 drag events; the panel reorders by drag.
+                    .disable_drag_drop_handler()
                     .build()?;
             let blur_handle = handle.clone();
             panel.on_window_event(move |event| {
@@ -410,6 +541,11 @@ pub fn run() {
             for n in ids {
                 open_profile(&handle, &format!("profile-{n}"), false);
             }
+            let poll_handle = handle.clone();
+            std::thread::spawn(move || loop {
+                std::thread::sleep(Duration::from_secs(30));
+                poll_profiles(&poll_handle);
+            });
             let update_handle = handle.clone();
             std::thread::spawn(move || {
                 loop {
@@ -476,7 +612,7 @@ fn toggle_autostart(app: &AppHandle) {
 fn add_profile(app: &AppHandle) {
     let profiles = app.state::<Profiles>();
     let mut ids = profiles.ids.lock().unwrap();
-    let Some(next) = ids.last().copied().unwrap_or(0).checked_add(1) else {
+    let Some(next) = ids.iter().max().copied().unwrap_or(0).checked_add(1) else {
         return;
     };
     ids.push(next);
@@ -561,6 +697,7 @@ fn remove_profile(app: &AppHandle, n: u8) {
         save_profile_ids(app, &ids);
     }
     profiles.info.lock().unwrap().remove(&n);
+    profiles.roster.lock().unwrap().remove(&n);
     notify(app);
     let handle = app.clone();
     std::thread::spawn(move || {
@@ -672,6 +809,7 @@ fn hide_panel(app: &AppHandle) {
         let _ = w.hide();
         *app.state::<PanelHiddenAt>().0.lock().unwrap() = Some(Instant::now());
     }
+    set_live(app, false);
 }
 
 fn toggle_panel(app: &AppHandle) {
@@ -697,6 +835,26 @@ fn toggle_panel(app: &AppHandle) {
         let _ = w.show();
         let _ = w.set_focus();
         notify(app);
+        poll_profiles(app);
+        set_live(app, true);
+    }
+}
+
+/// Panel open: game windows act visible so the game streams live (see __roIdleLive).
+fn set_live(app: &AppHandle, on: bool) {
+    for (label, w) in app.webview_windows() {
+        if label.starts_with("game-") {
+            let _ = w.eval(format!("window.__roIdleLive && window.__roIdleLive({on})"));
+        }
+    }
+}
+
+/// Ask every game window to re-fetch its snapshot (CHARACTER_HOOK's __roIdlePoll).
+fn poll_profiles(app: &AppHandle) {
+    for (label, w) in app.webview_windows() {
+        if label.starts_with("game-") {
+            let _ = w.eval("window.__roIdlePoll && window.__roIdlePoll()");
+        }
     }
 }
 
@@ -704,6 +862,7 @@ fn toggle_panel(app: &AppHandle) {
 struct ProfileView {
     n: u8,
     info: Option<CharacterLabel>,
+    roster: Vec<RosterChar>,
 }
 
 #[derive(serde::Serialize)]
@@ -713,6 +872,7 @@ struct PanelState {
     autostart: bool,
     update: Option<String>,
     profiles: Vec<ProfileView>,
+    nicknames: HashMap<String, String>,
 }
 
 #[tauri::command]
@@ -720,6 +880,7 @@ fn get_state(app: AppHandle) -> PanelState {
     let profiles = app.state::<Profiles>();
     let ids = profiles.ids.lock().unwrap().clone();
     let info = profiles.info.lock().unwrap();
+    let roster = profiles.roster.lock().unwrap();
     let update = app
         .state::<PendingUpdate>()
         .0
@@ -736,8 +897,10 @@ fn get_state(app: AppHandle) -> PanelState {
             .map(|n| ProfileView {
                 n,
                 info: info.get(&n).cloned(),
+                roster: roster.get(&n).cloned().unwrap_or_default(),
             })
             .collect(),
+        nicknames: profiles.nicknames.lock().unwrap().clone(),
     }
 }
 
@@ -753,6 +916,31 @@ fn toggle_idle(app: AppHandle, n: u8) {
     if let Some(w) = app.get_webview_window(&format!("game-profile-{n}")) {
         let _ = w.eval("window.__roIdleToggle && window.__roIdleToggle()");
     }
+}
+
+/// Presses 進入 on row `i` of that profile's character select screen.
+#[tauri::command]
+fn enter_character(app: AppHandle, n: u8, i: usize) {
+    if let Some(w) = app.get_webview_window(&format!("game-profile-{n}")) {
+        let _ = w.eval(format!("window.__roIdleEnter && window.__roIdleEnter({i})"));
+    }
+}
+
+/// Drag-and-drop reorder from the panel. Ignored unless it's a permutation of the current ids.
+#[tauri::command]
+fn reorder_profiles(app: AppHandle, order: Vec<u8>) {
+    let profiles = app.state::<Profiles>();
+    let mut ids = profiles.ids.lock().unwrap();
+    let (mut a, mut b) = (ids.clone(), order.clone());
+    a.sort_unstable();
+    b.sort_unstable();
+    if a != b {
+        return;
+    }
+    *ids = order;
+    save_profile_ids(&app, &ids);
+    drop(ids);
+    notify(&app);
 }
 
 #[tauri::command]
@@ -812,6 +1000,25 @@ fn open_exports() {
         let _ = std::fs::create_dir_all(&dir);
         let _ = std::process::Command::new("/usr/bin/open").arg(dir).spawn();
     }
+}
+
+/// Offline map/monster atlas (src/atlas.html), optionally searching for `q`.
+#[tauri::command]
+fn open_atlas(app: AppHandle, q: Option<String>) {
+    hide_panel(&app);
+    let q = q.unwrap_or_default();
+    let q_js = serde_json::to_string(&q).unwrap_or_else(|_| "\"\"".into());
+    if let Some(w) = app.get_webview_window("atlas") {
+        let _ = w.eval(format!("window.atlasSearch && window.atlasSearch({q_js})"));
+        let _ = w.show();
+        let _ = w.set_focus();
+        return;
+    }
+    let _ = WebviewWindowBuilder::new(&app, "atlas", WebviewUrl::App("atlas.html".into()))
+        .title("RO Map Atlas")
+        .inner_size(1100.0, 800.0)
+        .initialization_script(format!("window.ATLAS_Q = {q_js};"))
+        .build();
 }
 
 #[tauri::command]

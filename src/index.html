@@ -10,72 +10,107 @@
   <body>
     <main class="panel">
       <header class="top">
-        <div>
-          <div class="title">RO 放置仙境</div>
+        <div class="top-text">
+          <div class="title">RO 放置仙境 <span class="pill" id="overall" hidden></span></div>
           <div class="dim small" id="summary">Loading…</div>
         </div>
-        <button type="button" class="icon-btn" id="update" hidden></button>
+        <div class="top-side">
+          <button type="button" class="icon-btn" id="update" hidden></button>
+          <div class="view-tabs" role="tablist" aria-label="Layout">
+            <button type="button" role="tab" data-view="list" title="List view" aria-label="List view">☰</button>
+            <button type="button" role="tab" data-view="grid" title="Grid view" aria-label="Grid view">▦</button>
+          </div>
+        </div>
       </header>
       <div class="list" id="list"></div>
       <footer class="foot">
-        <div class="dim tiny">
-          <div id="version">RO Idle Tray</div>
-          <div>Labels update live</div>
-        </div>
+        <button type="button" class="ghost" id="login" aria-pressed="false" title="Launch RO Idle Tray when you log in">
+          Start at Login <span class="switch" aria-hidden="true"><span></span></span>
+        </button>
         <div class="row">
-          <button type="button" class="ghost" id="login" aria-pressed="false">
-            Start at Login <span class="switch"><span></span></span>
-          </button>
+          <button type="button" class="btn" id="maps" title="Offline map and monster atlas">Maps</button>
           <button type="button" class="btn" id="exports" title="Open ~/Downloads/RO Idle Tray">Exports</button>
-          <button type="button" class="btn" id="quit">Quit</button>
+          <button type="button" class="btn" id="quit" title="Quit RO Idle Tray">Quit</button>
         </div>
+        <div class="dim tiny ver" id="version">RO Idle Tray</div>
       </footer>
     </main>
+
+    <!-- One compact row per signed-in profile; .detail expands inline. -->
     <template id="card">
-      <section class="account">
-        <div class="head">
-          <div class="who"><span class="name"></span><span class="dim small cls"></span></div>
-          <span class="dim small acct"></span>
-        </div>
-        <div class="card">
-          <div class="levels">
-            <div class="lv"><div class="between"><span>Base Lv.</span><b class="base"></b></div><div class="bar"><i class="base-bar"></i></div><div class="pct base-pct"></div></div>
-            <div class="lv"><div class="between"><span>Job Lv.</span><b class="job"></b></div><div class="bar"><i class="job-bar"></i></div><div class="pct job-pct"></div></div>
+      <section class="account prow">
+        <div class="sum">
+          <span class="dot" aria-hidden="true"></span>
+          <div class="l1">
+            <span class="name"></span><button type="button" class="nick" title="Nickname for your own reference (only in this app)"></button><span class="cls"></span>
+            <button type="button" class="lvl" aria-expanded="false"><span class="dim">Lv</span> <b class="base"></b><span class="dim">/</span><b class="job"></b> <span class="chev" aria-hidden="true">▾</span></button>
           </div>
-          <div class="vitals">
-            <span class="hp-label">HP</span><div class="bar thick"><i class="hp-bar"></i></div><span class="hp"></span>
-            <span class="sp-label">SP</span><div class="bar thick"><i class="sp-bar"></i></div><span class="sp"></span>
-          </div>
-          <div class="misc">
-            <div class="between"><span class="weight"></span><span class="zeny"></span></div>
-            <div class="points" hidden></div>
-          </div>
-          <div class="where">
-            <div class="between"><span class="dim">地圖</span><b class="map"></b></div>
-            <div class="between"><span class="dim">行動</span><span class="action"></span></div>
-            <div class="between"><span class="dim">目標</span><span class="target"></span></div>
-            <div class="bar thick" hidden><i class="target-bar"></i></div>
+          <div class="l2">
+            <span class="minibars" aria-hidden="true">
+              <span class="bar"><i class="hp-bar"></i></span>
+              <span class="bar"><i class="sp-bar"></i></span>
+              <span class="bar"><i class="base-bar"></i></span>
+            </span>
+            <button type="button" class="map-link" title="Show spawns in the map atlas"><span class="map"></span></button>
+            <span class="flags"></span>
+            <span class="ago"></span>
           </div>
           <button type="button" class="idle"></button>
+        </div>
+        <div class="detail" hidden>
+          <div class="dgrid">
+            <span class="lbl">Base</span><div class="bar"><i class="base-bar"></i></div><span class="num base-pct"></span>
+            <span class="lbl">Job</span><div class="bar"><i class="job-bar"></i></div><span class="num job-pct"></span>
+            <span class="lbl hp-label">HP</span><div class="bar"><i class="hp-bar"></i></div><span class="num hp"></span>
+            <span class="lbl sp-label">SP</span><div class="bar"><i class="sp-bar"></i></div><span class="num sp"></span>
+          </div>
+          <div class="kv">
+            <div class="between"><span class="weight"></span><span class="zeny"></span></div>
+            <div class="points" hidden></div>
+            <div class="between"><span class="dim">地圖</span><button type="button" class="map-link" title="Show spawns in the map atlas"><b class="map"></b></button></div>
+            <div class="between"><span class="dim">行動</span><span class="action"></span></div>
+            <div class="between"><span class="dim">目標</span><span class="target"></span></div>
+            <div class="bar target-track" hidden><i class="target-bar"></i></div>
+          </div>
           <div class="between">
-            <span class="status"><i></i><span></span></span>
+            <span class="status"><i></i><span class="ago"></span></span>
             <span class="row">
+              <span class="dim tiny-txt acct"></span>
               <button type="button" class="link remove">Remove</button>
-              <button type="button" class="btn open">Open</button>
+              <button type="button" class="btn sm open">Open</button>
             </span>
           </div>
         </div>
       </section>
     </template>
+
+    <!-- Profile parked on the character-select screen. -->
+    <template id="roster">
+      <section class="account prow roster">
+        <div class="rhead">
+          <span class="dot sel" aria-hidden="true"></span>
+          <span class="name">選擇角色</span>
+          <span class="dim tiny-txt count"></span>
+          <span class="grow"></span>
+          <span class="dim tiny-txt acct"></span>
+          <button type="button" class="link remove">Remove</button>
+          <button type="button" class="btn sm open">Open</button>
+        </div>
+        <ul class="chars"></ul>
+      </section>
+    </template>
+
+    <!-- Profile that has never signed in. -->
     <template id="empty">
-      <section class="account">
-        <div class="head"><span class="name dim">Not signed in</span><span class="dim small acct"></span></div>
-        <div class="card empty">
-          <div class="dim small">Sign in with Google once.<br />The session is kept for this profile.</div>
-          <span class="row">
-            <button type="button" class="link remove">Remove</button>
-            <button type="button" class="btn accent open">Open</button>
-          </span>
+      <section class="account prow empty">
+        <div class="rhead">
+          <span class="dot off" aria-hidden="true"></span>
+          <span class="name dim">Not signed in</span>
+          <span class="dim tiny-txt hint" title="Sign in with Google once. The session is kept for this profile.">Sign in once</span>
+          <span class="grow"></span>
+          <span class="dim tiny-txt acct"></span>
+          <button type="button" class="link remove">Remove</button>
+          <button type="button" class="btn sm accent open">Open</button>
         </div>
       </section>
     </template>
