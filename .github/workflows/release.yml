@@ -20,6 +20,21 @@ jobs:
           v=$(node -p "require('./src-tauri/tauri.conf.json').version")
           [ "$GITHUB_REF_NAME" = "v$v" ] || { echo "::error::tag $GITHUB_REF_NAME != v$v"; exit 1; }
 
+      # Release notes = the annotated tag's message (git tag -a vX -F notes.md).
+      - name: Release notes from tag
+        id: notes
+        run: |
+          {
+            echo 'body<<NOTES_EOF'
+            if [ "$GITHUB_REF_TYPE" = tag ]; then
+              git fetch --depth=1 origin "+refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+              git tag -l --format='%(contents)' "$GITHUB_REF_NAME" | sed '/^-----BEGIN PGP SIGNATURE-----/,$d'
+              echo
+            fi
+            echo 'Unsigned macOS build. First launch — right-click the app › Open.'
+            echo NOTES_EOF
+          } >> "$GITHUB_OUTPUT"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -43,7 +58,7 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: RO Idle Tray v__VERSION__
-          releaseBody: Unsigned macOS build. First launch — right-click the app › Open.
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           includeUpdaterJson: true
           args: --target universal-apple-darwin

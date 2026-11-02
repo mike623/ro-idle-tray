@@ -2964,8 +2964,11 @@ dependencies = [
 
 [[package]]
 name = "ro-idle-tray"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
+ "block2",
+ "objc2",
+ "objc2-foundation",
  "serde",
  "serde_json",
  "tauri",

@@ -1,3 +1,6 @@
+#[cfg(target_os = "macos")]
+mod js_dialogs;
+
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -355,7 +358,23 @@ fn set_nickname(app: AppHandle, name: String, nickname: String) {
         }
     }
     drop(map);
+    for n in load_profile_ids(&app) {
+        update_title(&app, n);
+    }
     notify(&app);
+}
+
+/// Window title shows the character and its tag: "RO放置仙境 — 牙曝「Wizard」".
+fn update_title(app: &AppHandle, n: u8) {
+    let Some(w) = app.get_webview_window(&format!("game-profile-{n}")) else { return };
+    let profiles = app.state::<Profiles>();
+    let who = profiles.info.lock().unwrap().get(&n).map(|i| {
+        match profiles.nicknames.lock().unwrap().get(&i.name) {
+            Some(nick) => format!("{}「{nick}」", i.name),
+            None => format!("{}（{}）", i.name, i.class),
+        }
+    });
+    let _ = w.set_title(&format!("RO放置仙境 — {}", who.unwrap_or_else(|| format!("Account {n}"))));
 }
 
 fn save_profile_ids(app: &AppHandle, ids: &[u8]) {
@@ -392,6 +411,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(PendingUpdate(Mutex::new(None)))
         .manage(PanelHiddenAt(Mutex::new(None)))
+        .manage(PanelWidth(Mutex::new(360.0)))
         .invoke_handler(tauri::generate_handler![
             get_state,
             open_account,
@@ -405,6 +425,7 @@ pub fn run() {
             open_atlas,
             set_nickname,
             reorder_profiles,
+            set_panel_width,
             quit
         ])
         .setup(|app| {
@@ -497,6 +518,7 @@ pub fn run() {
                             toast(&format!("{who}已停止掛機"), &format!("Base Lv{} / Job Lv{}{at}", data.base, data.job));
                         }
                     }
+                    update_title(&listen_handle, n);
                     notify(&listen_handle);
                 }
             });
@@ -755,6 +777,8 @@ fn open_profile(app: &AppHandle, profile: &str, show: bool) {
     });
     match builder.build() {
         Ok(window) => {
+            #[cfg(target_os = "macos")]
+            let _ = window.with_webview(|w| js_dialogs::install(w.inner()));
             let close_window = window.clone();
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -825,18 +849,47 @@ fn toggle_panel(app: &AppHandle) {
     if w.is_visible().unwrap_or(false) {
         hide_panel(app);
     } else if !just_hidden {
-        // Tall as the screen allows (below the menu bar), capped so it stays a panel.
-        if let Ok(Some(m)) = w.current_monitor() {
-            let screen_h = m.size().height as f64 / m.scale_factor();
-            let h = (screen_h - 80.0).clamp(480.0, 1100.0);
-            let _ = w.set_size(tauri::LogicalSize::new(360.0, h));
-        }
-        let _ = w.move_window(tauri_plugin_positioner::Position::TrayBottomCenter);
+        place_panel(&w, *app.state::<PanelWidth>().0.lock().unwrap());
         let _ = w.show();
         let _ = w.set_focus();
         notify(app);
         poll_profiles(app);
         set_live(app, true);
+    }
+}
+
+/// Panel width in logical px: 360 for list/grid, wider for the board view.
+struct PanelWidth(Mutex<f64>);
+
+/// Tall as the screen allows (below the menu bar), under the tray icon, kept on screen.
+fn place_panel(w: &tauri::WebviewWindow, width: f64) {
+    let Ok(Some(m)) = w.current_monitor() else { return };
+    let sf = m.scale_factor();
+    let (left, screen_w) = (m.position().x as f64 / sf, m.size().width as f64 / sf);
+    let h = (m.size().height as f64 / sf - 80.0).clamp(480.0, 1100.0);
+    let width = width.min(screen_w - 16.0);
+    let _ = w.set_size(tauri::LogicalSize::new(width, h));
+    let _ = w.move_window(tauri_plugin_positioner::Position::TrayBottomCenter);
+    // A wide board under a tray icon near the screen edge would hang off screen.
+    // Only touch the position then: a read-back right after the resize can carry a stale y.
+    if let Ok(p) = w.outer_position() {
+        let x = p.x as f64 / sf;
+        let fixed = x.clamp(left + 8.0, (left + screen_w - width - 8.0).max(left + 8.0));
+        if (fixed - x).abs() > 1.0 {
+            let _ = w.set_position(tauri::LogicalPosition::new(fixed, m.position().y as f64 / sf + 30.0));
+        }
+    }
+}
+
+#[tauri::command]
+fn set_panel_width(app: AppHandle, width: f64) {
+    let width = if width.is_finite() { width.clamp(360.0, 2400.0) } else { 360.0 };
+    let state = app.state::<PanelWidth>();
+    if std::mem::replace(&mut *state.0.lock().unwrap(), width) == width {
+        return;
+    }
+    if let Some(w) = app.get_webview_window("panel").filter(|w| w.is_visible().unwrap_or(false)) {
+        place_panel(&w, width);
     }
 }
 

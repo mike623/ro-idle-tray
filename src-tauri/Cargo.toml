@@ -1,6 +1,6 @@
 [package]
 name = "ro-idle-tray"
-version = "0.2.3"
+version = "0.2.4"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2024"
@@ -34,3 +34,8 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+block2 = "0.6"
+objc2-foundation = "0.3"

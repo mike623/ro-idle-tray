@@ -19,6 +19,7 @@
           <div class="view-tabs" role="tablist" aria-label="Layout">
             <button type="button" role="tab" data-view="list" title="List view" aria-label="List view">☰</button>
             <button type="button" role="tab" data-view="grid" title="Grid view" aria-label="Grid view">▦</button>
+            <button type="button" role="tab" data-view="board" title="Board view: drag rows between groups" aria-label="Board view">▥</button>
           </div>
         </div>
       </header>
@@ -28,6 +29,7 @@
           Start at Login <span class="switch" aria-hidden="true"><span></span></span>
         </button>
         <div class="row">
+          <button type="button" class="btn" id="add" title="Add another isolated account profile" aria-label="Add Profile">＋</button>
           <button type="button" class="btn" id="maps" title="Offline map and monster atlas">Maps</button>
           <button type="button" class="btn" id="exports" title="Open ~/Downloads/RO Idle Tray">Exports</button>
           <button type="button" class="btn" id="quit" title="Quit RO Idle Tray">Quit</button>
@@ -55,6 +57,7 @@
             <span class="flags"></span>
             <span class="ago"></span>
           </div>
+          <button type="button" class="go" title="Open game window" aria-label="Open game window">↗</button>
           <button type="button" class="idle"></button>
         </div>
         <div class="detail" hidden>

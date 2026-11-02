@@ -14,6 +14,93 @@ let editing = false;
 let expanded = null;
 // Profile number being dragged; refresh waits while a drag is in progress.
 let dragging = null;
+// "list" | "grid" | "board".
+let view = "list";
+// Board columns: [{ name, members: [n] }]. Profiles in no group show in the first column.
+// ponytail: per-machine localStorage like the view choice; move to the Rust config if groups must sync.
+let groups = [{ name: "未分組", members: [] }];
+try {
+  const g = JSON.parse(localStorage.getItem("roIdleTray.groups"));
+  if (Array.isArray(g) && g.length && g.every((x) => typeof x?.name === "string" && Array.isArray(x.members))) groups = g;
+} catch {}
+const saveGroups = () => { try { localStorage.setItem("roIdleTray.groups", JSON.stringify(groups)); } catch {} };
+
+// Inline text edit used for group names (Enter saves, Esc cancels, blur saves).
+function editInline(node, value, onSave) {
+  editing = true;
+  const input = Object.assign(document.createElement("input"), { className: "col-input", value, maxLength: 30 });
+  let done = false;
+  const finish = (save) => {
+    if (done) return;
+    done = true;
+    editing = false;
+    const v = input.value.trim();
+    if (save && v && v !== value) onSave(v);
+    refresh();
+  };
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") finish(true);
+    if (e.key === "Escape") finish(false);
+  });
+  input.addEventListener("blur", () => finish(true));
+  node.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+function column(g, gi, boxes) {
+  const col = el("section", "col");
+  col.dataset.g = gi;
+  const head = el("div", "col-head");
+  const name = Object.assign(el("button", "col-name", g.name), { type: "button", title: "Click to rename" });
+  name.addEventListener("click", () => editInline(name, g.name, (v) => { groups[gi].name = v; saveGroups(); }));
+  head.append(name, el("span", "col-count dim", String(boxes.length)));
+  if (groups.length > 1) {
+    const del = Object.assign(el("button", "link col-del", "×"), { type: "button", title: `Delete group ${g.name}; its rows move to the next group` });
+    del.setAttribute("aria-label", `Delete group ${g.name}`);
+    del.addEventListener("click", () => {
+      groups[gi === 0 ? 1 : 0].members.push(...g.members);
+      groups.splice(gi, 1);
+      saveGroups();
+      refresh();
+    });
+    head.append(del);
+  }
+  const body = el("div", "col-body");
+  body.append(...boxes);
+  col.append(head, body);
+  return col;
+}
+
+function board(boxes) {
+  const byN = new Map(boxes.map((b) => [Number(b.dataset.n), b]));
+  const placed = new Set();
+  const cols = groups.map((g) => g.members.map((n) => byN.get(n)).filter((b) => b && !placed.has(b) && placed.add(b)));
+  cols[0].push(...boxes.filter((b) => !placed.has(b)));
+  const wrap = el("div", "cols");
+  const addCol = Object.assign(el("button", "add add-col", "＋"), { type: "button", title: "Add a group" });
+  addCol.setAttribute("aria-label", "Add a group");
+  addCol.addEventListener("click", () => {
+    groups.push({ name: `群組 ${groups.length + 1}`, members: [] });
+    saveGroups();
+    refresh();
+  });
+  wrap.append(...groups.map((g, gi) => column(g, gi, cols[gi])), addCol);
+  // list padding + columns (224 + 8 gap) + add button + scrollbar room.
+  invoke("set_panel_width", { width: 60 + groups.length * 232 });
+  return wrap;
+}
+
+// Save board membership and the overall order from what's on screen.
+function saveLayout() {
+  if (view === "board") {
+    list.querySelectorAll(".col").forEach((col) => {
+      groups[Number(col.dataset.g)].members = [...col.querySelectorAll(".col-body > [data-n]")].map((x) => Number(x.dataset.n));
+    });
+    saveGroups();
+  }
+  invoke("reorder_profiles", { order: [...list.querySelectorAll("[data-n]")].map((x) => Number(x.dataset.n)) });
+}
 
 // Click a character name to copy it (e.g. to paste into game chat or trade).
 async function copyName(node, name) {
@@ -205,6 +292,10 @@ function card(n, info, othersIdling) {
   status.classList.toggle("wait", !!info.stopping);
   q(".dot").title = state;
 
+  const go = q(".go");
+  go.setAttribute("aria-label", `Open game window（${info.name}）`);
+  go.addEventListener("click", () => invoke("open_account", { n }));
+
   const idle = q(".idle");
   const waiting = (pending.get(n) ?? 0) > Date.now();
   const label = info.stopping ? "停止中・按此繼續掛機" : running ? "停止掛機" : "開始掛機";
@@ -267,20 +358,17 @@ async function refresh() {
   const list = $("list");
   const idling = state.profiles.filter((p) => p.info?.running).length;
   const scroll = list.scrollTop;
-  list.replaceChildren(...state.profiles.map((p) => {
+  const boxes = state.profiles.map((p) => {
     const frag = p.roster?.length ? rosterCard(p.n, p.roster)
       : !p.info ? emptyCard(p.n)
       : card(p.n, p.info, idling - (p.info.running ? 1 : 0) > 0);
     const box = frag.firstElementChild;
     box.dataset.n = p.n;
     box.draggable = true;
-    return frag;
-  }));
-  const add = el("button", "add", "＋ Add Profile");
-  add.type = "button";
-  add.title = "Add another isolated account profile";
-  add.addEventListener("click", () => invoke("add_account"));
-  list.append(add);
+    return box;
+  });
+  if (view === "board") list.replaceChildren(board(boxes));
+  else list.replaceChildren(...boxes);
   list.scrollTop = scroll;
 
   const signed = state.profiles.filter((p) => p.info);
@@ -301,7 +389,11 @@ async function refresh() {
 
 // List vs grid layout; remembered per machine.
 function setView(v) {
+  view = ["list", "grid", "board"].includes(v) ? v : "list";
   $("list").classList.toggle("grid", v === "grid");
+  $("list").classList.toggle("board", v === "board");
+  if (view !== "board") invoke("set_panel_width", { width: 360 });
+  refresh();
   for (const b of document.querySelectorAll("[data-view]")) b.setAttribute("aria-selected", String(b.dataset.view === v));
   try { localStorage.setItem("roIdleTray.view", v); } catch {}
 }
@@ -312,12 +404,12 @@ setView(savedView);
 
 // Drag a profile onto another to reorder; order is saved by the app.
 const list = $("list");
-const clearMarks = () => list.querySelectorAll(".drop-before, .drop-after, .dragging")
-  .forEach((x) => x.classList.remove("drop-before", "drop-after", "dragging"));
+const clearMarks = () => list.querySelectorAll(".drop-before, .drop-after, .dragging, .drop-into")
+  .forEach((x) => x.classList.remove("drop-before", "drop-after", "dragging", "drop-into"));
 const after = (box, e) => {
   const r = box.getBoundingClientRect();
-  // Half-width grid tiles sit side by side, so split them left/right; full-width rows top/bottom.
-  return r.width < list.clientWidth * 0.75 ? e.clientX > r.left + r.width / 2 : e.clientY > r.top + r.height / 2;
+  // Half-width grid tiles sit side by side, so split them left/right; rows and board cards top/bottom.
+  return view === "grid" && r.width < list.clientWidth * 0.75 ? e.clientX > r.left + r.width / 2 : e.clientY > r.top + r.height / 2;
 };
 list.addEventListener("dragstart", (e) => {
   const box = e.target.closest?.("[data-n]");
@@ -328,20 +420,27 @@ list.addEventListener("dragstart", (e) => {
   e.dataTransfer.setData("text/plain", String(dragging));
 });
 list.addEventListener("dragover", (e) => {
+  if (dragging == null) return;
   const box = e.target.closest?.("[data-n]");
-  if (dragging == null || !box || Number(box.dataset.n) === dragging) return;
+  // Board: empty space in a column drops at its end.
+  const col = !box && e.target.closest?.(".col");
+  if (!col && (!box || Number(box.dataset.n) === dragging)) return;
   e.preventDefault();
   e.dataTransfer.dropEffect = "move";
-  list.querySelectorAll(".drop-before, .drop-after").forEach((x) => x.classList.remove("drop-before", "drop-after"));
-  box.classList.add(after(box, e) ? "drop-after" : "drop-before");
+  list.querySelectorAll(".drop-before, .drop-after, .drop-into").forEach((x) => x.classList.remove("drop-before", "drop-after", "drop-into"));
+  if (col) col.classList.add("drop-into");
+  else box.classList.add(after(box, e) ? "drop-after" : "drop-before");
 });
 list.addEventListener("drop", (e) => {
-  const box = e.target.closest?.("[data-n]");
   const moved = list.querySelector(`[data-n="${dragging}"]`);
-  if (dragging == null || !box || !moved || box === moved) return;
+  if (dragging == null || !moved) return;
+  const box = e.target.closest?.("[data-n]");
+  const col = !box && e.target.closest?.(".col");
+  if (col) col.querySelector(".col-body").append(moved);
+  else if (box && box !== moved) box[after(box, e) ? "after" : "before"](moved);
+  else return;
   e.preventDefault();
-  box[after(box, e) ? "after" : "before"](moved);
-  invoke("reorder_profiles", { order: [...list.querySelectorAll("[data-n]")].map((x) => Number(x.dataset.n)) });
+  saveLayout();
 });
 list.addEventListener("dragend", () => {
   clearMarks();
@@ -351,6 +450,7 @@ list.addEventListener("dragend", () => {
 
 $("login").addEventListener("click", () => invoke("set_login"));
 $("quit").addEventListener("click", () => invoke("quit"));
+$("add").addEventListener("click", () => invoke("add_account"));
 $("maps").addEventListener("click", () => invoke("open_atlas", { q: null }));
 $("exports").addEventListener("click", () => invoke("open_export_folder"));
 $("update").addEventListener("click", () => invoke("update_app"));
