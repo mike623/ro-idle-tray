@@ -461,7 +461,9 @@ function aiShow(open) {
   $("ai").hidden = !open;
   $("list").hidden = open;
   $("ai-open").setAttribute("aria-expanded", String(open));
-  if (open) aiLoad();
+  // Board view widens the panel; settings use the normal width.
+  if (open) { invoke("set_panel_width", { width: 360 }); aiLoad(); }
+  else setView(view);
 }
 function aiFill(s) {
   $("ai-url").value = s.baseUrl;
@@ -487,9 +489,10 @@ async function aiBusy(btn, label, work) {
   const was = btn.textContent;
   document.querySelectorAll(".ai-btn").forEach((b) => (b.disabled = true));
   btn.textContent = label;
-  try { await work(); } catch (e) { aiResult("err", String(e)); }
-  document.querySelectorAll(".ai-btn").forEach((b) => (b.disabled = false));
-  btn.textContent = was;
+  try { await work(); } catch (e) { aiResult("err", String(e)); } finally {
+    document.querySelectorAll(".ai-btn").forEach((b) => (b.disabled = false));
+    btn.textContent = was;
+  }
 }
 $("ai-open").addEventListener("click", () => aiShow($("ai").hidden));
 $("ai-close").addEventListener("click", () => aiShow(false));
@@ -498,7 +501,7 @@ $("ai-test").addEventListener("click", (e) => aiBusy(e.currentTarget, "Testing�
   await aiSave();
   const r = await invoke("ai_test_connection");
   const cache = r.caching == null ? "unknown (proxy reports no cache usage)" : r.caching ? "works" : "not working";
-  if (r.ok) aiResult("ok", `OK · ${r.model}\nPrompt caching: ${cache}`);
+  if (r.ok) aiResult("ok", `OK · ${r.model}\nPrompt caching: ${r.message === "OK" ? cache : r.message}`);
   else aiResult("err", r.message);
 }));
 

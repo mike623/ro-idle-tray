@@ -16,7 +16,7 @@ const ANTHROPIC_VERSION: &str = "2023-06-01";
 const KEYCHAIN_SERVICE: &str = "com.mikewong.ro-idle-tray.ai";
 const KEYCHAIN_ACCOUNT: &str = "api-key";
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize)]
 #[serde(default)]
 pub struct AiConfig {
     pub base_url: String,
@@ -39,7 +39,7 @@ pub struct SettingsView {
 }
 
 /// Token counts from a reply. Cache fields are None when the proxy drops them.
-#[derive(Serialize, Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Usage {
     pub input_tokens: Option<u64>,
@@ -98,7 +98,7 @@ pub fn messages_url(base: &str) -> String {
 /// prefix (up to 4096 tokens), so the second identical request can hit cache.
 fn cache_probe_text() -> String {
     let mut s = String::from("You are a connection test for RO Idle Tray. Reply with the single word OK.\n");
-    for i in 0..300 {
+    for i in 0..400 {
         s.push_str(&format!("Reference line {i:04}: the quick brown fox jumps over the lazy dog.\n"));
     }
     s
@@ -160,6 +160,18 @@ pub fn redact(msg: &str, key: &str) -> String {
     if key.len() < 4 { msg.to_string() } else { msg.replace(key, "••••") }
 }
 
+/// reqwest's top-level message hides the cause ("connection refused") in source().
+fn error_chain(e: &dyn std::error::Error) -> String {
+    let mut out = e.to_string();
+    let mut cur = e.source();
+    while let Some(c) = cur {
+        out.push_str(": ");
+        out.push_str(&c.to_string());
+        cur = c.source();
+    }
+    out
+}
+
 fn clip(s: &str, n: usize) -> String {
     s.chars().filter(|c| !c.is_control() || *c == ' ').take(n).collect()
 }
@@ -215,14 +227,14 @@ fn panel_only(w: &WebviewWindow) -> Result<(), String> {
     if w.label() == "panel" { Ok(()) } else { Err("Not allowed from this window".into()) }
 }
 
-fn view(cfg: AiConfig) -> Result<SettingsView, String> {
+fn settings_view(cfg: AiConfig) -> Result<SettingsView, String> {
     Ok(SettingsView { base_url: cfg.base_url, model: cfg.model, has_key: keychain::get()?.is_some() })
 }
 
 #[tauri::command]
 pub fn ai_get_settings(window: WebviewWindow, app: AppHandle) -> Result<SettingsView, String> {
     panel_only(&window)?;
-    view(load_config(&app))
+    settings_view(load_config(&app))
 }
 
 /// `api_key` None or blank keeps the saved key.
@@ -243,7 +255,7 @@ pub fn ai_save_settings(
         keychain::set(k)?;
     }
     save_config(&app, &cfg)?;
-    view(cfg)
+    settings_view(cfg)
 }
 
 /// Uses the saved settings. Sends the same minimal request twice.
@@ -256,6 +268,8 @@ pub async fn ai_test_connection(window: WebviewWindow, app: AppHandle) -> Result
     };
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(60))
+        // Never route the key through a system/env HTTP proxy.
+        .no_proxy()
         .build()
         .map_err(|e| e.to_string())?;
     let body = test_request_body(&cfg.model).to_string();
@@ -268,7 +282,7 @@ pub async fn ai_test_connection(window: WebviewWindow, app: AppHandle) -> Result
             .body(body.clone())
             .send()
             .await
-            .map_err(|e| format!("Cannot reach {}: {e}", cfg.base_url))?;
+            .map_err(|e| format!("Cannot reach {}: {}", cfg.base_url, error_chain(&e)))?;
         let status = res.status().as_u16();
         let text = res.text().await.map_err(|e| e.to_string())?;
         parse_reply(status, &text)
@@ -278,11 +292,11 @@ pub async fn ai_test_connection(window: WebviewWindow, app: AppHandle) -> Result
         Ok(r) => r,
         Err(m) => return Ok(fail(m)),
     };
-    let caching = match send().await {
-        Ok((_, second)) => caching_verdict(&first, &second),
-        Err(_) => None,
+    let (caching, message) = match send().await {
+        Ok((_, second)) => (caching_verdict(&first, &second), "OK".to_string()),
+        Err(m) => (None, format!("cache check request failed: {}", redact(&m, &key))),
     };
-    Ok(TestReport { ok: true, model: Some(model), message: "OK".into(), caching })
+    Ok(TestReport { ok: true, model: Some(model), message, caching })
 }
 
 #[cfg(test)]
@@ -358,6 +372,12 @@ mod tests {
         assert_eq!(caching_verdict(&u(None, None), &u(None, None)), None);
         // Warm cache from an earlier test also counts.
         assert_eq!(caching_verdict(&u(Some(0), Some(4300)), &u(Some(0), Some(4300))), Some(true));
+    }
+
+    #[test]
+    fn error_chain_includes_causes() {
+        let e = std::io::Error::other("connection refused");
+        assert_eq!(error_chain(&e), "connection refused");
     }
 
     #[test]
