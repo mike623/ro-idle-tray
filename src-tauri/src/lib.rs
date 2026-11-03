@@ -1190,7 +1190,6 @@ fn get_state(app: AppHandle) -> PanelState {
 
 #[tauri::command]
 fn open_account(app: AppHandle, n: u8) {
-    hide_panel_window(&app);
     // Opening the game is going online.
     set_offline(&app, n, false);
     open_profile(&app, &format!("profile-{n}"), true);
@@ -1231,13 +1230,11 @@ fn reorder_profiles(app: AppHandle, order: Vec<u8>) {
 
 #[tauri::command]
 fn add_account(app: AppHandle) {
-    hide_panel_window(&app);
     add_profile(&app);
 }
 
 #[tauri::command]
 fn remove_account(app: AppHandle, n: u8) {
-    hide_panel_window(&app);
     confirm_remove(&app, &format!("remove-profile-{n}"));
 }
 
@@ -1291,7 +1288,6 @@ fn open_exports() {
 /// Offline map/monster atlas (src/atlas.html), optionally searching for `q`.
 #[tauri::command]
 fn open_atlas(app: AppHandle, q: Option<String>) {
-    hide_panel_window(&app);
     let q = q.unwrap_or_default();
     let q_js = serde_json::to_string(&q).unwrap_or_else(|_| "\"\"".into());
     if let Some(w) = app.get_webview_window("atlas") {
@@ -1310,7 +1306,6 @@ fn open_atlas(app: AppHandle, q: Option<String>) {
 /// Class progression chart (src/classes.html), bundled with the tray.
 #[tauri::command]
 fn open_classes(app: AppHandle) {
-    hide_panel_window(&app);
     if let Some(w) = app.get_webview_window("classes") {
         let _ = w.show();
         let _ = w.set_focus();
@@ -1323,8 +1318,7 @@ fn open_classes(app: AppHandle) {
 }
 
 #[tauri::command]
-fn open_export_folder(app: AppHandle) {
-    hide_panel_window(&app);
+fn open_export_folder() {
     open_exports();
 }
 
