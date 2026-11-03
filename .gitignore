@@ -28,3 +28,7 @@ src-tauri/target
 
 # Signing keys (never commit private keys)
 *.key
+
+# Claude Code worktrees and local state
+.claude/
+graphify-out/cache/
