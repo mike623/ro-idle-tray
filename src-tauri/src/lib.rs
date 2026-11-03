@@ -248,7 +248,7 @@ struct Profiles {
     offline: Mutex<Vec<u8>>,
     /// Subset of `offline` that auto offline closed; reopened when the panel opens.
     auto_off: Mutex<Vec<u8>>,
-    /// Last time the panel or any game window was visible.
+    /// Last time a game window was visible, or the panel was opened.
     active_at: Mutex<std::time::Instant>,
     /// Last hourly wake of offline profiles.
     woke_at: Mutex<std::time::Instant>,
@@ -1241,7 +1241,7 @@ struct PanelState {
     nicknames: HashMap<String, String>,
     goals: HashMap<String, String>,
     pinned: bool,
-    /// Seconds until auto offline closes the online profiles (counts only while nothing is visible).
+    /// Seconds until auto offline closes the online profiles (counts while no game window is open).
     auto_off_in: u64,
     /// Seconds until the hourly wake brings offline profiles back.
     wake_in: u64,
@@ -1578,7 +1578,7 @@ const AUTO_OFFLINE_AFTER: Duration = Duration::from_secs(180);
 /// settled and the panel shows fresh numbers; auto offline closes it again 3 min later.
 const WAKE_EVERY: Duration = Duration::from_secs(3600);
 
-/// Nobody looking (panel and every window hidden) for 3 min: close all online game pages.
+/// No game window open for 3 min: close all online game pages, even with the panel open.
 /// Offline earns ~97% of online EXP (e2e 2026-11-03) at no local or server cost.
 fn auto_offline_tick(app: &AppHandle) {
     let profiles = app.state::<Profiles>();
@@ -1601,7 +1601,11 @@ fn auto_offline_tick(app: &AppHandle) {
             return;
         }
     }
-    let seen = app.webview_windows().values().any(|w| w.is_visible().unwrap_or(false));
+    // Only an open game window counts as playing; the panel just watches the countdown run.
+    let seen = app
+        .webview_windows()
+        .iter()
+        .any(|(label, w)| label.starts_with("game-") && w.is_visible().unwrap_or(false));
     {
         let mut at = profiles.active_at.lock().unwrap();
         if seen {

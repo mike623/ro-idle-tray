@@ -1,7 +1,7 @@
 # Graph Report - dorado  (2026-11-03)
 
 ## Corpus Check
-- 49 files · ~71,766 words
+- 49 files · ~71,793 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 3, .icns 1, .ico 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7b9bccb9`
+- Built from commit: `29bf8ba8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

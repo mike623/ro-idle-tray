@@ -179,7 +179,7 @@ function ago(secs) {
 
 function setOfft(node) {
   const s = Math.max(0, Math.round((Number(node.dataset.until) - Date.now()) / 1000));
-  node.textContent = `${node.dataset.live ? "⏰" : "⏻"} ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  node.textContent = `${node.dataset.off ? "⏰" : "⏻"} ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
 function setAgo(node) {
@@ -430,8 +430,8 @@ async function refresh() {
     if (t) {
       // Online: time to auto offline (starts once the panel closes). Offline: time to the hourly wake.
       t.dataset.until = Date.now() + (p.offline ? state.wakeIn : state.autoOffIn) * 1000;
-      t.dataset.live = p.offline ? "1" : "";
-      t.title = p.offline ? "自動上線倒數（每小時喚醒一次）" : "關閉面板後自動離線倒數";
+      t.dataset.off = p.offline ? "1" : "";
+      t.title = p.offline ? "自動上線倒數（每小時喚醒一次）" : "自動離線倒數（開啟遊戲視窗會重新計時）";
       setOfft(t);
     }
     box.draggable = true;
@@ -779,6 +779,6 @@ setInterval(refresh, 30000);
 // Tick the "Ns ago" labels every second without re-rendering rows.
 setInterval(() => {
   document.querySelectorAll(".ago[data-updated]").forEach(setAgo);
-  document.querySelectorAll(".offt[data-live='1']").forEach(setOfft);
+  document.querySelectorAll(".offt[data-until]").forEach(setOfft);
 }, 1000);
 groupsReady.then(refresh);
