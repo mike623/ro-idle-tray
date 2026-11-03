@@ -8,7 +8,7 @@
           "get_state", "open_account", "toggle_idle", "enter_character",
           "add_account", "remove_account", "set_login", "update_app",
           "open_export_folder", "open_atlas", "open_classes", "set_nickname", "set_goal", "get_groups", "set_groups",
-          "reorder_profiles", "set_panel_width", "set_pinned", "hide_panel", "profile_menu", "recall_all", "open_guide", "open_items",
+          "reorder_profiles", "set_panel_width", "set_pinned", "hide_panel", "profile_menu", "toggle_online", "recall_all", "open_guide", "open_items",
           "ai_get_settings", "ai_save_settings", "ai_list_models", "ai_test_connection",
           "chat_history", "chat_send", "chat_new", "chat_memory", "chat_tutorial", "quit"
         ]
@@ -18,7 +18,7 @@
       "identifier": "game-commands",
       "description": "Character reports and chat; handlers validate the calling game profile.",
       "commands": {
-        "allow": ["character_report", "chat_character", "chat_history", "chat_memory", "chat_new", "chat_send", "chat_alerts", "chat_alert_open", "chat_alert_ack", "chat_tutorial"]
+        "allow": ["character_report", "chat_character", "chat_history", "chat_memory", "chat_new", "chat_send", "chat_alerts", "chat_alert_open", "chat_alert_ack", "chat_tutorial", "chat_plan", "chat_plan_set"]
       }
     },
     {

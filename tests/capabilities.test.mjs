@@ -7,7 +7,7 @@ test('game origin can report characters and use scoped chat, without tray admini
   const manifest = JSON.parse(read('permissions/app.json'));
   const remote = JSON.parse(read('capabilities/remote.json'));
   const allowed = remote.permissions.flatMap(id => manifest.permission.find(p => p.identifier === id)?.commands.allow ?? []);
-  assert.deepEqual(allowed.sort(), ['character_report', 'chat_alert_ack', 'chat_alert_open', 'chat_alerts', 'chat_character', 'chat_history', 'chat_memory', 'chat_new', 'chat_send', 'chat_tutorial']);
+  assert.deepEqual(allowed.sort(), ['character_report', 'chat_alert_ack', 'chat_alert_open', 'chat_alerts', 'chat_character', 'chat_history', 'chat_memory', 'chat_new', 'chat_plan', 'chat_plan_set', 'chat_send', 'chat_tutorial']);
   assert.deepEqual(remote.windows, ['game-*']);
   assert.deepEqual(remote.remote.urls, ['https://ro-idle.app', 'https://ro-idle.app/*']);
 });

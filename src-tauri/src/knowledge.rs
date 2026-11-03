@@ -2,7 +2,14 @@
 use serde_json::{Value, json};
 use std::sync::LazyLock;
 static DATA: LazyLock<Result<Value, String>> = LazyLock::new(|| {
-    serde_json::from_str(include_str!("../../src/game-data.json")).map_err(|e| e.to_string())
+    let mut data: Value = serde_json::from_str(include_str!("../../src/game-data.json")).map_err(|e| e.to_string())?;
+    // Items come from the item editor's file (same extraction run), keyed by ID.
+    let items: serde_json::Map<String, Value> = serde_json::from_str(include_str!("../../src/item-info.json")).map_err(|e| e.to_string())?;
+    data["items"] = items.into_iter().filter_map(|(id, mut item)| {
+        item["id"] = json!(id.parse::<u64>().ok()?);
+        Some(item)
+    }).collect();
+    Ok(data)
 });
 
 pub fn lookup(kind: &str, query: &str) -> Value {
@@ -17,7 +24,7 @@ fn lookup_in(data: &Value, kind: &str, query: &str) -> Value {
         return json!({"error":"Provide a name or ID, at most 200 UTF-8 bytes"});
     }
     let Some(records) = data[kind].as_array() else {
-        return json!({"error":"kind must be monsters, maps or skills"});
+        return json!({"error":"kind must be monsters, maps, skills or items"});
     };
     let key = query.trim().to_lowercase();
     let matches = |r: &&Value| {
@@ -178,6 +185,9 @@ mod tests {
         let skills = result["record"]["skills"].as_array().unwrap();
         assert!(skills.iter().any(|s| s["skill"] == "NPC_SLEEPATTACK"));
         assert!(skills.iter().any(|s| s["skill"] == "NPC_WATERATTACK"));
-        assert!(lookup("items", "x")["error"].is_string());
+        let potion = lookup("items", "501");
+        assert_eq!(potion["record"]["name"], "紅色藥水");
+        assert_eq!(potion["record"]["sell"], 25);
+        assert!(lookup("cards", "x")["error"].is_string());
     }
 }

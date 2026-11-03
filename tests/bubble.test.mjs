@@ -35,6 +35,8 @@ function environment(alertInfo={unread:0,nudge:''},alertRows=[{role:'assistant',
     if(cmd==='chat_alert_ack') return {unread:0,nudge:''};
     if(cmd==='chat_memory') return {count:1,fact:'Safe farming'};
     if(cmd==='chat_history') return [{role:'assistant',text:`History for ${args.character}`}];
+    if(cmd==='chat_plan') return {pages:['弓箭手技能說明','爆刺刺客培養攻略','裝備逐件保留判定'],suggested:['弓箭手技能說明'],selected:['裝備逐件保留判定'],note:''};
+    if(cmd==='chat_plan_set') return {selected:args.pages,note:args.note};
     if(cmd==='chat_send') return new Promise((resolve)=>{finish=resolve;});
     return [];
   }}};
@@ -125,4 +127,25 @@ test('replies render bold, code and tip blocks as nodes and the final 追問 lin
   const chips=kids[2];
   assert.equal(chips.className,'starters');
   assert.deepEqual(chips.children.map((c)=>c.textContent),['為什麼要這樣排？','改完幫我檢查']);
+});
+
+test('player pins guide pages and a note to the character chat',async()=>{
+  const e=environment(); await tick();
+  await e.get('pill').events.click(); await tick();
+  assert.equal(e.get('plan-btn').textContent,'📖 跟隨：裝備逐件保留判定');
+  await e.get('plan-btn').events.click(); await tick();
+  assert.equal(e.get('plan').hidden,false);
+  assert.equal(e.get('form').hidden,true);
+  const boxes=e.get('plan-list').children.filter((n)=>n.tagName==='label').map((l)=>l.children[0]);
+  assert.deepEqual([...boxes.map((b)=>b.value)],['弓箭手技能說明','爆刺刺客培養攻略','裝備逐件保留判定']);
+  assert.deepEqual([...boxes.map((b)=>b.checked)],[false,false,true]);
+  boxes[0].checked=true; e.get('plan-list').events.change({target:boxes[0]});
+  assert.equal(e.get('plan-count').textContent,'已選 2／3');
+  e.get('plan-note').value='  走 DEX  ';
+  await e.get('plan-save').events.click(); await tick();
+  const set=e.calls.find((c)=>c.cmd==='chat_plan_set');
+  assert.deepEqual(JSON.parse(JSON.stringify(set.args)),{character:'Alice',pages:['裝備逐件保留判定','弓箭手技能說明'],note:'走 DEX'});
+  assert.equal(e.get('plan').hidden,true);
+  assert.equal(e.get('form').hidden,false);
+  assert.equal(e.get('plan-btn').textContent,'📖 跟隨：裝備逐件保留判定、弓箭手技能說明、我的指示');
 });

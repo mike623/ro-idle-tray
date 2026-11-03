@@ -3,10 +3,12 @@ let previous = "list";
 export function showPanel(name) {
   if (name === "ai" && current !== "ai") previous = current;
   current = name;
-  for (const id of ["list", "assistant", "ai"]) document.getElementById(id).hidden = id !== name;
-  document.querySelector(".chat-tabs").hidden = name === "ai";
+  // The assistant floats over the character list; settings replace both.
+  document.querySelector(".stage").hidden = name === "ai";
+  document.getElementById("ai").hidden = name !== "ai";
+  document.getElementById("assistant").hidden = name !== "assistant";
+  document.getElementById("assistant-fab").hidden = name === "assistant";
+  document.getElementById("assistant-fab").setAttribute("aria-expanded", String(name === "assistant"));
   document.getElementById("ai-open").setAttribute("aria-expanded", String(name === "ai"));
-  document.getElementById("characters-tab").setAttribute("aria-pressed", String(name === "list"));
-  document.getElementById("assistant-tab").setAttribute("aria-pressed", String(name === "assistant"));
 }
 export function closeSettings() { showPanel(previous); }

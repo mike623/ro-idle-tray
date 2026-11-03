@@ -69,8 +69,9 @@ async function show(assistant) {
     $("chat-input").focus();
   } catch (e) { error(String(e)); }
 }
-$("characters-tab").addEventListener("click", () => show(false));
-$("assistant-tab").addEventListener("click", () => show(true));
+$("assistant-fab").addEventListener("click", () => show(true));
+$("chat-close").addEventListener("click", () => { show(false); $("assistant-fab").focus(); });
+$("assistant").addEventListener("keydown", (e) => { if (e.key === "Escape") { show(false); $("assistant-fab").focus(); } });
 function setBusy(value) {
   busy = value;
   $("chat-send").disabled = value;

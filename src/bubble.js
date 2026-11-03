@@ -1,7 +1,7 @@
 // Injected into each game window. Secrets and model calls belong to Rust.
 (() => {
   if (window !== window.top) return;
-  const TOOL_LABELS = {list_characters:'角色列表',get_character:'角色狀態',get_log_summary:'讀取紀錄',game_lookup:'查詢資料',rank_maps:'地圖排名',remember:'記住',update_memory:'更新記憶',forget:'忘記',recall:'回想'};
+  const TOOL_LABELS = {list_characters:'角色列表',get_character:'角色狀態',get_log_summary:'讀取紀錄',game_lookup:'查詢資料',rank_maps:'地圖排名',guide_lookup:'查詢攻略',remember:'記住',update_memory:'更新記憶',forget:'忘記',recall:'回想'};
   const STARTERS = ['為什麼剛才死亡？','最近效率如何？','下一步怎麼升級？'];
   const boot = () => {
     if (document.getElementById('ro-idle-assistant')) return;
@@ -14,7 +14,7 @@
       #box,.dock{font:13px/1.5 -apple-system,BlinkMacSystemFont,"PingFang TC",sans-serif;color:var(--fg);text-align:left}
       @media(prefers-color-scheme:dark){:host{--bg:#111114;--fg:#fafafa;--muted:#27272a;--mf:#a1a1aa;--line:#2e2e33;--pri:#fafafa;--prf:#18181b;--warn:#fbbf24}}
       *{box-sizing:border-box} [hidden]{display:none!important}
-      button,input{font:inherit;color:inherit} button{cursor:pointer;border:0;background:none;padding:0}
+      button,input,textarea{font:inherit;color:inherit} button{cursor:pointer;border:0;background:none;padding:0}
       button:focus-visible,input:focus-visible{outline:2px solid #6b8cff;outline-offset:2px} button:disabled{opacity:.5;cursor:default}
       .dock{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
       #nudge{max-width:230px;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:12px;box-shadow:0 4px 14px #0002}
@@ -49,8 +49,20 @@
       .field:focus-within{border-color:var(--mf)}
       input{flex:1;min-width:0;border:0;background:none;outline:none!important} input::placeholder{color:var(--mf)}
       #send{width:28px;height:28px;border-radius:6px;background:var(--pri);color:var(--prf);font-size:14px}
+      #plan-btn{display:block;width:100%;margin:0 0 6px;padding:2px 4px;border-radius:6px;font-size:11px;color:var(--mf);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} #plan-btn:hover{background:var(--muted);color:var(--fg)}
+      #plan{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding:12px}
+      #plan .hint{font-size:11px;color:var(--mf);margin:0}
+      #plan-q{flex:none;height:32px} #plan-q,#plan-note{width:100%;border:1px solid var(--line);border-radius:8px;background:none;padding:6px 10px;outline:none} #plan-q:focus,#plan-note:focus{border-color:var(--mf)}
+      #plan-list{flex:1;min-height:80px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px}
+      #plan-list h4{margin:6px 6px 2px;font-size:10px;font-weight:500;color:var(--mf)}
+      #plan-list label{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px;font-size:12px;cursor:pointer} #plan-list label:hover{background:var(--muted)}
+      #plan-list input{flex:none;accent-color:var(--pri)}
+      #plan .lbl{font-size:11px;font-weight:500;color:var(--mf)}
+      #plan-note{resize:none;font:inherit;font-size:12px;height:76px}
+      .pa{display:flex;align-items:center;gap:8px} #plan-count{flex:1;font-size:11px;color:var(--mf)}
+      .pa button{border:1px solid var(--line);border-radius:6px;padding:4px 12px;font-size:12px} .pa .primary{background:var(--pri);color:var(--prf);border-color:var(--pri)}
       #memory{margin-top:6px;padding:0 4px;font-size:10px;color:var(--mf);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} #memory:empty{display:none}
-    </style><section id="box" hidden aria-label="角色助理"><header><div class="av" aria-hidden="true">✦</div><div class="who"><div><span id="title">助理</span> <span id="sub"></span></div><div id="state"></div></div><span id="model" class="chip" hidden></span><button id="new" class="icon" type="button" title="新對話" aria-label="新對話">↺</button><button id="close" class="icon" type="button" title="收起" aria-label="收起助理">—</button></header><div id="tutorial"></div><div id="messages" role="log" aria-label="角色對話"></div><div id="error" role="alert" hidden></div><form><div class="field"><input aria-label="詢問角色" placeholder="問這隻角色的事…" maxlength="2000" required/><button id="send" type="submit" aria-label="送出">↑</button></div><div id="memory" aria-live="polite"></div></form></section><div class="dock"><button id="nudge" type="button" hidden></button><button id="pill" type="button" aria-expanded="false"><span class="av" aria-hidden="true">✦</span><span id="pill-label">助理</span><span id="badge" hidden></span></button></div>`;
+    </style><section id="box" hidden aria-label="角色助理"><header><div class="av" aria-hidden="true">✦</div><div class="who"><div><span id="title">助理</span> <span id="sub"></span></div><div id="state"></div></div><span id="model" class="chip" hidden></span><button id="new" class="icon" type="button" title="新對話" aria-label="新對話">↺</button><button id="close" class="icon" type="button" title="收起" aria-label="收起助理">—</button></header><div id="plan" hidden><p class="hint">勾選的攻略與指示會帶進這隻角色的每次對話。</p><input id="plan-q" type="search" placeholder="搜尋攻略…" aria-label="搜尋攻略"/><div id="plan-list" role="group" aria-label="攻略清單"></div><label class="lbl" for="plan-note">我的指示</label><textarea id="plan-note" maxlength="1000" placeholder="例：走 AGI 爆擊路線；不買超過 5 萬 zeny 的裝備"></textarea><div class="pa"><span id="plan-count"></span><button id="plan-cancel" type="button">取消</button><button id="plan-save" class="primary" type="button">儲存</button></div></div><div id="tutorial"></div><div id="messages" role="log" aria-label="角色對話"></div><div id="error" role="alert" hidden></div><form><button id="plan-btn" type="button" aria-expanded="false"></button><div class="field"><input aria-label="詢問角色" placeholder="問這隻角色的事…" maxlength="2000" required/><button id="send" type="submit" aria-label="送出">↑</button></div><div id="memory" aria-live="polite"></div></form></section><div class="dock"><button id="nudge" type="button" hidden></button><button id="pill" type="button" aria-expanded="false"><span class="av" aria-hidden="true">✦</span><span id="pill-label">助理</span><span id="badge" hidden></span></button></div>`;
     document.body.append(host);
     const $ = (id) => root.getElementById(id);
     const invoke = (cmd,args={}) => window.__TAURI__.core.invoke(cmd,args);
@@ -137,7 +149,7 @@
     const restore = async () => {
       if (!name) return;
       const current = generation;
-      try { const rows = await invoke('chat_history',{character:name}); if (current === generation) { render(rows); restored = true; await memory(); } }
+      try { const rows = await invoke('chat_history',{character:name}); if (current === generation) { render(rows); restored = true; await memory(); const saved = await invoke('chat_plan',{character:name}); if (current === generation) { plan = {...plan, ...saved}; followLine(); } } }
       catch(e) { if (current === generation) showError(e); }
     };
     const state = (info) => {
@@ -145,6 +157,7 @@
       if (name !== info.name) {
         name = info.name; generation++; restored = false; busy = false; unread = 0; nudge = ''; alertAt = 0;
         $('send').disabled = false; $('new').disabled = false; $('messages').replaceChildren(); $('memory').textContent = ''; showError(); tutorial.refresh();
+        plan = {pages:[],suggested:[],selected:[],note:''}; followLine(); if (!$('plan').hidden) showPlan(false);
       }
       pill();
       if(Date.now() - alertAt > 3000) {alertAt = Date.now(); alerts();}
@@ -172,6 +185,47 @@
         catch(e){if(current === generation) showError(e);}
       } else await open($('box').hidden);
     };
+    // Guides and a free-text note the player pins to this character's chat context.
+    const MAX_PAGES = 3; let plan = {pages:[],suggested:[],selected:[],note:''};
+    const followLine = () => {
+      const parts = [...plan.selected, plan.note ? '我的指示' : ''].filter(Boolean);
+      $('plan-btn').textContent = parts.length ? `📖 跟隨：${parts.join('、')}` : '📖 選擇要跟隨的攻略…';
+    };
+    let chosen = new Set(), boxes = [];
+    const planList = () => {
+      const q = $('plan-q').value.trim(), show = (t) => !q || t.includes(q);
+      $('plan-list').replaceChildren(); boxes = [];
+      const group = (title,items) => {
+        if (!items.length) return; $('plan-list').append(el('h4','',title));
+        for (const t of items) { const l = el('label'), c = el('input'); c.type = 'checkbox'; c.value = t; c.checked = chosen.has(t); boxes.push(c); l.append(c,el('span','',t)); $('plan-list').append(l); }
+      };
+      group('本職業',plan.suggested.filter(show)); group('全部攻略',plan.pages.filter((t)=>!plan.suggested.includes(t) && show(t)));
+      if (!$('plan-list').childElementCount) $('plan-list').append(el('h4','','沒有符合的攻略'));
+      count();
+    };
+    const count = () => {
+      $('plan-count').textContent = `已選 ${chosen.size}／${MAX_PAGES}`;
+      for (const c of boxes) c.disabled = !c.checked && chosen.size >= MAX_PAGES;
+    };
+    const showPlan = async (value) => {
+      for (const id of ['messages','tutorial','error']) $(id).hidden = value || (id === 'error' && !$('error').textContent);
+      root.querySelector('form').hidden = value; $('plan').hidden = !value;
+      $('plan-btn').setAttribute('aria-expanded',String(value));
+      if (!value) { $('plan-btn').focus(); return; }
+      try { plan = {...plan, ...(await invoke('chat_plan',{character:name}))}; } catch(e) { showError(e); }
+      chosen = new Set(plan.selected); $('plan-q').value = ''; $('plan-note').value = plan.note; planList(); $('plan-q').focus();
+    };
+    $('plan-btn').addEventListener('click',()=>showPlan($('plan').hidden));
+    $('plan-cancel').addEventListener('click',()=>showPlan(false));
+    $('plan-q').addEventListener('input',planList);
+    $('plan-list').addEventListener('change',(e)=>{ if (e.target.checked) chosen.add(e.target.value); else chosen.delete(e.target.value); count(); });
+    $('plan-save').addEventListener('click',async()=>{
+      const pages = [...chosen], note = $('plan-note').value.trim();
+      const current = generation;
+      try { const saved = await invoke('chat_plan_set',{character:name,pages,note}); if (current === generation) { plan = {...plan, ...saved}; followLine(); showPlan(false); } }
+      catch(e) { if (current === generation) showError(e); }
+    });
+    followLine();
     $('pill').addEventListener('click',onPill);
     $('nudge').addEventListener('click',onPill);
     $('close').addEventListener('click',()=>open(false));
