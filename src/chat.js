@@ -8,7 +8,6 @@ let characters = [];
 let groupContext = "";
 // null = the global assistant; a name = that character's own chat (same thread as its game bubble).
 let scope = null;
-const tutorial = window.roIdleTutorial($("chat-tutorial"),invoke);
 function error(text = "") { $("chat-error").textContent = text; $("chat-error").hidden = !text; }
 function scroll() { $("chat-messages").scrollTop = $("chat-messages").scrollHeight; }
 const TOOL_LABELS = {list_characters:"角色列表",get_character:"角色狀態",get_log_summary:"讀取紀錄",game_lookup:"查詢資料",guide_lookup:"查詢攻略",rank_maps:"地圖排名",remember:"記住",update_memory:"更新記憶",forget:"忘記",recall:"回想"};
@@ -74,6 +73,8 @@ async function roster() {
     context.pop(); groupContext = JSON.stringify(context);
   }
   $("chat-status").replaceChildren(...labels);
+  const idling = signed.filter((p) => p.info.running).length;
+  $("chat-roster-sum").textContent = `${signed.length} 角色 · ${idling} 掛機中${groups.length ? ` · ${context.length} 群組` : ""}`;
 }
 async function memory() {
   const info = await invoke("chat_memory", { character: scope });
@@ -88,11 +89,10 @@ async function show(assistant, character = null) {
   if (!assistant) return;
   $("chat-title").textContent = scope ? `✦ ${scope}` : "✦ 助理";
   $("chat-all").hidden = !scope;
-  $("chat-status").hidden = !!scope;
+  $("chat-roster").hidden = !!scope;
   $("chat-input-label").textContent = scope ? `問 ${scope} 的事` : "詢問角色近況 · @ 選擇角色";
   try {
     await roster();
-    await tutorial.refresh();
     await memory();
     if (!loaded) { render(await invoke("chat_history", { character: scope })); loaded = true; }
     $("chat-input").focus();

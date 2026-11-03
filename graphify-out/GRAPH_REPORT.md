@@ -1,17 +1,17 @@
 # Graph Report - ro-idle-tray  (2026-11-03)
 
 ## Corpus Check
-- 52 files · ~75,572 words
+- 52 files · ~75,587 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 5 file(s) not represented in the graph (top: (none) 2, .icns 1, .ico 1)
 
 ## Summary
-- 755 nodes · 1496 edges · 40 communities (30 shown, 10 thin omitted)
+- 754 nodes · 1495 edges · 39 communities (29 shown, 10 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `fa3c7122`
+- Built from commit: `2cc5aa56`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -37,7 +37,6 @@
 - atlas.rs
 - Domain Docs
 - Agent skills
-- tutorial.rs
 - triage-labels.md
 - secret.rs
 - chat.js
@@ -79,7 +78,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (40 total, 10 thin omitted)
+## Communities (39 total, 10 thin omitted)
 
 ### Community 0 - "lib.rs"
 Cohesion: 0.08
@@ -110,7 +109,7 @@ Cohesion: 0.06
 Nodes (48): ApiConfig, authorized(), BEARER, bind(), binds_loopback_and_serves_http(), character_events(), dedupes_replayed_events_by_seq(), DEFAULT_LIMIT (+40 more)
 
 ### Community 7 - "ai.rs"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (31): ai_get_settings(), ai_list_models(), ai_save_settings(), ai_test_connection(), AiConfig, ANTHROPIC_VERSION, api_key(), caching_verdict() (+23 more)
 
 ### Community 8 - "package.json"
@@ -142,8 +141,8 @@ Cohesion: 0.09
 Nodes (14): ALLOWED, CALL_TIMEOUT, CONNECT_TIMEOUT, ENDPOINT, failure(), MAX_RESULT_BYTES, raw_text(), reaches_the_hosted_server() (+6 more)
 
 ### Community 19 - "guide.rs"
-Cohesion: 0.22
-Nodes (12): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+4 more)
+Cohesion: 0.14
+Nodes (20): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+12 more)
 
 ### Community 20 - "atlas.rs"
 Cohesion: 0.16
@@ -157,20 +156,16 @@ Nodes (5): Before exploring, read these, Domain Docs, File structure, Flag ADR c
 Cohesion: 0.40
 Nodes (4): Agent skills, Domain docs, Issue tracker, Triage labels
 
-### Community 23 - "tutorial.rs"
-Cohesion: 0.16
-Nodes (15): DATA, live_game_lookup_contains_spore_sleep_water_and_attack(), lookup(), lookup_in(), rank(), rank_in(), ranking_flags_aggressive_damage_and_respects_level_limit_and_bonus(), apply() (+7 more)
-
 ### Community 25 - "secret.rs"
 Cohesion: 0.11
 Nodes (17): AI_FILE, file_path(), load(), load_named(), NONCE_LEN, rejects_tampered_or_unknown_blobs(), roundtrip_binds_to_the_machine(), SALT (+9 more)
 
 ### Community 26 - "chat.js"
-Cohesion: 0.23
-Nodes (13): card(), characters, error(), memory(), mentions, node(), render(), roster() (+5 more)
+Cohesion: 0.25
+Nodes (12): card(), characters, error(), memory(), mentions, node(), render(), roster() (+4 more)
 
 ### Community 27 - "memory.rs"
-Cohesion: 0.38
+Cohesion: 0.34
 Nodes (12): context(), edit(), footer(), index(), known(), MAX_BYTES, names(), note() (+4 more)
 
 ### Community 33 - "items.js"
@@ -190,8 +185,8 @@ Cohesion: 0.33
 Nodes (6): hide_panel(), hide_panel_window(), place_panel(), restore_panel(), set_panel_width(), toggle_panel()
 
 ### Community 37 - "guide.rs"
-Cohesion: 0.13
-Nodes (15): article_text(), BASE, BUDGET, cached(), decode(), excerpt(), fetch(), live_guide_fetches_index_and_a_page() (+7 more)
+Cohesion: 0.10
+Nodes (22): article_text(), BASE, BUDGET, cached(), decode(), excerpt(), fetch(), live_guide_fetches_index_and_a_page() (+14 more)
 
 ### Community 38 - "character_report"
 Cohesion: 0.29
@@ -203,7 +198,7 @@ Nodes (7): get_groups(), items_characters(), load_map(), load_nicknames(), nickn
 
 ## Knowledge Gaps
 - **4 isolated node(s):** `@tauri-apps/cli`, `ro-idle-tray`, `Text`, `Tool`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 276 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 275 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions

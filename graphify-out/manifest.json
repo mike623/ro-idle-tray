@@ -96,9 +96,9 @@
     "semantic_hash": ""
   },
   "src/index.html": {
-    "mtime": 1793748256.010834,
-    "seen": 1793748598.226742,
-    "ast_hash": "0309440e62506ef9fb75b7738031bdb5",
+    "mtime": 1793749317.6536374,
+    "seen": 1793749344.9478788,
+    "ast_hash": "79d2fb2683771de59ac6d28bf2ca9f2e",
     "semantic_hash": ""
   },
   "src-tauri/icons/128x128.png": {
@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "src/chat.js": {
-    "mtime": 1793748758.8370326,
-    "seen": 1793748782.891348,
-    "ast_hash": "3a86be2663b5c8f9d2b930837bc1304b",
+    "mtime": 1793749317.654137,
+    "seen": 1793749344.946841,
+    "ast_hash": "4bc8f89946ac15b68cae2503a8de76b0",
     "semantic_hash": ""
   },
   "src/move.js": {

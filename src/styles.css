@@ -408,6 +408,8 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .assistant { position: absolute; right: 10px; bottom: 10px; z-index: 6; width: min(400px, calc(100% - 20px)); height: min(600px, calc(100% - 20px)); display: flex; flex-direction: column; padding: 10px; gap: 10px; background: var(--face-2); border: 1px solid var(--edge-mid); border-radius: 10px; box-shadow: 0 12px 36px #000a; user-select: text; -webkit-user-select: text; }
 .assistant[hidden] { display: none; }
 .chat-head { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+.chat-roster summary { cursor: pointer; }
+.chat-roster[open] summary { margin-bottom: 4px; }
 .chat-status { display: flex; flex-wrap: wrap; gap: 4px; max-height: 62px; overflow: auto; }
 .chat-messages { flex: 1; min-height: 120px; overflow: auto; }
 .chat-card { border: 1px solid var(--edge-mid); border-radius: 8px; padding: 10px; margin-bottom: 8px; background: var(--face); }
