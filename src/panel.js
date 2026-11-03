@@ -7,7 +7,6 @@ export function showPanel(name) {
   document.querySelector(".stage").hidden = name === "ai";
   document.getElementById("ai").hidden = name !== "ai";
   document.getElementById("assistant").hidden = name !== "assistant";
-  document.getElementById("assistant-fab").hidden = name === "assistant";
   document.getElementById("assistant-fab").setAttribute("aria-expanded", String(name === "assistant"));
   document.getElementById("ai-open").setAttribute("aria-expanded", String(name === "ai"));
 }

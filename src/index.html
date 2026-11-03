@@ -13,7 +13,7 @@
     <main class="panel">
       <header class="top" data-tauri-drag-region>
         <div class="top-text" data-tauri-drag-region>
-          <div class="title" data-tauri-drag-region>RO 放置仙境 <span class="pill" id="overall" hidden></span></div>
+          <div class="title" data-tauri-drag-region>RO 放置仙境 <span class="ver" id="version"></span> <span class="pill" id="overall" hidden></span></div>
           <div class="dim small" id="summary" data-tauri-drag-region>Loading…</div>
         </div>
         <div class="top-side">
@@ -28,6 +28,11 @@
           <button type="button" class="icon-btn panel-hide" id="panel-hide" title="Hide panel (reopen from the menu bar)" aria-label="Hide panel">✕</button>
         </div>
       </header>
+      <div class="tiles" id="tiles" role="group" aria-label="依狀態篩選" hidden>
+        <button type="button" class="tile attn" data-filter="attention" aria-pressed="false"><b></b><span>需要注意</span></button>
+        <button type="button" class="tile idle-t" data-filter="idle" aria-pressed="false"><b></b><span>掛機中</span></button>
+        <button type="button" class="tile off-t" data-filter="offline" aria-pressed="false"><b></b><span>離線</span></button>
+      </div>
       <section class="ai" id="ai" hidden aria-label="AI provider settings">
         <div class="ai-card">
           <div class="ai-head">
@@ -89,15 +94,14 @@
       </section>
       <div class="stage">
       <div class="list" id="list"></div>
-      <button type="button" id="assistant-fab" class="fab" aria-expanded="false" aria-controls="assistant">✦ 助理</button>
       <section id="assistant" class="assistant" hidden aria-label="助理">
-        <div class="chat-head"><span>✦ 助理</span><span class="row"><button type="button" class="btn" id="chat-new">新對話</button><button type="button" class="btn" id="chat-close" title="收起" aria-label="收起助理">—</button></span></div>
+        <div class="chat-head"><span class="who"><span id="chat-title">✦ 助理</span><button type="button" class="link chat-all" id="chat-all" hidden>← 全部角色</button></span><span class="row"><button type="button" class="btn" id="chat-new">新對話</button><button type="button" class="btn" id="chat-close" title="收起" aria-label="收起助理">—</button></span></div>
         <div id="chat-tutorial"></div>
         <div id="chat-status" class="chat-status" aria-label="角色狀態"></div>
         <div id="chat-messages" class="chat-messages" role="log" aria-label="對話"></div>
         <div id="chat-suggestions" class="row"></div>
         <form id="chat-form">
-          <label for="chat-input" class="dim">詢問角色近況 · @ 選擇角色</label>
+          <label for="chat-input" class="dim" id="chat-input-label">詢問角色近況 · @ 選擇角色</label>
           <input id="chat-input" placeholder="今晚怎麼排？" maxlength="2000" autocomplete="off" required />
             <button type="submit" class="btn" id="chat-send">送出</button>
         </form>
@@ -119,7 +123,7 @@
           <button type="button" class="btn" id="exports" title="Open ~/Downloads/RO Idle Tray">Exports</button>
           <button type="button" class="btn" id="quit" title="Quit RO Idle Tray">Quit</button>
         </div>
-        <div class="dim tiny ver" id="version">RO Idle Tray</div>
+        <button type="button" id="assistant-fab" class="fab" aria-expanded="false" aria-controls="assistant">✦ 助理</button>
       </footer>
     </main>
 
@@ -129,7 +133,7 @@
         <div class="sum">
           <button type="button" class="dot"></button>
           <div class="l1">
-            <span class="name"></span><button type="button" class="nick" title="Nickname for your own reference (only in this app)"></button><span class="cls"></span>
+            <span class="name"></span><button type="button" class="nick" title="Nickname for your own reference (only in this app)"></button><span class="cls"></span><span class="why" hidden></span>
             <button type="button" class="lvl" aria-expanded="false"><span class="dim">Lv</span> <b class="base"></b><span class="dim">/</span><b class="job"></b> <span class="chev" aria-hidden="true">▾</span></button>
           </div>
           <div class="l2">
@@ -142,6 +146,7 @@
             <span class="flags"></span>
             <span class="ago"></span>
           </div>
+          <button type="button" class="ask" title="問這隻角色的助理">✦</button>
           <button type="button" class="go" title="Open game window" aria-label="Open game window">↗</button>
           <button type="button" class="idle"></button>
           <span class="offt"></span>

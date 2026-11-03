@@ -1,4 +1,5 @@
 import { showPanel, closeSettings } from "./panel.js";
+import { overview, shown } from "./compact.js";
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
@@ -35,6 +36,10 @@ let expanded = null;
 let dragging = null;
 // "list" | "grid" | "board".
 let view = "list";
+// List view's status filter: "all" | "attention" | "idle" | "offline".
+let filter = "all";
+// Profile order from the last refresh, so saving never drops rows that are not on screen.
+let lastOrder = [];
 // Board columns: [{ name, members: [n] }]. Profiles in no group show in the first column.
 // Saved in groups.json by the tray (localStorage is per origin, and `tauri dev` changes
 // the origin's port every run). Old localStorage groups are migrated on first load.
@@ -72,7 +77,7 @@ function editInline(node, value, onSave) {
   input.select();
 }
 
-function column(g, gi, boxes) {
+function column(g, gi, boxes, bodyClass = "col-body") {
   const col = el("section", "col");
   col.dataset.g = gi;
   const head = el("div", "col-head");
@@ -90,17 +95,42 @@ function column(g, gi, boxes) {
     });
     head.append(del);
   }
-  const body = el("div", "col-body");
+  const body = el("div", bodyClass);
   body.append(...boxes);
   col.append(head, body);
   return col;
 }
 
-function board(boxes) {
+// Boxes split by group; rows in no group go to the first.
+function byGroup(boxes) {
   const byN = new Map(boxes.map((b) => [Number(b.dataset.n), b]));
   const placed = new Set();
   const cols = groups.map((g) => g.members.map((n) => byN.get(n)).filter((b) => b && !placed.has(b) && placed.add(b)));
   cols[0].push(...boxes.filter((b) => !placed.has(b)));
+  return cols;
+}
+
+// List (compact) view: rows needing attention on top, then each group as a stacked section.
+function ledger(boxes) {
+  const attn = boxes.filter((b) => b.classList.contains("attn"));
+  // Attention rows are pulled out of their group, so they are not drag targets or sources.
+  for (const b of attn) b.draggable = false;
+  const cols = byGroup(boxes.filter((b) => !attn.includes(b)));
+  const parts = [];
+  if (attn.length) {
+    const sec = el("section", "attn-sec");
+    const head = el("div", "col-head");
+    head.append(el("span", "col-name", "需要注意"), el("span", "col-count dim", String(attn.length)));
+    sec.append(head, ...attn);
+    parts.push(sec);
+  }
+  groups.forEach((g, gi) => { if (cols[gi].length || filter === "all") parts.push(column(g, gi, cols[gi], "sec-body")); });
+  if (!parts.length) parts.push(el("p", "none dim", filter === "offline" ? "沒有離線角色" : "沒有符合的角色"));
+  return parts;
+}
+
+function board(boxes) {
+  const cols = byGroup(boxes);
   const wrap = el("div", "cols");
   const addCol = Object.assign(el("button", "add add-col", "＋"), { type: "button", title: "Add a group" });
   addCol.setAttribute("aria-label", "Add a group");
@@ -117,11 +147,21 @@ function board(boxes) {
 
 // Save board membership and the overall order from what's on screen.
 function saveLayout() {
-  if (view === "board") {
+  if (view === "board" || view === "list") {
+    const before = groups.map((g) => [...g.members]);
     list.querySelectorAll(".col").forEach((col) => {
-      groups[Number(col.dataset.g)].members = [...col.querySelectorAll(".col-body > [data-n]")].map((x) => Number(x.dataset.n));
+      groups[Number(col.dataset.g)].members = [...col.querySelectorAll(":is(.col-body, .sec-body) > [data-n]")].map((x) => Number(x.dataset.n));
     });
+    // Rows not in a group section (the attention list, or hidden by a filter) keep their old group and spot.
+    const placed = new Set(groups.flatMap((g) => g.members));
+    before.forEach((members, gi) => members.forEach((n, i) => {
+      if (!placed.has(n)) { groups[gi].members.splice(Math.min(i, groups[gi].members.length), 0, n); placed.add(n); }
+    }));
     saveGroups();
+    const known = new Set(lastOrder);
+    const order = [...new Set([...groups.flatMap((g) => g.members).filter((n) => known.has(n)), ...lastOrder])];
+    invoke("reorder_profiles", { order });
+    return;
   }
   invoke("reorder_profiles", { order: [...list.querySelectorAll("[data-n]")].map((x) => Number(x.dataset.n)) });
 }
@@ -225,7 +265,7 @@ function emptyCard(n) {
   return tpl;
 }
 
-function card(n, info, othersIdling) {
+function card(n, info, othersIdling, why) {
   const tpl = $("card").content.cloneNode(true);
   const q = (sel) => tpl.querySelector(sel);
   const each = (sel, fn) => tpl.querySelectorAll(sel).forEach(fn);
@@ -335,6 +375,15 @@ function card(n, info, othersIdling) {
   dot.setAttribute("aria-label", `${dot.title}（${info.name}）`);
   dot.addEventListener("click", (e) => { e.stopPropagation(); invoke("toggle_online", { n }); });
 
+  if (why) {
+    section.classList.add("attn");
+    q(".why").hidden = false;
+    q(".why").textContent = why;
+  }
+  const ask = q(".ask");
+  ask.setAttribute("aria-label", `問 ${info.name} 的助理`);
+  ask.addEventListener("click", (e) => { e.stopPropagation(); document.dispatchEvent(new CustomEvent("ask-character", { detail: info.name })); });
+
   const go = q(".go");
   go.setAttribute("aria-label", `Open game window（${info.name}）`);
   go.addEventListener("click", () => invoke("open_account", { n }));
@@ -418,10 +467,13 @@ async function refresh() {
   const live = state.profiles.filter((p) => !p.offline);
   const idling = live.filter((p) => p.info?.running).length;
   const scroll = list.scrollTop;
-  const boxes = state.profiles.map((p) => {
+  const o = overview(state.profiles);
+  lastOrder = state.profiles.map((p) => p.n);
+  const listed = view === "list" ? state.profiles.filter((p) => shown(p, filter, o.reasons)) : state.profiles;
+  const boxes = listed.map((p) => {
     const frag = p.roster?.length ? rosterCard(p.n, p.roster)
       : !p.info ? emptyCard(p.n)
-      : card(p.n, p.info, !p.offline && idling - (p.info.running ? 1 : 0) > 0);
+      : card(p.n, p.info, !p.offline && idling - (p.info.running ? 1 : 0) > 0, view === "list" ? o.reasons.get(p.n) : null);
     const box = frag.firstElementChild;
     box.dataset.n = p.n;
     box.addEventListener("contextmenu", (e) => { e.preventDefault(); invoke("profile_menu", { n: p.n }); });
@@ -438,13 +490,37 @@ async function refresh() {
     return box;
   });
   if (view === "board") list.replaceChildren(board(boxes));
+  else if (view === "list") list.replaceChildren(...ledger(boxes));
   else list.replaceChildren(...boxes);
   list.scrollTop = scroll;
 
   const signed = live.filter((p) => p.info);
   const stopped = signed.filter((p) => p.info.running === false && !p.info.stopping).length;
   const off = state.profiles.length - live.length;
-  $("summary").textContent = `${state.profiles.length} profiles · ${signed.length} signed in · ${idling} idling${off ? ` · ${off} offline` : ""}`;
+  const counts = `${state.profiles.length} profiles · ${signed.length} signed in · ${idling} idling${off ? ` · ${off} offline` : ""}`;
+  // Every live character shares the same auto-offline countdown, so it shows once here.
+  const timer = el("span", "offt");
+  const asleep = !live.length;
+  timer.dataset.until = Date.now() + (asleep ? state.wakeIn : state.autoOffIn) * 1000;
+  timer.dataset.off = asleep ? "1" : "";
+  timer.title = asleep ? "自動上線倒數（每小時喚醒一次）" : "自動離線倒數（開啟遊戲視窗會重新計時）";
+  setOfft(timer);
+  $("summary").replaceChildren(o.map ? `全部在 ${o.map} · ` : `${counts} · `, timer);
+  // Rows hide their own timers in the compact list; offline ones still wake on the hour.
+  if (off && !asleep) {
+    const wake = Object.assign(el("span", "offt"), { title: "離線角色自動上線倒數（每小時喚醒一次）" });
+    wake.dataset.until = Date.now() + state.wakeIn * 1000;
+    wake.dataset.off = "1";
+    setOfft(wake);
+    $("summary").append(" · ", wake);
+  }
+  $("summary").title = counts;
+  $("tiles").hidden = view !== "list";
+  for (const t of document.querySelectorAll("[data-filter]")) {
+    const f = t.dataset.filter;
+    t.querySelector("b").textContent = String(o.counts[f]);
+    t.setAttribute("aria-pressed", String(filter === f));
+  }
   const overall = $("overall");
   overall.hidden = signed.length === 0;
   overall.className = `pill ${stopped ? "warn" : "ok"}`;
@@ -462,14 +538,21 @@ async function refresh() {
 // List vs grid layout; remembered per machine.
 function setView(v) {
   view = ["list", "grid", "board"].includes(v) ? v : "list";
+  filter = "all";
   $("list").classList.toggle("grid", v === "grid");
   $("list").classList.toggle("board", v === "board");
+  $("list").classList.toggle("ledger", view === "list");
   if (view !== "board") invoke("set_panel_width", { width: 360 });
   refresh();
   for (const b of document.querySelectorAll("[data-view]")) b.setAttribute("aria-selected", String(b.dataset.view === v));
   try { localStorage.setItem("roIdleTray.view", v); } catch {}
 }
 for (const b of document.querySelectorAll("[data-view]")) b.addEventListener("click", () => setView(b.dataset.view));
+for (const t of document.querySelectorAll("[data-filter]")) t.addEventListener("click", () => {
+  filter = filter === t.dataset.filter ? "all" : t.dataset.filter;
+  $("list").scrollTop = 0;
+  refresh();
+});
 let savedView = "list";
 try { savedView = localStorage.getItem("roIdleTray.view") || "list"; } catch {}
 setView(savedView);
@@ -494,6 +577,7 @@ list.addEventListener("dragstart", (e) => {
 list.addEventListener("dragover", (e) => {
   if (dragging == null) return;
   const box = e.target.closest?.("[data-n]");
+  if (box?.closest(".attn-sec")) return;
   // Board: empty space in a column drops at its end.
   const col = !box && e.target.closest?.(".col");
   if (!col && (!box || Number(box.dataset.n) === dragging)) return;
@@ -508,7 +592,7 @@ list.addEventListener("drop", (e) => {
   if (dragging == null || !moved) return;
   const box = e.target.closest?.("[data-n]");
   const col = !box && e.target.closest?.(".col");
-  if (col) col.querySelector(".col-body").append(moved);
+  if (col) col.querySelector(".col-body, .sec-body").append(moved);
   else if (box && box !== moved) box[after(box, e) ? "after" : "before"](moved);
   else return;
   e.preventDefault();

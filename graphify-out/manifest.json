@@ -48,8 +48,8 @@
     "semantic_hash": ""
   },
   "src-tauri/src/lib.rs": {
-    "mtime": 1793740713.7288656,
-    "seen": 1793741251.56988,
+    "mtime": 1793748408.405821,
+    "seen": 1793748598.226262,
     "ast_hash": "f1dc2cef745e9c958b9730a4664f2feb",
     "semantic_hash": ""
   },
@@ -72,9 +72,9 @@
     "semantic_hash": ""
   },
   "src/main.js": {
-    "mtime": 1793740201.2146351,
-    "seen": 1793741251.570066,
-    "ast_hash": "4c06a3626a8d05abeeeb93f737e69900",
+    "mtime": 1793748568.6437666,
+    "seen": 1793748598.226444,
+    "ast_hash": "3a213b8f1d57963bd5a40989896291b8",
     "semantic_hash": ""
   },
   ".github/workflows/release.yml": {
@@ -96,9 +96,9 @@
     "semantic_hash": ""
   },
   "src/index.html": {
-    "mtime": 1793741238.0294218,
-    "seen": 1793741251.570359,
-    "ast_hash": "755846fb654f20e7be3f6a0986efdd1f",
+    "mtime": 1793748256.010834,
+    "seen": 1793748598.226742,
+    "ast_hash": "0309440e62506ef9fb75b7738031bdb5",
     "semantic_hash": ""
   },
   "src-tauri/icons/128x128.png": {
@@ -258,9 +258,9 @@
     "semantic_hash": ""
   },
   "src-tauri/src/chat.rs": {
-    "mtime": 1793741397.7380183,
-    "seen": 1793741423.1899562,
-    "ast_hash": "f04a5e2da4f5304498a612092377e190",
+    "mtime": 1793748568.644831,
+    "seen": 1793748598.2262242,
+    "ast_hash": "15217acb8d4bffa4330a5ca8d0a9c447",
     "semantic_hash": ""
   },
   "src-tauri/src/knowledge.rs": {
@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "src/chat.js": {
-    "mtime": 1793741238.0311909,
-    "seen": 1793741251.570034,
-    "ast_hash": "309c098b4c94071fbf5eaf2c17bb80af",
+    "mtime": 1793748568.6434681,
+    "seen": 1793748598.226412,
+    "ast_hash": "2fce78fe1e2e02124968e1513ee8e0ba",
     "semantic_hash": ""
   },
   "src/move.js": {
@@ -318,9 +318,9 @@
     "semantic_hash": ""
   },
   "src/panel.js": {
-    "mtime": 1793741238.030323,
-    "seen": 1793741251.5700831,
-    "ast_hash": "e54f8bbbce74250fa0be02e00d072fe1",
+    "mtime": 1793748256.0101604,
+    "seen": 1793748598.226461,
+    "ast_hash": "6f0c7903d9c5a9d128e384818e25ddf4",
     "semantic_hash": ""
   },
   "src/tutorial-ui.js": {
@@ -360,9 +360,9 @@
     "semantic_hash": ""
   },
   "tests/panel.test.mjs": {
-    "mtime": 1793741249.603806,
-    "seen": 1793741251.5701928,
-    "ast_hash": "b5934a1c7094501aac4cce7eced788d9",
+    "mtime": 1793748288.440381,
+    "seen": 1793748598.226569,
+    "ast_hash": "9775785d27ebc63dcded9dd009492412",
     "semantic_hash": ""
   },
   "tests/settings.test.mjs": {
@@ -420,9 +420,21 @@
     "semantic_hash": ""
   },
   "src-tauri/src/guide.rs": {
-    "mtime": 1793739331.569345,
-    "seen": 1793739417.895649,
-    "ast_hash": "e501a0d2bc7a8c5a28333f0257b20daf",
+    "mtime": 1793748419.6998248,
+    "seen": 1793748598.2262259,
+    "ast_hash": "98db7a2037540c76ff6ff7a8ba76c494",
+    "semantic_hash": ""
+  },
+  "src/compact.js": {
+    "mtime": 1793748513.44104,
+    "seen": 1793748598.226413,
+    "ast_hash": "822ad7368baa2abf1b4aed2d67ca66a4",
+    "semantic_hash": ""
+  },
+  "tests/compact.test.mjs": {
+    "mtime": 1793748513.4432325,
+    "seen": 1793748598.2265239,
+    "ast_hash": "8b15bf66cffb60b488b606b03a0f659f",
     "semantic_hash": ""
   }
 }

@@ -217,7 +217,7 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .char-detail { font-size: 10px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
 /* xp-btn */
-.btn, .idle, .go, .ghost, .icon-btn, .add {
+.btn, .idle, .go, .ask, .ghost, .icon-btn, .add {
   border: 1px solid var(--btn-border);
   background: linear-gradient(180deg, var(--btn-1) 0%, var(--btn-2) 60%, var(--btn-3) 100%);
   color: var(--btn-text);
@@ -225,7 +225,7 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
   box-shadow: inset 0 1px #ffffffe6;
 }
 @media (prefers-color-scheme: dark) {
-  .btn, .idle, .go, .ghost, .icon-btn, .add { box-shadow: inset 0 1px #ffffff1f; }
+  .btn, .idle, .go, .ask, .ghost, .icon-btn, .add { box-shadow: inset 0 1px #ffffff1f; }
 }
 .btn:hover:not(:disabled), .idle:hover:not(:disabled), .go:hover, .ghost:hover, .icon-btn:hover, .add:hover { border-color: var(--select); }
 .btn:active:not(:disabled), .idle:active:not(:disabled), .go:active, .ghost:active, .add:active { background: linear-gradient(180deg, var(--btn-3), var(--btn-1)); }
@@ -398,11 +398,13 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .gear[aria-expanded="true"] { border-color: var(--select); color: var(--select); }
 
 /* Assistant cards reuse the panel palette; all model text is rendered as text. */
-/* Assistant: a pill in the list's bottom-right corner opens a floating card over the list. */
+/* Assistant: the footer's ✦ 助理 button opens a floating card over the list. */
 .stage { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .stage[hidden] { display: none; }
-.fab { position: absolute; right: 12px; bottom: 12px; z-index: 5; padding: 8px 14px; border: 1px solid var(--select); border-radius: 18px; color: var(--ink-blue); background: var(--face); box-shadow: 0 4px 14px #0007; font-weight: 600; }
-.fab:hover { background: var(--face-2); }
+/* The assistant's button sits at the footer's right end. */
+.fab { grid-column: 2; grid-row: 1; justify-self: end; padding: 3px 12px; border: 1px solid var(--select); border-radius: 14px; color: var(--ink-blue); background: var(--face); font-weight: 600; font-size: 11px; white-space: nowrap; }
+.fab:hover, .fab[aria-expanded="true"] { background: var(--face-2); }
+@media (min-width: 470px) { .fab { margin-left: auto; } }
 .assistant { position: absolute; right: 10px; bottom: 10px; z-index: 6; width: min(400px, calc(100% - 20px)); height: min(600px, calc(100% - 20px)); display: flex; flex-direction: column; padding: 10px; gap: 10px; background: var(--face-2); border: 1px solid var(--edge-mid); border-radius: 10px; box-shadow: 0 12px 36px #000a; user-select: text; -webkit-user-select: text; }
 .assistant[hidden] { display: none; }
 .chat-head { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
@@ -428,3 +430,43 @@ button.dot:hover { outline: 2px solid var(--select); }
 .sum .go, .sum .idle { grid-row: 1; }
 .offt { grid-column: 3 / 5; grid-row: 2; justify-self: center; font-size: 10px; font-variant-numeric: tabular-nums; color: var(--text-dim); white-space: nowrap; }
 .prow.offline .offt { color: var(--exp); }
+
+/* Header: version beside the name, status tiles that filter the compact list. */
+.title .ver { font-size: 10px; font-weight: 400; opacity: .7; }
+#summary .offt { font-variant-numeric: tabular-nums; }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 6px 10px; background: var(--head-2); border-bottom: 1px solid var(--edge-dark); }
+.tile { display: flex; flex-direction: column; align-items: flex-start; padding: 4px 8px; border: 1px solid var(--edge-mid); border-radius: 6px; background: var(--face); color: var(--text-dim); font-size: 10px; text-align: left; }
+.tile b { font-size: 15px; line-height: 1.2; color: var(--text); }
+.tile.attn { border-color: var(--accent); } .tile.attn b { color: var(--accent); }
+.tile.idle-t b { color: var(--ink-green); }
+.tile[aria-pressed="true"] { border-color: var(--select); box-shadow: inset 0 0 0 1px var(--select); }
+
+/* Compact list: one row per character inside group sections; needs-attention rows on top. */
+.sum .ask { display: none; }
+.list.ledger { gap: 8px; }
+.list.ledger .col, .list.ledger .attn-sec { flex: none; gap: 0; padding: 0; display: flex; flex-direction: column; background: var(--face); border: 1px solid var(--win-border); border-radius: 7px; overflow: hidden; }
+.list.ledger .attn-sec { border-color: var(--accent); }
+.list.ledger .attn-sec .col-name { color: var(--accent); font-weight: 700; }
+.list.ledger .col-head { display: flex; align-items: center; gap: 6px; padding: 4px 8px; font-size: 11px; border-bottom: 1px solid var(--edge-mid); background: var(--face-2); }
+.list.ledger .sec-body { display: flex; flex-direction: column; min-height: 6px; }
+.list.ledger .prow { border: 0; border-radius: 0; box-shadow: none; border-bottom: 1px solid var(--edge-mid); background: none; }
+.list.ledger .prow:last-child { border-bottom: 0; }
+.list.ledger .prow.alert { border-left: 0; }
+.list.ledger .prow:not(.roster):not(.empty) .sum { grid-template-columns: 9px minmax(0, 1fr) auto 26px 26px 26px; grid-template-rows: auto; column-gap: 5px; min-height: 40px; padding: 3px 6px 3px 8px; }
+.list.ledger .prow:not(.roster):not(.empty) .l1 { flex-wrap: wrap; row-gap: 1px; }
+.list.ledger .prow:not(.roster):not(.empty) .name { order: 1; font-size: 13px; }
+.list.ledger .prow:not(.roster):not(.empty) .nick { order: 2; }
+.list.ledger .prow:not(.roster):not(.empty) .l1::after { content: ""; order: 3; flex-basis: 100%; height: 0; }
+.list.ledger .prow:not(.roster):not(.empty) .cls { order: 4; flex: 0 1 auto; max-width: calc(100% - 66px); font-size: 10px; }
+.list.ledger .prow:not(.roster):not(.empty) .lvl { order: 5; flex-shrink: 0; margin-left: 0; font-size: 10px; }
+.list.ledger .prow:not(.roster):not(.empty) .lvl b { font-size: 10px; }
+.list.ledger .prow:not(.roster):not(.empty) .why { order: 4; flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 10px; color: var(--accent); }
+.list.ledger .prow.attn .cls, .list.ledger .prow.attn .lvl { display: none; }
+.list.ledger .prow:not(.roster):not(.empty) .l2 { grid-column: 3; grid-row: 1; }
+.list.ledger .l2 .minibars, .list.ledger .l2 .map-link, .list.ledger .l2 .ago, .list.ledger .offt { display: none; }
+.list.ledger .sum .ask { display: block; grid-column: 4; grid-row: 1; color: var(--ink-blue); }
+.list.ledger .sum .go { grid-column: 5; } .list.ledger .sum .idle { grid-column: 6; }
+.list.ledger .sum :is(.ask, .go, .idle) { width: 26px; height: 26px; padding: 0; font-size: 12px; }
+.list.ledger .none { margin: 12px; text-align: center; }
+.chat-head .who { display: flex; flex-direction: column; gap: 1px; }
+.chat-all { font-size: 11px; font-weight: 400; text-align: left; padding: 0; }

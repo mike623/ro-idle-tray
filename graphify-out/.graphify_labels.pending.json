@@ -22,6 +22,7 @@
   "20": "atlas.rs",
   "21": "Domain Docs",
   "22": "Agent skills",
+  "23": "tutorial.rs",
   "24": "triage-labels.md",
   "25": "secret.rs",
   "26": "chat.js",
@@ -31,10 +32,10 @@
   "31": "refresh",
   "32": "bubble.js",
   "33": "items.js",
-  "34": "run",
-  "35": "AppHandle",
-  "36": "toggle_panel",
+  "34": "write_panel_geometry",
+  "35": "run",
+  "36": "character_report",
   "37": "guide.rs",
-  "38": "set_nickname",
-  "39": "items_characters"
+  "38": "AppHandle",
+  "39": "Value"
 }

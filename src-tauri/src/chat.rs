@@ -1090,10 +1090,19 @@ fn window_scope(
     requested: Option<&str>,
 ) -> Result<Option<String>, String> {
     if window.label() == "panel" {
-        if requested.is_some() {
-            return Err("Use the character's game window for scoped chat".into());
-        }
-        return Ok(None);
+        // The panel is local and trusted; it may open the chat of any character the tray knows.
+        let known: Vec<String> = match requested {
+            None => Vec::new(),
+            Some(_) => app
+                .state::<crate::Profiles>()
+                .info
+                .lock()
+                .map_err(|_| "Character state unavailable")?
+                .values()
+                .map(|c| c.name.clone())
+                .collect(),
+        };
+        return panel_scope(requested, &known);
     }
     let n = game_profile(window, app)?;
     let profiles = app.state::<crate::Profiles>();
@@ -1109,6 +1118,14 @@ fn window_scope(
         return Err("The active character changed; reopen the chat".into());
     }
     Ok(Some(name))
+}
+/// Panel scope: the global chat, or one character the tray has seen (online or offline).
+fn panel_scope(requested: Option<&str>, known: &[String]) -> Result<Option<String>, String> {
+    match requested {
+        None => Ok(None),
+        Some(name) if known.iter().any(|k| k == name) => Ok(Some(name.to_string())),
+        Some(_) => Err("Unknown character".into()),
+    }
 }
 #[tauri::command]
 pub fn chat_character(window: WebviewWindow, app: AppHandle) -> Result<Value, String> {
@@ -1389,5 +1406,17 @@ mod turn_tests {
     fn tools_stop_two_calls_before_the_turn_limit() {
         let last_tool_turn = (1..=super::MAX_TURNS).filter(|t| !super::out_of_tool_budget(*t)).max();
         assert_eq!(last_tool_turn, Some(super::MAX_TURNS - 3));
+    }
+}
+
+#[cfg(test)]
+mod panel_scope_tests {
+    #[test]
+    fn panel_opens_global_chat_or_one_signed_in_character() {
+        let known = vec!["牙暉".to_string(), "靜少少".to_string()];
+        assert_eq!(super::panel_scope(None, &known), Ok(None));
+        assert_eq!(super::panel_scope(Some("牙暉"), &known), Ok(Some("牙暉".into())));
+        assert!(super::panel_scope(Some("../player"), &known).is_err());
+        assert!(super::panel_scope(Some("player"), &known).is_err());
     }
 }

@@ -6,6 +6,8 @@ let busy = false;
 let loaded = false;
 let characters = [];
 let groupContext = "";
+// null = the global assistant; a name = that character's own chat (same thread as its game bubble).
+let scope = null;
 const tutorial = window.roIdleTutorial($("chat-tutorial"),invoke);
 function error(text = "") { $("chat-error").textContent = text; $("chat-error").hidden = !text; }
 function scroll() { $("chat-messages").scrollTop = $("chat-messages").scrollHeight; }
@@ -22,7 +24,7 @@ function card(role, text, tools = []) {
 function render(rows) {
   $("chat-messages").replaceChildren();
   for (const r of rows) if (!r.message && r.role !== "summary" && r.text) card(r.role, r.text, r.tools);
-  if (!$("chat-messages").childElementCount) card("assistant", "我可以讀取角色狀態與戰鬥紀錄。想先了解誰的近況？");
+  if (!$("chat-messages").childElementCount) card("assistant", scope ? `想了解 ${scope} 的狀態或戰鬥紀錄嗎？` : "我可以讀取角色狀態與戰鬥紀錄。想先了解誰的近況？");
   scroll();
 }
 async function roster() {
@@ -55,21 +57,32 @@ async function roster() {
   $("chat-status").replaceChildren(...labels);
 }
 async function memory() {
-  const info = await invoke("chat_memory");
+  const info = await invoke("chat_memory", { character: scope });
   $("chat-memory").textContent = `已記住 ${info.count} 則${info.fact ? ` · ${info.fact}` : ""}`;
 }
-async function show(assistant) {
+async function show(assistant, character = null) {
+  if (assistant && character !== scope) {
+    if (busy) { showPanel("assistant"); error("回答中，請稍候再切換"); return; }
+    scope = character; loaded = false; error();
+  }
   showPanel(assistant ? "assistant" : "list");
   if (!assistant) return;
+  $("chat-title").textContent = scope ? `✦ ${scope}` : "✦ 助理";
+  $("chat-all").hidden = !scope;
+  $("chat-status").hidden = !!scope;
+  $("chat-input-label").textContent = scope ? `問 ${scope} 的事` : "詢問角色近況 · @ 選擇角色";
   try {
     await roster();
     await tutorial.refresh();
     await memory();
-    if (!loaded) { render(await invoke("chat_history")); loaded = true; }
+    if (!loaded) { render(await invoke("chat_history", { character: scope })); loaded = true; }
     $("chat-input").focus();
   } catch (e) { error(String(e)); }
 }
-$("assistant-fab").addEventListener("click", () => show(true));
+$("assistant-fab").addEventListener("click", () => show($("assistant").hidden || scope !== null, null));
+$("chat-all").addEventListener("click", () => show(true, null));
+// A row's ✦ button in the character list.
+document.addEventListener("ask-character", (e) => show(true, e.detail));
 $("chat-close").addEventListener("click", () => { show(false); $("assistant-fab").focus(); });
 $("assistant").addEventListener("keydown", (e) => { if (e.key === "Escape") { show(false); $("assistant-fab").focus(); } });
 function setBusy(value) {
@@ -94,18 +107,18 @@ $("chat-form").addEventListener("submit", async (e) => {
     scroll();
   };
   try {
-    render(await invoke("chat_send", { text, groups: groupContext, onEvent }));
+    render(await invoke("chat_send", { text, character: scope, groups: scope ? null : groupContext, onEvent }));
     await memory();
     $("chat-input").value = "";
   } catch (e) {
     error(String(e));
     // Reload disk truth, including partial failures, without leaving an invented answer onscreen.
-    try { render(await invoke("chat_history")); } catch { answer.box.remove(); }
+    try { render(await invoke("chat_history", { character: scope })); } catch { answer.box.remove(); }
   } finally { setBusy(false); $("chat-input").focus(); }
 });
 $("chat-new").addEventListener("click", async () => {
   if (busy) return;
-  try { await invoke("chat_new"); render([]); error(); $("chat-input").focus(); }
+  try { await invoke("chat_new", { character: scope }); render([]); error(); $("chat-input").focus(); }
   catch (e) { error(String(e)); }
 });
 for (const text of ["誰的狀況最差？", "今晚怎麼排？", "最近為什麼死亡？"]) {

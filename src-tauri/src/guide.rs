@@ -103,10 +103,8 @@ async fn cached(file: &PathBuf, url: &str, convert: impl Fn(&str) -> Result<Stri
     let fresh = std::fs::metadata(file)
         .and_then(|m| m.modified())
         .is_ok_and(|t| SystemTime::now().duration_since(t).unwrap_or_default() < MAX_AGE);
-    if fresh {
-        if let Ok(s) = std::fs::read_to_string(file) {
-            return Ok(s);
-        }
+    if fresh && let Ok(s) = std::fs::read_to_string(file) {
+        return Ok(s);
     }
     match fetch(url).await.and_then(|html| convert(&html).map_err(|e| e.to_string())) {
         Ok(text) => {
