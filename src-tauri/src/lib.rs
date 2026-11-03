@@ -542,6 +542,7 @@ pub fn run() {
             set_pinned,
             hide_panel,
             profile_menu,
+            set_all_offline,
             ai::ai_get_settings,
             ai::ai_save_settings,
             ai::ai_list_models,
@@ -1446,4 +1447,13 @@ fn profile_menu(window: tauri::Window, app: AppHandle, n: u8) -> Result<(), Stri
         .map_err(|e| e.to_string())?;
     let menu = Menu::with_items(&app, &[&on_item, &off_item]).map_err(|e| e.to_string())?;
     window.popup_menu(&menu).map_err(|e| e.to_string())
+}
+
+/// Footer switch: every profile offline (game pages closed) or every profile online.
+#[tauri::command]
+fn set_all_offline(app: AppHandle, off: bool) {
+    let ids = app.state::<Profiles>().ids.lock().unwrap().clone();
+    for n in ids {
+        set_offline(&app, n, off);
+    }
 }

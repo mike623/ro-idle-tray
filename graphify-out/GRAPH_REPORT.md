@@ -1,17 +1,17 @@
 # Graph Report - ro-idle-tray  (2026-11-03)
 
 ## Corpus Check
-- 45 files · ~62,423 words
+- 45 files · ~62,652 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 5 file(s) not represented in the graph (top: (none) 2, .icns 1, .ico 1)
 
 ## Summary
-- 662 nodes · 1293 edges · 33 communities (22 shown, 11 thin omitted)
+- 670 nodes · 1303 edges · 33 communities (22 shown, 11 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `16709606`
+- Built from commit: `d58ee354`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -37,7 +37,7 @@
 - atlas.rs
 - Domain Docs
 - Agent skills
-- knowledge.rs
+- memory.rs
 - triage-labels.md
 - secret.rs
 - chat.js
@@ -75,12 +75,12 @@
 ## Communities (33 total, 11 thin omitted)
 
 ### Community 0 - "lib.rs"
-Cohesion: 0.06
-Nodes (73): add_account(), add_profile(), CHARACTER_HOOK, character_report(), CharacterLabel, check_update(), confirm_remove(), dialog() (+65 more)
+Cohesion: 0.05
+Nodes (77): add_account(), add_profile(), CHARACTER_HOOK, character_report(), CharacterLabel, check_update(), confirm_remove(), dialog() (+69 more)
 
 ### Community 1 - "main.js"
-Cohesion: 0.09
-Nodes (46): ago(), aiBusy(), aiChooseModel(), aiFill(), aiHighlightModel(), aiLoad(), aiLoadModels(), aiModelCandidates() (+38 more)
+Cohesion: 0.08
+Nodes (48): ago(), aiBusy(), aiChooseModel(), aiFill(), aiHighlightModel(), aiLoad(), aiLoadModels(), aiModelCandidates() (+40 more)
 
 ### Community 2 - "tauri.conf.json"
 Cohesion: 0.09
@@ -103,7 +103,7 @@ Cohesion: 0.07
 Nodes (46): ApiConfig, authorized(), BEARER, bind(), binds_loopback_and_serves_http(), character_events(), dedupes_replayed_events_by_seq(), DEFAULT_LIMIT (+38 more)
 
 ### Community 7 - "ai.rs"
-Cohesion: 0.08
+Cohesion: 0.09
 Nodes (31): ai_get_settings(), ai_list_models(), ai_save_settings(), ai_test_connection(), AiConfig, ANTHROPIC_VERSION, api_key(), caching_verdict() (+23 more)
 
 ### Community 8 - "package.json"
@@ -135,11 +135,11 @@ Cohesion: 0.09
 Nodes (14): ALLOWED, CALL_TIMEOUT, CONNECT_TIMEOUT, ENDPOINT, failure(), MAX_RESULT_BYTES, raw_text(), reaches_the_hosted_server() (+6 more)
 
 ### Community 19 - "alerts.rs"
-Cohesion: 0.10
-Nodes (32): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+24 more)
+Cohesion: 0.09
+Nodes (27): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+19 more)
 
 ### Community 20 - "atlas.rs"
-Cohesion: 0.14
+Cohesion: 0.16
 Nodes (14): all_in_play_are_selected_by_default(), atlas_characters(), is_atlas(), known_map(), MovableCharacter, move_all(), move_selected(), MoveLock (+6 more)
 
 ### Community 21 - "Domain Docs"
@@ -150,9 +150,9 @@ Nodes (5): Before exploring, read these, Domain Docs, File structure, Flag ADR c
 Cohesion: 0.40
 Nodes (4): Agent skills, Domain docs, Issue tracker, Triage labels
 
-### Community 23 - "knowledge.rs"
-Cohesion: 0.42
-Nodes (7): DATA, live_game_lookup_contains_spore_sleep_water_and_attack(), lookup(), lookup_in(), rank(), rank_in(), ranking_flags_aggressive_damage_and_respects_level_limit_and_bonus()
+### Community 23 - "memory.rs"
+Cohesion: 0.38
+Nodes (12): context(), edit(), footer(), index(), known(), MAX_BYTES, names(), note() (+4 more)
 
 ### Community 25 - "secret.rs"
 Cohesion: 0.11
@@ -164,23 +164,23 @@ Nodes (11): card(), characters, error(), memory(), mentions, node(), render(), r
 
 ## Knowledge Gaps
 - **4 isolated node(s):** `@tauri-apps/cli`, `ro-idle-tray`, `Text`, `Tool`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 250 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 251 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **11 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `ContextBudget` connect `.on_dispatch` to `chat.rs`?**
-  _High betweenness centrality (0.010) - this node is a cross-community bridge._
+  _High betweenness centrality (0.009) - this node is a cross-community bridge._
 - **What connects `@tauri-apps/cli`, `ro-idle-tray`, `Text` to the rest of the system?**
   _4 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `lib.rs` be split into smaller, more focused modules?**
-  _Cohesion score 0.056100981767180924 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05071119356833643 - nodes in this community are weakly interconnected._
 - **Why does `AiConfig` connect `ai.rs` to `chat.rs`?**
   _High betweenness centrality (0.005) - this node is a cross-community bridge._
 - **Should `main.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.08571428571428572 - nodes in this community are weakly interconnected._
-- **Why does `job_name()` connect `lib.rs` to `knowledge.rs`?**
+  _Cohesion score 0.08220211161387632 - nodes in this community are weakly interconnected._
+- **Why does `job_name()` connect `lib.rs` to `alerts.rs`?**
   _High betweenness centrality (0.004) - this node is a cross-community bridge._
 - **Should `tauri.conf.json` be split into smaller, more focused modules?**
   _Cohesion score 0.09090909090909091 - nodes in this community are weakly interconnected._

@@ -381,7 +381,7 @@ function markOffline(box) {
   if (status) { status.dataset.state = "離線"; setAgo(status); }
   box.querySelector(".status")?.classList.remove("on", "wait");
   box.querySelector(".dot")?.classList.add("off");
-  const name = box.querySelector(".empty .name");
+  const name = box.matches(".empty") && box.querySelector(".name");
   if (name) name.textContent = "離線";
   box.querySelectorAll(".idle, .enter, .char-list button").forEach((b) => { b.disabled = true; });
 }
@@ -437,6 +437,7 @@ async function refresh() {
   $("version").textContent = `v${state.version}`;
   $("version").title = `RO Idle Tray v${state.version} · labels update live`;
   $("login").setAttribute("aria-pressed", String(state.autostart));
+  $("all-online").setAttribute("aria-pressed", String(off === 0));
   $("pin").setAttribute("aria-pressed", String(!!state.pinned));
   const update = $("update");
   update.hidden = !state.update;
@@ -505,6 +506,7 @@ list.addEventListener("dragend", () => {
 });
 
 $("login").addEventListener("click", () => invoke("set_login"));
+$("all-online").addEventListener("click", (e) => invoke("set_all_offline", { off: e.currentTarget.getAttribute("aria-pressed") === "true" }));
 $("pin").addEventListener("click", (e) => invoke("set_pinned", { pinned: e.currentTarget.getAttribute("aria-pressed") !== "true" }));
 $("panel-hide").addEventListener("click", () => invoke("hide_panel"));
 $("quit").addEventListener("click", () => invoke("quit"));
