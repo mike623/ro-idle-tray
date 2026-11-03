@@ -29,7 +29,7 @@
     {
       "identifier": "items-commands",
       "description": "Item settings editor: merge, edit and fan out every character's item settings.",
-      "commands": {"allow": ["items_merge", "items_read", "items_save", "items_apply"]}
+      "commands": {"allow": ["items_merge", "items_read", "items_save", "items_apply", "items_characters"]}
     }
   ]
 }

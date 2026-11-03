@@ -40,13 +40,13 @@ input[type=number] { width: 4.5em; font-family: var(--num); }
 #status { font-size: 12px; }
 #status.bad { color: var(--bad); }
 main { padding: 14px 16px 40px; display: grid; gap: 12px; }
-.card { background: var(--face); border: 1px solid var(--border); border-radius: 6px; box-shadow: 2px 3px 10px #001e0040; overflow: auto; }
+.card { background: var(--face); border: 1px solid var(--border); border-radius: 6px; box-shadow: 2px 3px 10px #001e0040; overflow: clip; } /* clip, not auto: auto would trap the sticky header */
 .card h2 { margin: 0; font-size: 13px; padding: 6px 10px; background: linear-gradient(180deg, var(--title-1), var(--title-3)); color: var(--title-text); border-bottom: 1px solid var(--border); }
 .general { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px; }
 .general label { display: flex; gap: 4px; align-items: center; white-space: nowrap; }
 table { border-collapse: collapse; width: 100%; }
 th, td { padding: 4px 8px; border-bottom: 1px solid var(--edge); text-align: center; white-space: nowrap; }
-th { position: sticky; top: 0; background: var(--face-2); font-weight: normal; color: var(--dim); font-size: 12px; }
+th { position: sticky; top: var(--bar-h, 0px); z-index: 2; background: var(--face-2); font-weight: normal; color: var(--dim); font-size: 12px; }
 td:first-child, th:first-child { text-align: left; }
 .icon { width: 24px; height: 24px; object-fit: contain; vertical-align: middle; margin-right: 6px; image-rendering: pixelated; }
 .id { color: var(--dim); font-family: var(--num); font-size: 11px; margin-left: 4px; }
@@ -110,7 +110,14 @@ const COLS = [...Object.keys(RO_IDLE_ITEM_LISTS), ...Object.keys(RO_IDLE_ITEM_RU
 const added = new Set(); // ＋ 加入道具 rows that have no list yet
 // file.overrides {itemId: {characterName: row}}: that character gets its own row instead of the shared one.
 const overrides = id => file.overrides?.[id] ?? {};
-const chars = () => (file.mergedFrom ?? []).map(n => [n, (file.characters ?? []).find(c => c.name === n)?.class ?? '']);
+// Live labels from the tray (class, nickname, goal); falls back to the class saved at merge.
+let roster = {};
+const who = n => {
+  const r = roster[n] ?? {}, cls = r.class || (file.characters ?? []).find(c => c.name === n)?.class || '';
+  return {cls, nick: r.nickname || '', goal: r.goal || ''};
+};
+const label = n => { const w = who(n); return [w.cls, w.nick && `「${w.nick}」`, w.goal && `→ ${w.goal}`].filter(Boolean).join(' '); };
+const chars = () => (file.mergedFrom ?? []).map(n => [n, label(n)]);
 const ids = () => {
   const s = new Set(added);
   for (const path of Object.values(RO_IDLE_ITEM_LISTS)) roIdleItemList(cfg(), path).forEach(i => s.add(i));
@@ -151,7 +158,7 @@ function render() {
     const free = chars().filter(([n]) => !mine[n]);
     tr.innerHTML = `<td><img class="icon" src="${ICON}${id}.png" alt="" loading="lazy" onerror="this.style.visibility='hidden'">${esc(name(id))}<span class="id">${id}</span>${conflict(row) ? '<span class="warn">又賣又留</span>' : ''}</td>`
       + cells(row)
-      + `<td>${free.length ? `<select class="add-over" aria-label="加入角色覆寫"><option value="">＋ 角色</option>${free.map(([n, c]) => `<option value="${esc(n)}">${esc(n)}${c ? `（${esc(c)}）` : ''}</option>`).join('')}</select>` : ''}</td>`
+      + `<td>${free.length ? `<select class="add-over" aria-label="加入角色覆寫"><option value="">＋ 角色</option>${free.map(([n, c]) => `<option value="${esc(n)}">${esc(n)}${c ? `　${esc(c)}` : ''}</option>`).join('')}</select>` : ''}</td>`
       + `<td><button class="del" title="Remove from every list and drop its overrides" aria-label="移除">✕</button></td>`;
     wire(tr, () => roIdleItemRow(cfg(), id), r => roIdleSetItemRow(cfg(), id, r));
     tr.querySelector('.add-over')?.addEventListener('change', e => {
@@ -166,7 +173,7 @@ function render() {
     const subs = Object.entries(mine).map(([n, r]) => {
       const sub = document.createElement('tr');
       sub.className = 'over' + (conflict(r) ? ' conflict' : '');
-      sub.innerHTML = `<td class="who">↳ <span class="tag">${esc(n)}</span></td>` + cells(r)
+      sub.innerHTML = `<td class="who">↳ <span class="tag">${esc(n)}</span><span class="id">${esc(label(n))}</span></td>` + cells(r)
         + `<td></td><td><button class="del" title="Remove this override; ${esc(n)} uses the shared row again" aria-label="移除覆寫">✕</button></td>`;
       wire(sub, () => mine[n], v => { mine[n] = v; });
       sub.querySelector('.del').addEventListener('click', () => {
@@ -239,6 +246,8 @@ $('rows').addEventListener('mouseover', e => {
   tip.style.top = `${Math.max(8, Math.min(r.top - 10, innerHeight - tip.offsetHeight - 8))}px`;
 });
 $('rows').addEventListener('mouseout', e => { if (e.target.closest('.icon')) $('tip').hidden = true; });
+// Column header pins just under the sticky toolbar, whose height wraps with the window.
+new ResizeObserver(([e]) => document.documentElement.style.setProperty('--bar-h', `${e.target.offsetHeight}px`)).observe(document.querySelector('.bar'));
 $('q').oninput = render;
 $('add').onchange = () => {
   const v = $('add').value.trim(), hit = Object.entries(names).find(([id, n]) => n === v || id === v);
@@ -266,6 +275,7 @@ $('apply').onclick = () => {
   info = await (await fetch('item-info.json')).json();
   names = Object.fromEntries(Object.entries(info).map(([id, i]) => [id, i.name]));
   $('names').replaceChildren(...Object.values(names).map(n => Object.assign(document.createElement('option'), {value: n})));
+  roster = Object.fromEntries((await invoke('items_characters').catch(() => [])).map(c => [c.name, c]));
   show(await invoke('items_read'));
 })().catch(e => status(String(e), true));
 </script>

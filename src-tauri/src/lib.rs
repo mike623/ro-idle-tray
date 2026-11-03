@@ -560,6 +560,7 @@ pub fn run() {
             atlas::items_read,
             atlas::items_save,
             open_items,
+            items_characters,
             enter_character,
             add_account,
             remove_account,
@@ -1367,6 +1368,19 @@ fn open_classes(app: AppHandle) {
         .title("RO Class Chart")
         .inner_size(1000.0, 820.0)
         .build();
+}
+
+/// Item editor's character labels: live class plus the panel's nickname and goal.
+#[tauri::command]
+fn items_characters(app: AppHandle) -> Vec<serde_json::Value> {
+    let (nicks, goals) = (load_map(nicknames_path(&app)), load_map(goals_path(&app)));
+    let profiles = app.state::<Profiles>();
+    let info = profiles.info.lock().unwrap();
+    let mut list: Vec<_> = info.iter().collect();
+    list.sort_by_key(|(n, _)| **n);
+    list.into_iter()
+        .map(|(_, c)| serde_json::json!({"name": c.name, "class": c.class, "nickname": nicks.get(&c.name), "goal": goals.get(&c.name)}))
+        .collect()
 }
 
 /// Item settings editor (src/items.html): one table for every character's 道具設定.
