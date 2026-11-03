@@ -11,13 +11,32 @@ let scope = null;
 const tutorial = window.roIdleTutorial($("chat-tutorial"),invoke);
 function error(text = "") { $("chat-error").textContent = text; $("chat-error").hidden = !text; }
 function scroll() { $("chat-messages").scrollTop = $("chat-messages").scrollHeight; }
+const TOOL_LABELS = {list_characters:"角色列表",get_character:"角色狀態",get_log_summary:"讀取紀錄",game_lookup:"查詢資料",guide_lookup:"查詢攻略",rank_maps:"地圖排名",remember:"記住",update_memory:"更新記憶",forget:"忘記",recall:"回想"};
+// Tool calls fold into one line ("⌕ 9 次查詢：讀取紀錄 ×8、角色列表"); open it for the full calls.
+function toolList(tools) {
+  const box = node("details", "chat-tools");
+  const summary = node("summary", "dim tiny");
+  const chips = node("div", "row");
+  box.append(summary, chips);
+  const seen = [];
+  const add = (call) => {
+    seen.push(call);
+    chips.append(node("span", "chat-chip", call));
+    const counts = new Map();
+    for (const c of seen) { const name = c.split(/\s/)[0]; counts.set(name, (counts.get(name) ?? 0) + 1); }
+    summary.textContent = `⌕ ${seen.length} 次查詢：${[...counts].map(([n, k]) => `${TOOL_LABELS[n] ?? n}${k > 1 ? ` ×${k}` : ""}`).join("、")}`;
+    box.hidden = false;
+  };
+  box.hidden = true;
+  tools.forEach(add);
+  return { box, add };
+}
 function card(role, text, tools = []) {
   const box = node("article", `chat-card chat-${role}`);
   box.append(node("b", "dim", role === "user" ? "你" : role === "error" ? "連線錯誤" : "✦ 助理"));
   const body = node("div", "chat-body", text);
-  const chips = node("div", "row chat-tools");
-  chips.append(...tools.map((name) => node("span", "chat-chip", name)));
-  box.append(body, chips);
+  const chips = toolList(tools);
+  box.append(body, chips.box);
   $("chat-messages").append(box);
   return { box, body, chips };
 }
@@ -103,7 +122,7 @@ $("chat-form").addEventListener("submit", async (e) => {
   const onEvent = new Channel();
   onEvent.onmessage = (event) => {
     if (event.kind === "text") { content += event.text; answer.body.textContent = content; }
-    if (event.kind === "tool") answer.chips.append(node("span", "chat-chip", event.name));
+    if (event.kind === "tool") answer.chips.add(event.name);
     scroll();
   };
   try {

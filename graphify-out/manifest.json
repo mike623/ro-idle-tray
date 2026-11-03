@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "src/chat.js": {
-    "mtime": 1793748568.6434681,
-    "seen": 1793748598.226412,
-    "ast_hash": "2fce78fe1e2e02124968e1513ee8e0ba",
+    "mtime": 1793748758.8370326,
+    "seen": 1793748782.891348,
+    "ast_hash": "3a86be2663b5c8f9d2b930837bc1304b",
     "semantic_hash": ""
   },
   "src/move.js": {

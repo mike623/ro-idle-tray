@@ -415,6 +415,8 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .chat-body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; margin-top: 6px; }
 .chat-chip { display: inline-block; font-size: 10px; border: 1px solid var(--edge-mid); border-radius: 5px; padding: 2px 5px; overflow-wrap: anywhere; }
 .chat-tools { margin-top: 6px; }
+.chat-tools summary { cursor: pointer; list-style-position: inside; }
+.chat-tools .row { margin-top: 4px; }
 #chat-form { display: flex; flex-wrap: wrap; gap: 6px; }
 #chat-form label { width: 100%; }
 #chat-input { flex: 1; min-width: 100px; font: inherit; padding: 8px; color: var(--text); background: var(--face); border: 1px solid var(--edge-mid); border-radius: 6px; }

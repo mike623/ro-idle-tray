@@ -26,16 +26,17 @@
   "24": "triage-labels.md",
   "25": "secret.rs",
   "26": "chat.js",
+  "27": "memory.rs",
   "28": "storage.rs",
   "29": "move.js",
   "30": "app.json",
   "31": "refresh",
   "32": "bubble.js",
   "33": "items.js",
-  "34": "write_panel_geometry",
-  "35": "run",
-  "36": "character_report",
+  "34": "run",
+  "35": "AppHandle",
+  "36": "toggle_panel",
   "37": "guide.rs",
-  "38": "AppHandle",
-  "39": "Value"
+  "38": "character_report",
+  "39": "items_characters"
 }
