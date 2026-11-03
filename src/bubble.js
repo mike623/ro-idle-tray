@@ -82,7 +82,15 @@
     };
     const showError = (e='') => { $('error').textContent = String(e); $('error').hidden = !e; };
     const scroll = () => { $('messages').scrollTop = $('messages').scrollHeight; };
-    const addTool = (chips,tool) => chips.append(el('span','',`⌕ ${TOOL_LABELS[tool] ?? tool}`));
+    // One chip per tool; repeats show a count ("⌕ 讀取紀錄 ×8") instead of a new chip.
+    const toolChips = new WeakMap();
+    const addTool = (chips,tool) => {
+      if (!toolChips.has(chips)) toolChips.set(chips,new Map());
+      const seen = toolChips.get(chips), label = `⌕ ${TOOL_LABELS[tool] ?? tool}`;
+      const hit = seen.get(tool);
+      if (hit) { hit.count++; hit.chip.textContent = `${label} ×${hit.count}`; }
+      else { const chip = el('span','',label); seen.set(tool,{chip,count:1}); chips.append(chip); }
+    };
     // Replies use a plain-text convention (see chat.rs preamble): **bold**, `code`, "> " tip lines, final "追問：a｜b".
     const FOLLOW = /^追問[:：]/;
     const inline = (parent,line) => {

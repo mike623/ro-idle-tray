@@ -300,9 +300,9 @@
     "semantic_hash": ""
   },
   "src/bubble.js": {
-    "mtime": 1793739331.5690026,
-    "seen": 1793739417.895802,
-    "ast_hash": "710aa2120ea676b58328714c00b07fcb",
+    "mtime": 1793749277.9801326,
+    "seen": 1793749286.624525,
+    "ast_hash": "a21368a9f96a84378f8756dca87cd061",
     "semantic_hash": ""
   },
   "src/chat.js": {
@@ -330,9 +330,9 @@
     "semantic_hash": ""
   },
   "tests/bubble.test.mjs": {
-    "mtime": 1793739404.083885,
-    "seen": 1793739417.8958871,
-    "ast_hash": "23751b3e6f1846bd62fc6e0fc00dbe34",
+    "mtime": 1793749270.038373,
+    "seen": 1793749286.624635,
+    "ast_hash": "b09ed8c159ad5b457f0d8531f79fd596",
     "semantic_hash": ""
   },
   "tests/capabilities.test.mjs": {

@@ -149,3 +149,15 @@ test('player pins guide pages and a note to the character chat',async()=>{
   assert.equal(e.get('form').hidden,false);
   assert.equal(e.get('plan-btn').textContent,'📖 跟隨：裝備逐件保留判定、弓箭手技能說明、我的指示');
 });
+
+test('repeated tool calls fold into one chip with a count',async()=>{
+  const e=environment(); await tick();
+  await e.get('pill').events.click(); await tick();
+  e.get('input').value='How efficient?';
+  e.get('form').events.submit({preventDefault(){}}); await tick();
+  const send=e.calls.find((c)=>c.cmd==='chat_send');
+  for (const t of ['get_log_summary','get_log_summary','get_log_summary','game_lookup']) send.args.onEvent.onmessage({kind:'tool',name:t});
+  const answer=e.get('messages').children.at(-1);
+  const chips=answer.children[1].children[0];
+  assert.deepEqual([...chips.children.map((c)=>c.textContent)],['⌕ 讀取紀錄 ×3','⌕ 查詢資料']);
+});
