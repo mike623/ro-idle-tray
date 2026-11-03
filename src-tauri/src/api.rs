@@ -19,6 +19,10 @@
 //! - `GET /characters/{name}` — one character's latest snapshot
 //! - `GET /characters/{name}/log?since=<unix secs>&limit=<n>` — raw log events after `since`
 //! - `GET /characters/{name}/summary?minutes=<n>` — battle summary for the last n minutes
+//!
+//! The one write, kept out of `respond` so the assistant's read tools can never reach it:
+//! - `POST /online` / `POST /offline` (optional `?profile=<n>`, default every profile) —
+//!   same as the panel's All Online switch / right-click menu
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -27,6 +31,27 @@ use std::io::{self, BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+/// Set by lib.rs: (profile or None = all, offline) -> false when the profile doesn't exist.
+pub static ONLINE_HOOK: std::sync::OnceLock<Box<dyn Fn(Option<u8>, bool) -> bool + Send + Sync>> = std::sync::OnceLock::new();
+
+/// `POST /online|/offline[?profile=N]`.
+fn toggle(target: &str, auth: Option<&str>, token: &str) -> Option<(u16, Value)> {
+    let (path, query) = target.split_once('?').unwrap_or((target, ""));
+    let off = match path { "/offline" => true, "/online" => false, _ => return None };
+    if !authorized(auth, token) {
+        return Some(err(401, "missing or wrong bearer token"));
+    }
+    let profile = match query.split('&').find_map(|kv| kv.strip_prefix("profile=")) {
+        None => None,
+        Some(n) => match n.parse::<u8>() { Ok(n) => Some(n), Err(_) => return Some(err(400, "profile must be a number")) },
+    };
+    let Some(hook) = ONLINE_HOOK.get() else { return Some(err(404, "no such endpoint")) };
+    if !hook(profile, off) {
+        return Some(err(404, "unknown profile"));
+    }
+    Some((200, json!({ "ok": true, "offline": off, "profile": profile })))
+}
 
 pub const DEFAULT_PORT: u16 = 47615;
 const MAX_MINUTES: u64 = 3 * 24 * 60; // logs are kept 3 days
@@ -133,7 +158,10 @@ fn handle_conn(stream: TcpStream, dir: &Path, token: &str) -> io::Result<()> {
     }
     let mut parts = request_line.split_whitespace();
     let (method, target) = (parts.next().unwrap_or(""), parts.next().unwrap_or("/"));
-    let (status, body) = respond(method, target, auth.as_deref(), token, dir, now_ms());
+    let (status, body) = (method == "POST")
+        .then(|| toggle(target, auth.as_deref(), token))
+        .flatten()
+        .unwrap_or_else(|| respond(method, target, auth.as_deref(), token, dir, now_ms()));
     let body = body.to_string();
     let reason = match status {
         200 => "OK",
@@ -786,4 +814,15 @@ mod tests {
         assert!(ok.ends_with(r#""profile":7,"zeny":5}]"#), "{ok}");
         server.join().unwrap();
     }
+
+    #[test]
+    fn toggle_routes_and_auths() {
+        assert!(toggle("/characters", Some(BEARER), TOKEN).is_none());
+        assert_eq!(toggle("/online", None, TOKEN).unwrap().0, 401);
+        assert_eq!(toggle("/offline?profile=x", Some(BEARER), TOKEN).unwrap().0, 400);
+        let _ = ONLINE_HOOK.set(Box::new(|p, _| p != Some(9)));
+        assert_eq!(toggle("/online", Some(BEARER), TOKEN).unwrap().0, 200);
+        assert_eq!(toggle("/offline?profile=9", Some(BEARER), TOKEN).unwrap().0, 404);
+    }
+
 }

@@ -1,17 +1,17 @@
 # Graph Report - ro-idle-tray  (2026-11-03)
 
 ## Corpus Check
-- 45 files · ~62,652 words
+- 45 files · ~63,330 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 5 file(s) not represented in the graph (top: (none) 2, .icns 1, .ico 1)
 
 ## Summary
-- 670 nodes · 1303 edges · 33 communities (22 shown, 11 thin omitted)
+- 674 nodes · 1312 edges · 33 communities (22 shown, 11 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d58ee354`
+- Built from commit: `95c5d5ce`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -46,7 +46,7 @@
 - refresh
 
 ## God Nodes (most connected - your core abstractions)
-1. `run()` - 19 edges
+1. `run()` - 20 edges
 2. `respond()` - 15 edges
 3. `chat_send()` - 15 edges
 4. `notify()` - 14 edges
@@ -99,8 +99,8 @@ Cohesion: 0.08
 Nodes (47): agent(), AlertView, anthropic_stream_and_model_written_compaction_work(), append(), archive(), character_chat_cannot_read_other_characters_even_when_model_requests_them(), character_threads_are_isolated_and_cannot_escape_chat_directory(), chat_alert_ack() (+39 more)
 
 ### Community 6 - "api.rs"
-Cohesion: 0.07
-Nodes (46): ApiConfig, authorized(), BEARER, bind(), binds_loopback_and_serves_http(), character_events(), dedupes_replayed_events_by_seq(), DEFAULT_LIMIT (+38 more)
+Cohesion: 0.06
+Nodes (48): ApiConfig, authorized(), BEARER, bind(), binds_loopback_and_serves_http(), character_events(), dedupes_replayed_events_by_seq(), DEFAULT_LIMIT (+40 more)
 
 ### Community 7 - "ai.rs"
 Cohesion: 0.09
@@ -139,7 +139,7 @@ Cohesion: 0.09
 Nodes (27): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+19 more)
 
 ### Community 20 - "atlas.rs"
-Cohesion: 0.16
+Cohesion: 0.14
 Nodes (14): all_in_play_are_selected_by_default(), atlas_characters(), is_atlas(), known_map(), MovableCharacter, move_all(), move_selected(), MoveLock (+6 more)
 
 ### Community 21 - "Domain Docs"
@@ -164,7 +164,7 @@ Nodes (11): card(), characters, error(), memory(), mentions, node(), render(), r
 
 ## Knowledge Gaps
 - **4 isolated node(s):** `@tauri-apps/cli`, `ro-idle-tray`, `Text`, `Tool`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 251 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 253 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **11 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
@@ -175,7 +175,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `@tauri-apps/cli`, `ro-idle-tray`, `Text` to the rest of the system?**
   _4 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `lib.rs` be split into smaller, more focused modules?**
-  _Cohesion score 0.05071119356833643 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.050917336631622345 - nodes in this community are weakly interconnected._
 - **Why does `AiConfig` connect `ai.rs` to `chat.rs`?**
   _High betweenness centrality (0.005) - this node is a cross-community bridge._
 - **Should `main.js` be split into smaller, more focused modules?**

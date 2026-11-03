@@ -610,6 +610,19 @@ pub fn run() {
             });
 
             // Local read-only character API on 127.0.0.1 (token in api.json).
+            let hook_handle = handle.clone();
+            let _ = api::ONLINE_HOOK.set(Box::new(move |profile, off| {
+                let ids = hook_handle.state::<Profiles>().ids.lock().unwrap().clone();
+                if profile.is_some_and(|n| !ids.contains(&n)) {
+                    return false;
+                }
+                let h = hook_handle.clone();
+                let _ = hook_handle.run_on_main_thread(move || match profile {
+                    Some(n) => set_offline(&h, n, off),
+                    None => set_all_offline(h, off),
+                });
+                true
+            }));
             if let Ok(dir) = handle.path().app_config_dir() {
                 api::start(dir);
             }
