@@ -113,7 +113,11 @@ pub async fn move_all(
         .try_lock()
         .map_err(|_| "A move is already in progress")?;
     let pending = pending_profiles(&app, None)?;
-    run_move(&app, &map_id, pending).await
+    if !known_map(&map_id) {
+        return Err("Unknown map".into());
+    }
+    let call = format!("window.__roIdleMove({})", serde_json::to_string(&map_id).unwrap());
+    run_move(&app, &call, pending).await
 }
 
 /// Move only the characters the user selected in the atlas.
@@ -135,17 +139,28 @@ pub async fn move_selected(
         .try_lock()
         .map_err(|_| "A move is already in progress")?;
     let pending = pending_profiles(&app, Some(&selected))?;
-    run_move(&app, &map_id, pending).await
-}
-
-async fn run_move(
-    app: &AppHandle,
-    map_id: &str,
-    mut pending: BTreeMap<u8, String>,
-) -> Result<Vec<MoveResult>, String> {
-    if !known_map(map_id) {
+    if !known_map(&map_id) {
         return Err("Unknown map".into());
     }
+    let call = format!("window.__roIdleMove({})", serde_json::to_string(&map_id).unwrap());
+    run_move(&app, &call, pending).await
+}
+
+/// Panel's Recall button: every in-play character to its own save point (回儲存點).
+#[tauri::command]
+pub async fn recall_all(app: AppHandle) -> Result<Vec<MoveResult>, String> {
+    let lock = app.state::<MoveLock>();
+    let _guard = lock.0.try_lock().map_err(|_| "A move is already in progress")?;
+    let pending = pending_profiles(&app, None)?;
+    run_move(&app, "window.__roIdleRecall()", pending).await
+}
+
+/// Runs `call` (a JS promise expression) in each pending profile's game window.
+async fn run_move(
+    app: &AppHandle,
+    call: &str,
+    mut pending: BTreeMap<u8, String>,
+) -> Result<Vec<MoveResult>, String> {
     static NEXT: AtomicU64 = AtomicU64::new(1);
     let event = format!("ro-idle-map-{}", NEXT.fetch_add(1, Ordering::Relaxed));
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
@@ -155,13 +170,12 @@ async fn run_move(
         }
     });
     let mut results = Vec::new();
-    let map_js = serde_json::to_string(map_id).unwrap();
     let event_js = serde_json::to_string(&event).unwrap();
     for (&n, name) in &pending {
         let script = format!(
             r#"(async () => {{
             let error = null;
-            try {{ await window.__roIdleMove({map_js}); }} catch(e) {{ error = String(e.message || e); }}
+            try {{ await {call}; }} catch(e) {{ error = String(e.message || e); }}
             await window.__TAURI_INTERNALS__.invoke('plugin:event|emit', {{event:{event_js}, payload:{{profile:{n}, name:'', error}}}});
         }})()"#
         );

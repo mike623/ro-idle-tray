@@ -514,9 +514,19 @@ $("add").addEventListener("click", () => invoke("add_account"));
 // Recall stops everyone idling, so the first click only arms it for 3 s.
 $("recall").addEventListener("click", (e) => {
   const b = e.currentTarget;
-  if (b.dataset.armed) { delete b.dataset.armed; b.textContent = "Recall"; invoke("recall_all"); return; }
+  if (b.dataset.armed) {
+    delete b.dataset.armed;
+    b.textContent = "…";
+    invoke("recall_all").then((rs) => {
+      const bad = rs.filter((r) => r.error);
+      b.textContent = `回城 ${rs.length - bad.length}/${rs.length}`;
+      b.title = bad.map((r) => `${r.name}: ${r.error}`).join("\n") || "All recalled";
+    }, (err) => { b.textContent = "回城失敗"; b.title = String(err); })
+      .finally(() => setTimeout(() => { b.textContent = "Recall"; }, 5000));
+    return;
+  }
   b.dataset.armed = "1"; b.textContent = "確定回城？";
-  setTimeout(() => { delete b.dataset.armed; b.textContent = "Recall"; }, 3000);
+  setTimeout(() => { if (b.dataset.armed) { delete b.dataset.armed; b.textContent = "Recall"; } }, 3000);
 });
 $("maps").addEventListener("click", () => invoke("open_atlas", { q: null }));
 $("classes").addEventListener("click", () => invoke("open_classes"));
