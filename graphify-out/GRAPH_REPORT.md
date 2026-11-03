@@ -1,17 +1,17 @@
-# Graph Report - ro-idle-tray  (2026-11-03)
+# Graph Report - dorado  (2026-11-03)
 
 ## Corpus Check
-- 49 files · ~71,548 words
+- 49 files · ~71,766 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 5 file(s) not represented in the graph (top: (none) 2, .icns 1, .ico 1)
+- Unclassified: 6 file(s) not represented in the graph (top: (none) 3, .icns 1, .ico 1)
 
 ## Summary
-- 704 nodes · 1385 edges · 40 communities (29 shown, 11 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.85)
+- 706 nodes · 1390 edges · 40 communities (29 shown, 11 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 5 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9b1f65b1`
+- Built from commit: `7b9bccb9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -33,7 +33,7 @@
 - mcp.rs
 - atlas-data.js
 - ro-idle-tray
-- alerts.rs
+- knowledge.rs
 - atlas.rs
 - Domain Docs
 - Agent skills
@@ -47,9 +47,9 @@
 - items.js
 - AppHandle
 - run
-- character_report
+- open_profile
 - write_panel_geometry
-- open_exports
+- remove_profile
 - Value
 
 ## God Nodes (most connected - your core abstractions)
@@ -62,7 +62,7 @@
 7. `ai_test_connection()` - 12 edges
 8. `open_profile()` - 12 edges
 9. `row()` - 11 edges
-10. `ai_save_settings()` - 10 edges
+10. `set_offline()` - 11 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `run()` --calls--> `clip()`  [INFERRED]
@@ -87,7 +87,7 @@ Nodes (19): AUTO_OFFLINE_AFTER, CHARACTER_HOOK, CharacterLabel, get_state(), JOB
 
 ### Community 1 - "main.js"
 Cohesion: 0.08
-Nodes (48): ago(), aiBusy(), aiChooseModel(), aiFill(), aiHighlightModel(), aiLoad(), aiLoadModels(), aiModelCandidates() (+40 more)
+Nodes (49): ago(), aiBusy(), aiChooseModel(), aiFill(), aiHighlightModel(), aiLoad(), aiLoadModels(), aiModelCandidates() (+41 more)
 
 ### Community 2 - "tauri.conf.json"
 Cohesion: 0.09
@@ -141,12 +141,12 @@ Nodes (6): Conventions, Issue tracker: GitHub, Pull requests as a triage surface
 Cohesion: 0.09
 Nodes (14): ALLOWED, CALL_TIMEOUT, CONNECT_TIMEOUT, ENDPOINT, failure(), MAX_RESULT_BYTES, raw_text(), reaches_the_hosted_server() (+6 more)
 
-### Community 19 - "alerts.rs"
-Cohesion: 0.16
-Nodes (15): DATA, live_game_lookup_contains_spore_sleep_water_and_attack(), lookup(), lookup_in(), rank(), rank_in(), ranking_flags_aggressive_damage_and_respects_level_limit_and_bonus(), apply() (+7 more)
+### Community 19 - "knowledge.rs"
+Cohesion: 0.42
+Nodes (7): DATA, live_game_lookup_contains_spore_sleep_water_and_attack(), lookup(), lookup_in(), rank(), rank_in(), ranking_flags_aggressive_damage_and_respects_level_limit_and_bonus()
 
 ### Community 20 - "atlas.rs"
-Cohesion: 0.14
+Cohesion: 0.15
 Nodes (22): all_in_play_are_selected_by_default(), atlas_characters(), is_atlas(), items_apply(), items_file(), items_merge(), items_read(), items_save() (+14 more)
 
 ### Community 21 - "Domain Docs"
@@ -158,8 +158,8 @@ Cohesion: 0.40
 Nodes (4): Agent skills, Domain docs, Issue tracker, Triage labels
 
 ### Community 23 - "alerts.rs"
-Cohesion: 0.13
-Nodes (24): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+16 more)
+Cohesion: 0.09
+Nodes (32): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+24 more)
 
 ### Community 25 - "secret.rs"
 Cohesion: 0.11
@@ -179,19 +179,19 @@ Nodes (22): enter_character(), goals_path(), hide_panel(), hide_panel_window(), 
 
 ### Community 35 - "run"
 Cohesion: 0.21
-Nodes (18): add_account(), add_profile(), auto_offline_tick(), auto_online(), check_update(), load_map(), notify(), open_account() (+10 more)
+Nodes (14): auto_offline_tick(), auto_online(), check_update(), load_map(), notify(), place_panel(), poll_profiles(), restore_panel() (+6 more)
 
-### Community 36 - "character_report"
-Cohesion: 0.18
-Nodes (10): character_report(), confirm_remove(), dialog(), job_name(), place_panel(), profile_number(), remove_account(), restore_panel() (+2 more)
+### Community 36 - "open_profile"
+Cohesion: 0.24
+Nodes (10): character_report(), export_dir(), export_path(), job_name(), open_account(), open_export_folder(), open_exports(), open_profile() (+2 more)
 
 ### Community 37 - "write_panel_geometry"
 Cohesion: 0.33
 Nodes (7): load_panel_geometry(), panel_geometry_path(), PanelGeom, PanelLayout, save_panel_geometry(), set_pinned(), write_panel_geometry()
 
-### Community 38 - "open_exports"
-Cohesion: 0.50
-Nodes (4): export_dir(), export_path(), open_export_folder(), open_exports()
+### Community 38 - "remove_profile"
+Cohesion: 0.22
+Nodes (9): add_account(), add_profile(), confirm_remove(), dialog(), profile_store_id(), remove_account(), remove_profile(), reorder_profiles() (+1 more)
 
 ### Community 39 - "Value"
 Cohesion: 0.67
@@ -214,8 +214,8 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `AiConfig` connect `ai.rs` to `chat.rs`?**
   _High betweenness centrality (0.005) - this node is a cross-community bridge._
 - **Should `main.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.08220211161387632 - nodes in this community are weakly interconnected._
-- **Why does `job_name()` connect `character_report` to `lib.rs`, `alerts.rs`?**
+  _Cohesion score 0.08055152394775036 - nodes in this community are weakly interconnected._
+- **Why does `job_name()` connect `open_profile` to `lib.rs`, `knowledge.rs`?**
   _High betweenness centrality (0.004) - this node is a cross-community bridge._
 - **Should `tauri.conf.json` be split into smaller, more focused modules?**
   _Cohesion score 0.09090909090909091 - nodes in this community are weakly interconnected._

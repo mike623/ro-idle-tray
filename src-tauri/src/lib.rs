@@ -316,6 +316,12 @@ struct Target {
 
 fn notify(app: &AppHandle) {
     let _ = app.emit_to("panel", "state-changed", ());
+    // Menu bar text beside the icon: online / total, e.g. "2/5".
+    if let (Some(tray), Some(p)) = (app.tray_by_id("main"), app.try_state::<Profiles>()) {
+        let total = p.ids.lock().unwrap().len();
+        let off = p.offline.lock().unwrap().len();
+        let _ = tray.set_title(Some(format!("{}/{total}", total.saturating_sub(off))));
+    }
 }
 
 // Copied from the game bundle's job table (snapshot.character.job -> display name).
@@ -592,6 +598,7 @@ pub fn run() {
             open_guide,
             hide_panel,
             profile_menu,
+            toggle_online,
             ai::ai_get_settings,
             ai::ai_save_settings,
             ai::ai_list_models,
@@ -713,7 +720,7 @@ pub fn run() {
                 });
             });
 
-            TrayIconBuilder::new()
+            TrayIconBuilder::with_id("main")
                 // Sleepy Jelly, black + alpha; macOS tints template icons for light/dark bars.
                 .icon(Image::from_bytes(include_bytes!("../icons/tray.png"))?)
                 .icon_as_template(true)
@@ -729,6 +736,7 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+            notify(&handle);
             // Read once: a guard held across the builder chain would deadlock the next lock.
             let pinned = handle.state::<PanelLayout>().0.lock().unwrap().pinned;
             let panel =
@@ -1233,6 +1241,10 @@ struct PanelState {
     nicknames: HashMap<String, String>,
     goals: HashMap<String, String>,
     pinned: bool,
+    /// Seconds until auto offline closes the online profiles (counts only while nothing is visible).
+    auto_off_in: u64,
+    /// Seconds until the hourly wake brings offline profiles back.
+    wake_in: u64,
 }
 
 #[tauri::command]
@@ -1265,7 +1277,17 @@ fn get_state(app: AppHandle) -> PanelState {
         nicknames: profiles.nicknames.lock().unwrap().clone(),
         goals: profiles.goals.lock().unwrap().clone(),
         pinned: app.state::<PanelLayout>().0.lock().unwrap().pinned,
+        // Read only: the hidden panel still polls get_state, so touching active_at here would block auto offline.
+        auto_off_in: AUTO_OFFLINE_AFTER.saturating_sub(profiles.active_at.lock().unwrap().elapsed()).as_secs(),
+        wake_in: WAKE_EVERY.saturating_sub(profiles.woke_at.lock().unwrap().elapsed()).as_secs(),
     }
+}
+
+/// Status dot on a card: flip that profile between online and offline.
+#[tauri::command]
+fn toggle_online(app: AppHandle, n: u8) {
+    let off = app.state::<Profiles>().offline.lock().unwrap().contains(&n);
+    set_offline(&app, n, !off);
 }
 
 #[tauri::command]

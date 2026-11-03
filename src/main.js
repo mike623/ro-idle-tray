@@ -177,6 +177,11 @@ function ago(secs) {
   return `${Math.floor(s / 3600)}h ago`;
 }
 
+function setOfft(node) {
+  const s = Math.max(0, Math.round((Number(node.dataset.until) - Date.now()) / 1000));
+  node.textContent = `${node.dataset.live ? "⏰" : "⏻"} ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
 function setAgo(node) {
   const { state, updated } = node.dataset;
   node.textContent = state ? `${state} · ${ago(Number(updated))}` : ago(Number(updated));
@@ -325,7 +330,10 @@ function card(n, info, othersIdling) {
   const status = q(".status");
   status.classList.toggle("on", running && !info.stopping);
   status.classList.toggle("wait", !!info.stopping);
-  q(".dot").title = state;
+  const dot = q(".dot");
+  dot.title = `${state} · 按此切換 Online / Offline`;
+  dot.setAttribute("aria-label", `${dot.title}（${info.name}）`);
+  dot.addEventListener("click", (e) => { e.stopPropagation(); invoke("toggle_online", { n }); });
 
   const go = q(".go");
   go.setAttribute("aria-label", `Open game window（${info.name}）`);
@@ -418,6 +426,14 @@ async function refresh() {
     box.dataset.n = p.n;
     box.addEventListener("contextmenu", (e) => { e.preventDefault(); invoke("profile_menu", { n: p.n }); });
     if (p.offline) markOffline(box);
+    const t = box.querySelector(".offt");
+    if (t) {
+      // Online: time to auto offline (starts once the panel closes). Offline: time to the hourly wake.
+      t.dataset.until = Date.now() + (p.offline ? state.wakeIn : state.autoOffIn) * 1000;
+      t.dataset.live = p.offline ? "1" : "";
+      t.title = p.offline ? "自動上線倒數（每小時喚醒一次）" : "關閉面板後自動離線倒數";
+      setOfft(t);
+    }
     box.draggable = true;
     return box;
   });
@@ -761,5 +777,8 @@ $("ai-test").addEventListener("click", (e) => aiBusy(e.currentTarget, "Testing�
 listen("state-changed", refresh);
 setInterval(refresh, 30000);
 // Tick the "Ns ago" labels every second without re-rendering rows.
-setInterval(() => document.querySelectorAll(".ago[data-updated]").forEach(setAgo), 1000);
+setInterval(() => {
+  document.querySelectorAll(".ago[data-updated]").forEach(setAgo);
+  document.querySelectorAll(".offt[data-live='1']").forEach(setOfft);
+}, 1000);
 groupsReady.then(refresh);
