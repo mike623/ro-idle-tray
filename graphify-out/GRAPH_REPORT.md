@@ -1,17 +1,17 @@
 # Graph Report - ro-idle-tray  (2026-11-03)
 
 ## Corpus Check
-- 49 files · ~71,069 words
+- 49 files · ~71,548 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 5 file(s) not represented in the graph (top: (none) 2, .icns 1, .ico 1)
 
 ## Summary
-- 700 nodes · 1376 edges · 34 communities (23 shown, 11 thin omitted)
+- 704 nodes · 1385 edges · 40 communities (29 shown, 11 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9dea96ed`
+- Built from commit: `9b1f65b1`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -45,17 +45,23 @@
 - app.json
 - refresh
 - items.js
+- AppHandle
+- run
+- character_report
+- write_panel_geometry
+- open_exports
+- Value
 
 ## God Nodes (most connected - your core abstractions)
-1. `run()` - 20 edges
+1. `run()` - 19 edges
 2. `respond()` - 15 edges
 3. `chat_send()` - 15 edges
 4. `notify()` - 14 edges
 5. `card()` - 14 edges
 6. `window_scope()` - 13 edges
 7. `ai_test_connection()` - 12 edges
-8. `row()` - 11 edges
-9. `open_profile()` - 11 edges
+8. `open_profile()` - 12 edges
+9. `row()` - 11 edges
 10. `ai_save_settings()` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
@@ -73,11 +79,11 @@
 ## Import Cycles
 - None detected.
 
-## Communities (34 total, 11 thin omitted)
+## Communities (40 total, 11 thin omitted)
 
 ### Community 0 - "lib.rs"
-Cohesion: 0.05
-Nodes (79): add_account(), add_profile(), CHARACTER_HOOK, character_report(), CharacterLabel, check_update(), confirm_remove(), dialog() (+71 more)
+Cohesion: 0.08
+Nodes (19): AUTO_OFFLINE_AFTER, CHARACTER_HOOK, CharacterLabel, get_state(), JOB_NAMES, LAUNCH_AGENT_LABEL, launch_agent_path(), PanelState (+11 more)
 
 ### Community 1 - "main.js"
 Cohesion: 0.08
@@ -104,7 +110,7 @@ Cohesion: 0.06
 Nodes (48): ApiConfig, authorized(), BEARER, bind(), binds_loopback_and_serves_http(), character_events(), dedupes_replayed_events_by_seq(), DEFAULT_LIMIT (+40 more)
 
 ### Community 7 - "ai.rs"
-Cohesion: 0.08
+Cohesion: 0.09
 Nodes (31): ai_get_settings(), ai_list_models(), ai_save_settings(), ai_test_connection(), AiConfig, ANTHROPIC_VERSION, api_key(), caching_verdict() (+23 more)
 
 ### Community 8 - "package.json"
@@ -140,7 +146,7 @@ Cohesion: 0.16
 Nodes (15): DATA, live_game_lookup_contains_spore_sleep_water_and_attack(), lookup(), lookup_in(), rank(), rank_in(), ranking_flags_aggressive_damage_and_respects_level_limit_and_bonus(), apply() (+7 more)
 
 ### Community 20 - "atlas.rs"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (22): all_in_play_are_selected_by_default(), atlas_characters(), is_atlas(), items_apply(), items_file(), items_merge(), items_read(), items_save() (+14 more)
 
 ### Community 21 - "Domain Docs"
@@ -167,9 +173,33 @@ Nodes (11): card(), characters, error(), memory(), mentions, node(), render(), r
 Cohesion: 0.31
 Nodes (10): RO_IDLE_ITEM_KEYS, RO_IDLE_ITEM_LISTS, RO_IDLE_ITEM_RULES, roIdleApplyItems(), roIdleItemList(), roIdleItemRow(), roIdleItemsFor(), roIdlePickItems() (+2 more)
 
+### Community 34 - "AppHandle"
+Cohesion: 0.12
+Nodes (22): enter_character(), goals_path(), hide_panel(), hide_panel_window(), install_update(), items_characters(), load_nicknames(), load_profile_ids() (+14 more)
+
+### Community 35 - "run"
+Cohesion: 0.21
+Nodes (18): add_account(), add_profile(), auto_offline_tick(), auto_online(), check_update(), load_map(), notify(), open_account() (+10 more)
+
+### Community 36 - "character_report"
+Cohesion: 0.18
+Nodes (10): character_report(), confirm_remove(), dialog(), job_name(), place_panel(), profile_number(), remove_account(), restore_panel() (+2 more)
+
+### Community 37 - "write_panel_geometry"
+Cohesion: 0.33
+Nodes (7): load_panel_geometry(), panel_geometry_path(), PanelGeom, PanelLayout, save_panel_geometry(), set_pinned(), write_panel_geometry()
+
+### Community 38 - "open_exports"
+Cohesion: 0.50
+Nodes (4): export_dir(), export_path(), open_export_folder(), open_exports()
+
+### Community 39 - "Value"
+Cohesion: 0.67
+Nodes (3): get_groups(), set_groups(), valid_groups()
+
 ## Knowledge Gaps
 - **4 isolated node(s):** `@tauri-apps/cli`, `ro-idle-tray`, `Text`, `Tool`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 259 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 261 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **11 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
@@ -180,12 +210,12 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `@tauri-apps/cli`, `ro-idle-tray`, `Text` to the rest of the system?**
   _4 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `lib.rs` be split into smaller, more focused modules?**
-  _Cohesion score 0.0504950495049505 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07957957957957958 - nodes in this community are weakly interconnected._
 - **Why does `AiConfig` connect `ai.rs` to `chat.rs`?**
   _High betweenness centrality (0.005) - this node is a cross-community bridge._
 - **Should `main.js` be split into smaller, more focused modules?**
   _Cohesion score 0.08220211161387632 - nodes in this community are weakly interconnected._
-- **Why does `job_name()` connect `lib.rs` to `alerts.rs`?**
+- **Why does `job_name()` connect `character_report` to `lib.rs`, `alerts.rs`?**
   _High betweenness centrality (0.004) - this node is a cross-community bridge._
 - **Should `tauri.conf.json` be split into smaller, more focused modules?**
   _Cohesion score 0.09090909090909091 - nodes in this community are weakly interconnected._

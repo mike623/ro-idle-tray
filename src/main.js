@@ -437,7 +437,6 @@ async function refresh() {
   $("version").textContent = `v${state.version}`;
   $("version").title = `RO Idle Tray v${state.version} · labels update live`;
   $("login").setAttribute("aria-pressed", String(state.autostart));
-  $("all-online").setAttribute("aria-pressed", String(off === 0));
   $("pin").setAttribute("aria-pressed", String(!!state.pinned));
   const update = $("update");
   update.hidden = !state.update;
@@ -506,7 +505,6 @@ list.addEventListener("dragend", () => {
 });
 
 $("login").addEventListener("click", () => invoke("set_login"));
-$("all-online").addEventListener("click", (e) => invoke("set_all_offline", { off: e.currentTarget.getAttribute("aria-pressed") === "true" }));
 $("pin").addEventListener("click", (e) => invoke("set_pinned", { pinned: e.currentTarget.getAttribute("aria-pressed") !== "true" }));
 $("panel-hide").addEventListener("click", () => invoke("hide_panel"));
 $("quit").addEventListener("click", () => invoke("quit"));
@@ -531,6 +529,7 @@ $("recall").addEventListener("click", (e) => {
 $("items").addEventListener("click", () => invoke("open_items"));
 $("maps").addEventListener("click", () => invoke("open_atlas", { q: null }));
 $("classes").addEventListener("click", () => invoke("open_classes"));
+$("guide").addEventListener("click", () => invoke("open_guide"));
 $("exports").addEventListener("click", () => invoke("open_export_folder"));
 $("update").addEventListener("click", () => invoke("update_app"));
 // AI provider settings. The key is write-only here: Rust encrypts it in the

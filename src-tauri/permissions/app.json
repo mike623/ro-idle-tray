@@ -8,7 +8,7 @@
           "get_state", "open_account", "toggle_idle", "enter_character",
           "add_account", "remove_account", "set_login", "update_app",
           "open_export_folder", "open_atlas", "open_classes", "set_nickname", "set_goal", "get_groups", "set_groups",
-          "reorder_profiles", "set_panel_width", "set_pinned", "hide_panel", "profile_menu", "set_all_offline", "recall_all", "open_items",
+          "reorder_profiles", "set_panel_width", "set_pinned", "hide_panel", "profile_menu", "recall_all", "open_guide", "open_items",
           "ai_get_settings", "ai_save_settings", "ai_list_models", "ai_test_connection",
           "chat_history", "chat_send", "chat_new", "chat_memory", "chat_tutorial", "quit"
         ]

@@ -45,7 +45,7 @@ const CHARACTER_HOOK: &str = r#"
     sessionStorage.setItem('roIdleAutoReload', String(Date.now()));
     btn.click();
   }, 30000);
-  let last = '', lastAt = 0, streamId = null, liveES = null, streamAt = 0;
+  let last = '', lastAt = 0, streamId = null, liveES = null, streamAt = 0, bootAt = Date.now();
   const cache = {};
   const num = v => Number.isFinite(v) ? v : null;
   // Map and action names come from tables inside the game bundle, so read the
@@ -127,7 +127,11 @@ const CHARACTER_HOOK: &str = r#"
   };
   // Hidden windows skip the game's own visible-only refresh and WebKit throttles
   // their timers, so Rust calls this on its own clock (see poll_profiles).
-  window.__roIdlePoll = () => {
+  window.__roIdlePoll = (hidden) => {
+    // A hidden page that never opened a stream in 5 min is stuck loading (seen 2026-11-03
+    // 14:06: 3 of 8 windows silent after All Online). Reload; hidden only, so a visible
+    // login screen is never yanked away mid-typing.
+    if (hidden && !liveES && Date.now() - bootAt > 5 * 60 * 1000) { location.reload(); return; }
     // The server sometimes drops every stream at once and the game never reopens it
     // (seen 2026-11-03 08:52); snapshots kept polling but battle logs went silent.
     // ponytail: a full reload is the one recovery known to work; 10 min silence also
@@ -242,6 +246,12 @@ struct Profiles {
     goals: Mutex<HashMap<String, String>>,
     /// Profiles switched to offline: no game window at all, so the server stops ticking them live.
     offline: Mutex<Vec<u8>>,
+    /// Subset of `offline` that auto offline closed; reopened when the panel opens.
+    auto_off: Mutex<Vec<u8>>,
+    /// Last time the panel or any game window was visible.
+    active_at: Mutex<std::time::Instant>,
+    /// Last hourly wake of offline profiles.
+    woke_at: Mutex<std::time::Instant>,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
@@ -579,9 +589,9 @@ pub fn run() {
             reorder_profiles,
             set_panel_width,
             set_pinned,
+            open_guide,
             hide_panel,
             profile_menu,
-            set_all_offline,
             ai::ai_get_settings,
             ai::ai_save_settings,
             ai::ai_list_models,
@@ -620,7 +630,12 @@ pub fn run() {
                 roster: Mutex::new(HashMap::new()),
                 nicknames: Mutex::new(load_nicknames(&handle)),
                 goals: Mutex::new(load_map(goals_path(&handle))),
-                offline: Mutex::new(load_offline(&handle)),
+                // Every boot starts all profiles online once so each one settles its offline
+                // progress and shows it is healthy and idling; auto offline closes them after 3 min.
+                offline: Mutex::new(Vec::new()),
+                auto_off: Mutex::new(Vec::new()),
+                active_at: Mutex::new(std::time::Instant::now()),
+                woke_at: Mutex::new(std::time::Instant::now()),
             });
             *handle.state::<PanelLayout>().0.lock().unwrap() = load_panel_geometry(&handle);
 
@@ -1044,6 +1059,7 @@ fn toggle_panel(app: &AppHandle) {
         }
         let _ = w.show();
         let _ = w.set_focus();
+        auto_online(app);
         notify(app);
         poll_profiles(app);
     }
@@ -1181,9 +1197,20 @@ fn utc_date_known_days() {
 
 /// Ask every game window to re-fetch its snapshot (CHARACTER_HOOK's __roIdlePoll).
 fn poll_profiles(app: &AppHandle) {
+    auto_offline_tick(app);
+    // Reopen any online profile that lost its window (e.g. offline→online faster than destroy completes).
+    let profiles = app.state::<Profiles>();
+    let ids = profiles.ids.lock().unwrap().clone();
+    let offline = profiles.offline.lock().unwrap().clone();
+    for n in ids.into_iter().filter(|n| !offline.contains(n)) {
+        if app.get_webview_window(&format!("game-profile-{n}")).is_none() {
+            open_profile(app, &format!("profile-{n}"), false);
+        }
+    }
     for (label, w) in app.webview_windows() {
         if label.starts_with("game-") {
-            let _ = w.eval("window.__roIdlePoll && window.__roIdlePoll()");
+            let hidden = !w.is_visible().unwrap_or(true);
+            let _ = w.eval(format!("window.__roIdlePoll && window.__roIdlePoll({hidden})"));
         }
     }
 }
@@ -1356,6 +1383,25 @@ fn open_atlas(app: AppHandle, q: Option<String>) {
         .build();
 }
 
+/// Player-made strategy guide (class builds, skill simulator, gear keep/sell lists).
+/// Label "guide" matches no capability, so the external page gets no IPC.
+#[tauri::command]
+fn open_guide(app: AppHandle) {
+    if let Some(w) = app.get_webview_window("guide") {
+        let _ = w.show();
+        let _ = w.set_focus();
+        return;
+    }
+    let _ = WebviewWindowBuilder::new(
+        &app,
+        "guide",
+        WebviewUrl::External("https://ned-lin-9527.github.io/Ragnarok/index.html".parse().unwrap()),
+    )
+    .title("RO 放置仙境攻略")
+    .inner_size(1100.0, 820.0)
+    .build();
+}
+
 /// Class progression chart (src/classes.html), bundled with the tray.
 #[tauri::command]
 fn open_classes(app: AppHandle) {
@@ -1481,12 +1527,6 @@ fn character_report(window: tauri::WebviewWindow, app: AppHandle, mut data: Char
     }
 }
 
-fn load_offline(app: &AppHandle) -> Vec<u8> {
-    app.path().app_config_dir().ok()
-        .and_then(|d| std::fs::read_to_string(d.join("offline")).ok())
-        .map(|s| parse_ids(&s))
-        .unwrap_or_default()
-}
 
 /// Offline destroys the profile's game window (no page, no stream, no live server ticks);
 /// online boots it hidden again. Last known character data stays for comparison.
@@ -1498,10 +1538,6 @@ fn set_offline(app: &AppHandle, n: u8, off: bool) {
             return;
         }
         if off { list.push(n) } else { list.retain(|x| *x != n) }
-        if let Ok(dir) = app.path().app_config_dir() {
-            let text: Vec<String> = list.iter().map(u8::to_string).collect();
-            let _ = std::fs::create_dir_all(&dir).and_then(|_| std::fs::write(dir.join("offline"), text.join(",")));
-        }
     }
     let label = format!("game-profile-{n}");
     if off {
@@ -1513,6 +1549,67 @@ fn set_offline(app: &AppHandle, n: u8, off: bool) {
         open_profile(app, &format!("profile-{n}"), false);
     }
     notify(app);
+}
+
+const AUTO_OFFLINE_AFTER: Duration = Duration::from_secs(180);
+/// Every offline profile comes online at least this often, so its offline progress is
+/// settled and the panel shows fresh numbers; auto offline closes it again 3 min later.
+const WAKE_EVERY: Duration = Duration::from_secs(3600);
+
+/// Nobody looking (panel and every window hidden) for 3 min: close all online game pages.
+/// Offline earns ~97% of online EXP (e2e 2026-11-03) at no local or server cost.
+fn auto_offline_tick(app: &AppHandle) {
+    let profiles = app.state::<Profiles>();
+    let due = {
+        let mut woke = profiles.woke_at.lock().unwrap();
+        let due = woke.elapsed() >= WAKE_EVERY;
+        if due {
+            *woke = std::time::Instant::now();
+        }
+        due
+    };
+    if due {
+        let waking = profiles.offline.lock().unwrap().clone();
+        if !waking.is_empty() {
+            // ponytail: also wakes profiles set offline by hand; they rejoin auto offline after.
+            profiles.auto_off.lock().unwrap().clear();
+            *profiles.active_at.lock().unwrap() = std::time::Instant::now();
+            let h = app.clone();
+            let _ = app.run_on_main_thread(move || waking.into_iter().for_each(|n| set_offline(&h, n, false)));
+            return;
+        }
+    }
+    let seen = app.webview_windows().values().any(|w| w.is_visible().unwrap_or(false));
+    {
+        let mut at = profiles.active_at.lock().unwrap();
+        if seen {
+            *at = std::time::Instant::now();
+            return;
+        }
+        if at.elapsed() < AUTO_OFFLINE_AFTER {
+            return;
+        }
+    }
+    let offline = profiles.offline.lock().unwrap().clone();
+    let going: Vec<u8> = profiles.ids.lock().unwrap().iter().copied().filter(|n| !offline.contains(n)).collect();
+    if going.is_empty() {
+        return;
+    }
+    profiles.auto_off.lock().unwrap().extend(&going);
+    let h = app.clone();
+    let _ = app.run_on_main_thread(move || going.into_iter().for_each(|n| set_offline(&h, n, true)));
+}
+
+/// Panel opened: reopen what auto offline closed.
+/// Profiles the user set offline by hand are not in the list and stay closed.
+fn auto_online(app: &AppHandle) {
+    let profiles = app.state::<Profiles>();
+    *profiles.active_at.lock().unwrap() = std::time::Instant::now();
+    let back = std::mem::take(&mut *profiles.auto_off.lock().unwrap());
+    if back.is_empty() {
+        return;
+    }
+    back.into_iter().for_each(|n| set_offline(app, n, false));
 }
 
 /// Right-click menu on a profile card: Online (game kept in a hidden window) vs Offline (closed).
@@ -1528,8 +1625,7 @@ fn profile_menu(window: tauri::Window, app: AppHandle, n: u8) -> Result<(), Stri
     window.popup_menu(&menu).map_err(|e| e.to_string())
 }
 
-/// Footer switch: every profile offline (game pages closed) or every profile online.
-#[tauri::command]
+/// API /online and /offline without a profile: every profile at once.
 fn set_all_offline(app: AppHandle, off: bool) {
     let ids = app.state::<Profiles>().ids.lock().unwrap().clone();
     for n in ids {

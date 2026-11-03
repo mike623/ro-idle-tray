@@ -79,12 +79,12 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .pill { vertical-align: 1px; margin-left: 4px; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 9px; border: 1px solid currentColor; background: var(--face); white-space: nowrap; }
 .pill.ok { color: var(--ink-green); }
 .pill.warn { color: var(--danger); }
-.foot { border-top: 1px solid var(--edge-dark); padding: 5px 8px; display: grid; grid-template-columns: auto auto 1fr; align-items: center; column-gap: 6px; row-gap: 4px; }
+.foot { border-top: 1px solid var(--edge-dark); padding: 5px 8px; display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 6px; row-gap: 4px; }
 /* Five actions no longer fit beside "Start at Login" in the 360px panel, so the
    footer stacks: toggle + version on top, actions below. Wider (board) panels
    keep a single line. */
 .foot .row { grid-column: 1 / -1; grid-row: 2; }
-.foot .ver { grid-column: 3; grid-row: 1; justify-self: end; white-space: nowrap; }
+.foot .ver { grid-column: 2; grid-row: 1; justify-self: end; white-space: nowrap; }
 @media (min-width: 470px) {
   .foot { display: flex; gap: 5px; }
   .foot .ver { margin-left: auto; }
