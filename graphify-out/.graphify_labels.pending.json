@@ -18,7 +18,7 @@
   "16": "build.rs",
   "17": "main.rs",
   "18": "ro-idle-tray",
-  "19": "knowledge.rs",
+  "19": "alerts.rs",
   "20": "atlas.rs",
   "21": "Domain Docs",
   "22": "Agent skills",
@@ -35,8 +35,8 @@
   "33": "items.js",
   "34": "AppHandle",
   "35": "run",
-  "36": "open_profile",
-  "37": "write_panel_geometry",
-  "38": "remove_profile",
-  "39": "Value"
+  "36": "character_report",
+  "37": "set_nickname",
+  "38": "open_exports",
+  "39": "items_characters"
 }

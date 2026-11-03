@@ -246,8 +246,6 @@ struct Profiles {
     goals: Mutex<HashMap<String, String>>,
     /// Profiles switched to offline: no game window at all, so the server stops ticking them live.
     offline: Mutex<Vec<u8>>,
-    /// Subset of `offline` that auto offline closed; reopened when the panel opens.
-    auto_off: Mutex<Vec<u8>>,
     /// Last time a game window was visible, or the panel was opened.
     active_at: Mutex<std::time::Instant>,
     /// Last hourly wake of offline profiles.
@@ -640,7 +638,6 @@ pub fn run() {
                 // Every boot starts all profiles online once so each one settles its offline
                 // progress and shows it is healthy and idling; auto offline closes them after 3 min.
                 offline: Mutex::new(Vec::new()),
-                auto_off: Mutex::new(Vec::new()),
                 active_at: Mutex::new(std::time::Instant::now()),
                 woke_at: Mutex::new(std::time::Instant::now()),
             });
@@ -1067,7 +1064,6 @@ fn toggle_panel(app: &AppHandle) {
         }
         let _ = w.show();
         let _ = w.set_focus();
-        auto_online(app);
         notify(app);
         poll_profiles(app);
     }
@@ -1286,7 +1282,12 @@ fn get_state(app: AppHandle) -> PanelState {
 /// Status dot on a card: flip that profile between online and offline.
 #[tauri::command]
 fn toggle_online(app: AppHandle, n: u8) {
-    let off = app.state::<Profiles>().offline.lock().unwrap().contains(&n);
+    let profiles = app.state::<Profiles>();
+    let off = profiles.offline.lock().unwrap().contains(&n);
+    if off {
+        // Brought online by hand for editing: give it a full countdown.
+        *profiles.active_at.lock().unwrap() = std::time::Instant::now();
+    }
     set_offline(&app, n, !off);
 }
 
@@ -1454,6 +1455,9 @@ fn items_characters(app: AppHandle) -> Vec<serde_json::Value> {
 /// Item settings editor (src/items.html): one table for every character's 道具設定.
 #[tauri::command]
 fn open_items(app: AppHandle) {
+    // Editing fans out through the game pages, so they all come online while the editor is open.
+    *app.state::<Profiles>().active_at.lock().unwrap() = std::time::Instant::now();
+    set_all_offline(app.clone(), false);
     if let Some(w) = app.get_webview_window("items") {
         let _ = w.show();
         let _ = w.set_focus();
@@ -1578,7 +1582,7 @@ const AUTO_OFFLINE_AFTER: Duration = Duration::from_secs(180);
 /// settled and the panel shows fresh numbers; auto offline closes it again 3 min later.
 const WAKE_EVERY: Duration = Duration::from_secs(3600);
 
-/// No game window open for 3 min: close all online game pages, even with the panel open.
+/// Offline is the default: no game window or item editor open for 3 min closes every online game page.
 /// Offline earns ~97% of online EXP (e2e 2026-11-03) at no local or server cost.
 fn auto_offline_tick(app: &AppHandle) {
     let profiles = app.state::<Profiles>();
@@ -1593,19 +1597,17 @@ fn auto_offline_tick(app: &AppHandle) {
     if due {
         let waking = profiles.offline.lock().unwrap().clone();
         if !waking.is_empty() {
-            // ponytail: also wakes profiles set offline by hand; they rejoin auto offline after.
-            profiles.auto_off.lock().unwrap().clear();
             *profiles.active_at.lock().unwrap() = std::time::Instant::now();
             let h = app.clone();
             let _ = app.run_on_main_thread(move || waking.into_iter().for_each(|n| set_offline(&h, n, false)));
             return;
         }
     }
-    // Only an open game window counts as playing; the panel just watches the countdown run.
+    // Only a game window or the item editor needs the pages; the panel just watches the countdown run.
     let seen = app
         .webview_windows()
         .iter()
-        .any(|(label, w)| label.starts_with("game-") && w.is_visible().unwrap_or(false));
+        .any(|(label, w)| (label.starts_with("game-") || label == "items") && w.is_visible().unwrap_or(false));
     {
         let mut at = profiles.active_at.lock().unwrap();
         if seen {
@@ -1621,22 +1623,8 @@ fn auto_offline_tick(app: &AppHandle) {
     if going.is_empty() {
         return;
     }
-    profiles.auto_off.lock().unwrap().extend(&going);
     let h = app.clone();
     let _ = app.run_on_main_thread(move || going.into_iter().for_each(|n| set_offline(&h, n, true)));
-}
-
-/// Panel opened: reopen what auto offline closed.
-/// Profiles the user set offline by hand are not in the list and stay closed.
-fn auto_online(app: &AppHandle) {
-    let profiles = app.state::<Profiles>();
-    let back = std::mem::take(&mut *profiles.auto_off.lock().unwrap());
-    if back.is_empty() {
-        // Already online: opening the panel just shows the countdown, it does not restart it.
-        return;
-    }
-    *profiles.active_at.lock().unwrap() = std::time::Instant::now();
-    back.into_iter().for_each(|n| set_offline(app, n, false));
 }
 
 /// Right-click menu on a profile card: Online (game kept in a hidden window) vs Offline (closed).
