@@ -418,3 +418,10 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 /* Offline profile: game page closed, last data kept. */
 .prow.offline { opacity: 0.55; }
 .prow.offline .dot { background: transparent; border: 1px dashed var(--text-dim); box-shadow: none; }
+
+/* Status dot doubles as the online/offline switch; timer sits under the action buttons. */
+button.dot { padding: 0; border: 0; cursor: pointer; outline-offset: 3px; }
+button.dot:hover { outline: 2px solid var(--select); }
+.sum .go, .sum .idle { grid-row: 1; }
+.offt { grid-column: 3 / 5; grid-row: 2; justify-self: center; font-size: 10px; font-variant-numeric: tabular-nums; color: var(--text-dim); white-space: nowrap; }
+.prow.offline .offt { color: var(--exp); }
