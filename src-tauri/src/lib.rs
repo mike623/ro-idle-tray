@@ -1630,11 +1630,12 @@ fn auto_offline_tick(app: &AppHandle) {
 /// Profiles the user set offline by hand are not in the list and stay closed.
 fn auto_online(app: &AppHandle) {
     let profiles = app.state::<Profiles>();
-    *profiles.active_at.lock().unwrap() = std::time::Instant::now();
     let back = std::mem::take(&mut *profiles.auto_off.lock().unwrap());
     if back.is_empty() {
+        // Already online: opening the panel just shows the countdown, it does not restart it.
         return;
     }
+    *profiles.active_at.lock().unwrap() = std::time::Instant::now();
     back.into_iter().for_each(|n| set_offline(app, n, false));
 }
 
