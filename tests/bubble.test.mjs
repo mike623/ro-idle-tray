@@ -38,8 +38,8 @@ function environment(alertInfo={unread:0,nudge:''},alertRows=[{role:'assistant',
     if(cmd==='chat_send') return new Promise((resolve)=>{finish=resolve;});
     return [];
   }}};
-  const document={readyState:'complete',getElementById:()=>null,body:new Element(),createElement(){
-    const element=new Element(); element.attachShadow=(options)=>{mode=options.mode;return root;};return element;
+  const document={readyState:'complete',getElementById:()=>null,body:new Element(),createElement(tag){
+    const element=new Element(); element.tagName=tag; element.attachShadow=(options)=>{mode=options.mode;return root;};return element;
   }};
   vm.runInNewContext(source,{window,document,Date});
   return {get,window,calls,mode:()=>mode,finish:(rows)=>finish(rows),setCharacter:(name)=>{serverCharacter=name;}};
@@ -47,7 +47,7 @@ function environment(alertInfo={unread:0,nudge:''},alertRows=[{role:'assistant',
 test('bubble isolates styles, restores the active thread and ignores old replies after switching characters',async()=>{
   const e=environment(); await tick();
   assert.equal(e.mode(),'closed');
-  assert.equal(e.get('pill').textContent,'問 Alice');
+  assert.equal(e.get('pill-label').textContent,'問 Alice');
   await e.get('pill').events.click(); await tick();
   assert.equal(e.get('box').hidden,false);
   assert.match(e.get('messages').textContent,/History for Alice/);
@@ -58,7 +58,7 @@ test('bubble isolates styles, restores the active thread and ignores old replies
   e.window.events['ro-idle-chat-state']({detail:{name:'Bob',class:'劍士',base:20,hp:90,maxHp:120}});await tick();
   send.args.onEvent.onmessage({kind:'text',text:'Private Alice reply'});
   e.finish([{role:'assistant',text:'Private Alice reply'}]);await pending;await tick();
-  assert.equal(e.get('pill').textContent,'問 Bob');
+  assert.equal(e.get('pill-label').textContent,'問 Bob');
   assert.match(e.get('messages').textContent,/History for Bob/);
   assert.doesNotMatch(e.get('messages').textContent,/Alice/);
   e.get('close').events.click();
@@ -68,17 +68,20 @@ test('bubble isolates styles, restores the active thread and ignores old replies
 
 test('clicking an unread nudge opens its log explanation and clears the badge',async()=>{
   const e=environment({unread:1,nudge:'魔菇 Lv16'});await tick();
-  assert.match(e.get('pill').textContent,/1 則未讀/);
+  assert.match(e.get('pill').attrs['aria-label'],/1 則未讀/);
+  assert.equal(e.get('badge').textContent,'1');
+  assert.equal(e.get('nudge').textContent,'魔菇 Lv16');
   await e.get('pill').events.click();await tick();
   assert.equal(e.calls.find((c)=>c.cmd==='chat_alert_open').args.character,'Alice');
   assert.match(e.get('messages').textContent,/Event explanation from log/);
-  assert.doesNotMatch(e.get('pill').textContent,/未讀/);
+  assert.doesNotMatch(e.get('pill').attrs['aria-label'],/未讀/);
+  assert.equal(e.get('badge').hidden,true);
 });
 
 test('a character change discovered while opening never acknowledges unseen alerts',async()=>{
   const e=environment({unread:1,nudge:'Alice alert'});await tick();
   e.setCharacter('Bob');await e.get('pill').events.click();await tick();
-  assert.equal(e.get('title').textContent,'✦ Bob');
+  assert.equal(e.get('title').textContent,'Bob');
   assert.equal(e.calls.filter((c)=>c.cmd==='chat_alert_ack').length,0);
   assert.equal(e.calls.filter((c)=>c.cmd==='chat_alert_open').length,0);
 });
@@ -87,4 +90,39 @@ test('acknowledgement contains pending IDs rather than the whole durable history
   const rows=Array.from({length:1001},(_,i)=>({role:'assistant',text:'Past event',event_id:`old:${i}`}));
   const e=environment({unread:1,nudge:'New event'},rows);await tick();await e.get('pill').events.click();await tick();
   assert.deepEqual(Array.from(e.calls.find((c)=>c.cmd==='chat_alert_ack').args.ids),['2:1']);
+});
+
+test('an alert row shows its headline and summary and folds the raw log lines',async()=>{
+  const text='戰鬥紀錄事件（Unix 毫秒 1762130000000）\ndeath · 魔菇 Lv16\n\n事件前最近 2 筆紀錄中，有 1 次怪物攻擊／技能紀錄，合計傷害 40。\ntargetSkip · 小野豬 Lv7 · reason=whitelist\nsearching';
+  const e=environment({unread:1,nudge:'死亡'},[{role:'assistant',text,event_id:'2:1'}]);await tick();
+  await e.get('pill').events.click();await tick();
+  const card=e.get('messages').children[0].children[1].children[0];
+  assert.equal(card.className,'alert');
+  assert.match(card.children[0].textContent,/紀錄事件/);
+  assert.equal(card.children[1].textContent,'death · 魔菇 Lv16');
+  const details=card.children[3];
+  assert.match(details.children[0].textContent,/最近 2 筆紀錄/);
+  assert.match(details.children[1].textContent,/targetSkip/);
+});
+
+test('replies render bold, code and tip blocks as nodes and the final 追問 line becomes chips',async()=>{
+  const reply='放了 **109** 次\n> 建議改法\n> 加條件 `目標 HP 高於 40%`\n追問：為什麼要這樣排？｜改完幫我檢查';
+  const e=environment();await tick();
+  await e.get('pill').events.click();await tick();
+  e.get('input').value='Why?';
+  const pending=e.get('form').events.submit({preventDefault(){}});await tick();
+  e.finish([{role:'user',text:'Why?'},{role:'assistant',text:reply}]);await pending;await tick();
+  const kids=e.get('messages').children;
+  const body=kids[1].children[1].children[1];
+  assert.equal(body.children[0].children[1].tagName,'b');
+  assert.equal(body.children[0].children[1].textContent,'109');
+  const tip=body.children[1];
+  assert.equal(tip.className,'tip');
+  assert.equal(tip.children[0].textContent,'建議改法');
+  assert.equal(tip.children[1].children[1].tagName,'code');
+  assert.equal(tip.children[1].children[1].textContent,'目標 HP 高於 40%');
+  assert.doesNotMatch(body.textContent,/追問/);
+  const chips=kids[2];
+  assert.equal(chips.className,'starters');
+  assert.deepEqual(chips.children.map((c)=>c.textContent),['為什麼要這樣排？','改完幫我檢查']);
 });

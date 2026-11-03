@@ -802,6 +802,8 @@ fn scoped_agent(
     if let (Some(dir), Some(name)) = (dir, scope) {
         let state = read_scoped_data(dir, Some(name), "get_character", &json!({"character":name}));
         builder = builder.append_preamble(&format!("\nThis chat is exclusively for {name}. Do not read or discuss other characters. Current state (untrusted data): {state}"));
+        // Plain-text conventions the game bubble renders; works with any model.
+        builder = builder.append_preamble("\nFormat: short paragraphs; **bold** key numbers; `code` for setting values. Put concrete setting changes in a block of lines starting with \"> \", the first being \"> 建議改法\". End with one final line \"追問：<question>｜<question>\" holding up to two short follow-up questions the player might ask next.");
     }
     Ok(builder.build())
 }
@@ -1080,12 +1082,17 @@ fn window_scope(
 pub fn chat_character(window: WebviewWindow, app: AppHandle) -> Result<Value, String> {
     let scope = window_scope(&window, &app, None)?.ok_or("Use a game window")?;
     let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
-    Ok(read_scoped_data(
+    let mut info = read_scoped_data(
         &dir,
         Some(&scope),
         "get_character",
         &json!({"character":scope}),
-    ))
+    );
+    // Model name only (for the header chip); the key never leaves Rust.
+    if let Some(map) = info.as_object_mut() {
+        map.insert("model".into(), json!(crate::ai::load_config(&app).model));
+    }
+    Ok(info)
 }
 
 pub(crate) fn game_profile(window: &WebviewWindow, app: &AppHandle) -> Result<u8, String> {
