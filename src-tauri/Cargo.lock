@@ -3540,7 +3540,7 @@ dependencies = [
 
 [[package]]
 name = "ro-idle-tray"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "aes-gcm",
  "block2",
