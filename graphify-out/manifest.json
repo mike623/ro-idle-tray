@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "src-tauri/src/lib.rs": {
-    "mtime": 1793668350.0764875,
-    "seen": 1793668471.623647,
-    "ast_hash": "e02581ac3553b3a41389ae149a82a3e9",
+    "mtime": 1793701507.38011,
+    "seen": 1793701515.2953029,
+    "ast_hash": "c5deddf983d4cdabe51cccc380391e77",
     "semantic_hash": ""
   },
   "src-tauri/src/main.rs": {
@@ -72,9 +72,9 @@
     "semantic_hash": ""
   },
   "src/main.js": {
-    "mtime": 1793667844.9034636,
-    "seen": 1793667865.1536949,
-    "ast_hash": "38ab728cffa9975e0a8986a518a3d45a",
+    "mtime": 1793701507.3815403,
+    "seen": 1793701515.2954628,
+    "ast_hash": "7f0063ddaa898049dd54f979f29714f8",
     "semantic_hash": ""
   },
   ".github/workflows/release.yml": {
@@ -96,9 +96,9 @@
     "semantic_hash": ""
   },
   "src/index.html": {
-    "mtime": 1793667844.9030387,
-    "seen": 1793667865.1540082,
-    "ast_hash": "64c407893b0f466e9e6457265dafd12a",
+    "mtime": 1793701507.3811295,
+    "seen": 1793701515.295767,
+    "ast_hash": "4ece4ecdab25d67fc455abda30696daa",
     "semantic_hash": ""
   },
   "src-tauri/icons/128x128.png": {

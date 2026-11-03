@@ -1,17 +1,17 @@
 # Graph Report - ro-idle-tray  (2026-11-03)
 
 ## Corpus Check
-- 45 files · ~63,639 words
+- 45 files · ~63,844 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 5 file(s) not represented in the graph (top: (none) 2, .icns 1, .ico 1)
 
 ## Summary
-- 674 nodes · 1312 edges · 33 communities (22 shown, 11 thin omitted)
+- 675 nodes · 1314 edges · 33 communities (22 shown, 11 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `78dc20cc`
+- Built from commit: `70fb3e03`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -37,7 +37,7 @@
 - atlas.rs
 - Domain Docs
 - Agent skills
-- memory.rs
+- alerts.rs
 - triage-labels.md
 - secret.rs
 - chat.js
@@ -76,7 +76,7 @@
 
 ### Community 0 - "lib.rs"
 Cohesion: 0.05
-Nodes (77): add_account(), add_profile(), CHARACTER_HOOK, character_report(), CharacterLabel, check_update(), confirm_remove(), dialog() (+69 more)
+Nodes (78): add_account(), add_profile(), CHARACTER_HOOK, character_report(), CharacterLabel, check_update(), confirm_remove(), dialog() (+70 more)
 
 ### Community 1 - "main.js"
 Cohesion: 0.08
@@ -135,8 +135,8 @@ Cohesion: 0.09
 Nodes (14): ALLOWED, CALL_TIMEOUT, CONNECT_TIMEOUT, ENDPOINT, failure(), MAX_RESULT_BYTES, raw_text(), reaches_the_hosted_server() (+6 more)
 
 ### Community 19 - "alerts.rs"
-Cohesion: 0.09
-Nodes (27): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+19 more)
+Cohesion: 0.15
+Nodes (15): DATA, live_game_lookup_contains_spore_sleep_water_and_attack(), lookup(), lookup_in(), rank(), rank_in(), ranking_flags_aggressive_damage_and_respects_level_limit_and_bonus(), apply() (+7 more)
 
 ### Community 20 - "atlas.rs"
 Cohesion: 0.14
@@ -150,12 +150,12 @@ Nodes (5): Before exploring, read these, Domain Docs, File structure, Flag ADR c
 Cohesion: 0.40
 Nodes (4): Agent skills, Domain docs, Issue tracker, Triage labels
 
-### Community 23 - "memory.rs"
-Cohesion: 0.38
-Nodes (12): context(), edit(), footer(), index(), known(), MAX_BYTES, names(), note() (+4 more)
+### Community 23 - "alerts.rs"
+Cohesion: 0.14
+Nodes (24): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+16 more)
 
 ### Community 25 - "secret.rs"
-Cohesion: 0.11
+Cohesion: 0.12
 Nodes (17): AI_FILE, file_path(), load(), load_named(), NONCE_LEN, rejects_tampered_or_unknown_blobs(), roundtrip_binds_to_the_machine(), SALT (+9 more)
 
 ### Community 26 - "chat.js"
@@ -175,7 +175,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `@tauri-apps/cli`, `ro-idle-tray`, `Text` to the rest of the system?**
   _4 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `lib.rs` be split into smaller, more focused modules?**
-  _Cohesion score 0.050917336631622345 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0503030303030303 - nodes in this community are weakly interconnected._
 - **Why does `AiConfig` connect `ai.rs` to `chat.rs`?**
   _High betweenness centrality (0.005) - this node is a cross-community bridge._
 - **Should `main.js` be split into smaller, more focused modules?**

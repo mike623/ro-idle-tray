@@ -511,6 +511,13 @@ $("pin").addEventListener("click", (e) => invoke("set_pinned", { pinned: e.curre
 $("panel-hide").addEventListener("click", () => invoke("hide_panel"));
 $("quit").addEventListener("click", () => invoke("quit"));
 $("add").addEventListener("click", () => invoke("add_account"));
+// Recall stops everyone idling, so the first click only arms it for 3 s.
+$("recall").addEventListener("click", (e) => {
+  const b = e.currentTarget;
+  if (b.dataset.armed) { delete b.dataset.armed; b.textContent = "Recall"; invoke("recall_all"); return; }
+  b.dataset.armed = "1"; b.textContent = "確定回城？";
+  setTimeout(() => { delete b.dataset.armed; b.textContent = "Recall"; }, 3000);
+});
 $("maps").addEventListener("click", () => invoke("open_atlas", { q: null }));
 $("classes").addEventListener("click", () => invoke("open_classes"));
 $("exports").addEventListener("click", () => invoke("open_export_folder"));

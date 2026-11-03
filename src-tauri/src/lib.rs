@@ -130,6 +130,11 @@ const CHARACTER_HOOK: &str = r#"
     const snapshot = await roIdleMove(mapId, id, cache[id]);
     if (snapshot && streamId === id) { cache[id] = snapshot; send(snapshot); }
   };
+  // Panel's Recall All: same command as the game's 回儲存點 button (skipped when dead, like the game).
+  window.__roIdleRecall = () => {
+    const s = cache[streamId];
+    if (s?.saveMap && s.activity !== 'dead') window.__roIdleMove(s.saveMap).catch(() => {});
+  };
   // Called by the tray panel: press the game's own 開始掛機 / 停止掛機 button.
   window.__roIdleToggle = () => {
     const btn = [...document.querySelectorAll('button.xp-btn.primary')]
@@ -522,6 +527,7 @@ pub fn run() {
             character_report,
             open_account,
             toggle_idle,
+            recall_all,
             enter_character,
             add_account,
             remove_account,
@@ -1214,6 +1220,17 @@ fn open_account(app: AppHandle, n: u8) {
 fn toggle_idle(app: AppHandle, n: u8) {
     if let Some(w) = app.get_webview_window(&format!("game-profile-{n}")) {
         let _ = w.eval("window.__roIdleToggle && window.__roIdleToggle()");
+    }
+}
+
+/// Sends every open profile's character back to its save point (回儲存點).
+#[tauri::command]
+fn recall_all(app: AppHandle) {
+    let ids = app.state::<Profiles>().ids.lock().unwrap().clone();
+    for n in ids {
+        if let Some(w) = app.get_webview_window(&format!("game-profile-{n}")) {
+            let _ = w.eval("window.__roIdleRecall && window.__roIdleRecall()");
+        }
     }
 }
 
