@@ -45,7 +45,7 @@ const CHARACTER_HOOK: &str = r#"
     sessionStorage.setItem('roIdleAutoReload', String(Date.now()));
     btn.click();
   }, 30000);
-  let last = '', lastAt = 0, streamId = null;
+  let last = '', lastAt = 0, streamId = null, liveES = null, streamAt = 0;
   const cache = {};
   const num = v => Number.isFinite(v) ? v : null;
   // Map and action names come from tables inside the game bundle, so read the
@@ -106,14 +106,19 @@ const CHARACTER_HOOK: &str = r#"
       const id = (String(url).match(/\/api\/characters\/([^/?]+)\/stream/) || [])[1];
       if (!id) return;
       streamId = id;
+      liveES = this;
+      streamAt = Date.now();
+      this.addEventListener('message', () => { streamAt = Date.now(); });
       if (cache[id]) send(cache[id]);
       this.addEventListener('snapshot', e => {
         try {
+          streamAt = Date.now();
           if (streamId === id) { const s = JSON.parse(e.data)?.snapshot; if (s?.character) { cache[id] = s; send(s); } }
         } catch {}
       });
       // Battle/log lines the game's log window shows; mirrored raw to logs/<profile>.log.
       this.addEventListener('events', e => {
+        streamAt = Date.now();
         if (streamId !== id || typeof e.data !== 'string') return;
         window.__TAURI_INTERNALS__?.invoke('plugin:event|emit', { event: 'ro-idle-log', payload: { profile: RO_IDLE_PROFILE, data: e.data } })
           .catch(() => {});
@@ -123,6 +128,15 @@ const CHARACTER_HOOK: &str = r#"
   // Hidden windows skip the game's own visible-only refresh and WebKit throttles
   // their timers, so Rust calls this on its own clock (see poll_profiles).
   window.__roIdlePoll = () => {
+    // The server sometimes drops every stream at once and the game never reopens it
+    // (seen 2026-11-03 08:52); snapshots kept polling but battle logs went silent.
+    // ponytail: a full reload is the one recovery known to work; 10 min silence also
+    // catches a stopped character the server stops pushing to (one cheap reload each).
+    if (liveES && (liveES.readyState === 2 || Date.now() - streamAt > 10 * 60 * 1000)) {
+      liveES = null;
+      location.reload();
+      return;
+    }
     if (streamId !== null) window.fetch(`/api/characters/${streamId}?deferCatchup=1`, { credentials: 'same-origin' }).catch(() => {});
   };
   window.__roIdleMove = async mapId => {
