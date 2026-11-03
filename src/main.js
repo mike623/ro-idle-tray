@@ -36,13 +36,18 @@ let dragging = null;
 // "list" | "grid" | "board".
 let view = "list";
 // Board columns: [{ name, members: [n] }]. Profiles in no group show in the first column.
-// ponytail: per-machine localStorage like the view choice; move to the Rust config if groups must sync.
+// Saved in groups.json by the tray (localStorage is per origin, and `tauri dev` changes
+// the origin's port every run). Old localStorage groups are migrated on first load.
 let groups = [{ name: "未分組", members: [] }];
-try {
-  const g = JSON.parse(localStorage.getItem("roIdleTray.groups"));
-  if (Array.isArray(g) && g.length && g.every((x) => typeof x?.name === "string" && Array.isArray(x.members))) groups = g;
-} catch {}
-const saveGroups = () => { try { localStorage.setItem("roIdleTray.groups", JSON.stringify(groups)); } catch {} };
+const validGroups = (g) => Array.isArray(g) && g.length && g.every((x) => typeof x?.name === "string" && Array.isArray(x.members));
+const saveGroups = () => { invoke("set_groups", { groups }).catch(() => {}); };
+const groupsReady = invoke("get_groups").then((g) => {
+  if (validGroups(g)) { groups = g; return; }
+  try {
+    const old = JSON.parse(localStorage.getItem("roIdleTray.groups"));
+    if (validGroups(old)) { groups = old; saveGroups(); }
+  } catch {}
+}).catch(() => {});
 
 // Inline text edit used for group names (Enter saves, Esc cancels, blur saves).
 function editInline(node, value, onSave) {
@@ -738,4 +743,4 @@ listen("state-changed", refresh);
 setInterval(refresh, 30000);
 // Tick the "Ns ago" labels every second without re-rendering rows.
 setInterval(() => document.querySelectorAll(".ago[data-updated]").forEach(setAgo), 1000);
-refresh();
+groupsReady.then(refresh);

@@ -382,6 +382,47 @@ fn save_map(path: Option<std::path::PathBuf>, map: &HashMap<String, String>) {
     }
 }
 
+/// Board columns `[{name, members: [profile n]}]`, checked before saving.
+fn valid_groups(v: &serde_json::Value) -> bool {
+    v.as_array().is_some_and(|cols| {
+        (1..=20).contains(&cols.len())
+            && cols.iter().all(|c| {
+                c["name"].as_str().is_some_and(|n| n.chars().count() <= 30)
+                    && c["members"].as_array().is_some_and(|m| m.iter().all(|x| x.as_u64().is_some_and(|n| (1..=255).contains(&n))))
+            })
+    })
+}
+
+#[test]
+fn groups_shape() {
+    assert!(valid_groups(&serde_json::json!([{"name":"A","members":[1,5]},{"name":"B","members":[]}])));
+    assert!(!valid_groups(&serde_json::json!([])));
+    assert!(!valid_groups(&serde_json::json!([{"name":"A","members":[0]}])));
+    assert!(!valid_groups(&serde_json::json!([{"members":[1]}])));
+}
+
+/// Board groups live in groups.json, not panel localStorage: `tauri dev` serves the
+/// panel from a new 127.0.0.1 port each run, and localStorage is per origin.
+#[tauri::command]
+fn get_groups(app: AppHandle) -> serde_json::Value {
+    app.path().app_config_dir().ok()
+        .and_then(|d| std::fs::read_to_string(d.join("groups.json")).ok())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .filter(valid_groups)
+        .unwrap_or(serde_json::Value::Null)
+}
+
+#[tauri::command]
+fn set_groups(app: AppHandle, groups: serde_json::Value) -> Result<(), String> {
+    if !valid_groups(&groups) {
+        return Err("Invalid board groups".into());
+    }
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&dir)
+        .and_then(|_| std::fs::write(dir.join("groups.json"), groups.to_string()))
+        .map_err(|e| format!("Cannot save board groups: {e}"))
+}
+
 /// Empty goal clears it. Stored only in this app (goals.json), never sent to the game.
 #[tauri::command]
 fn set_goal(app: AppHandle, name: String, goal: String) {
@@ -494,6 +535,8 @@ pub fn run() {
             atlas::move_selected,
             set_nickname,
             set_goal,
+            get_groups,
+            set_groups,
             reorder_profiles,
             set_panel_width,
             set_pinned,
