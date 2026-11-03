@@ -151,6 +151,17 @@ const CHARACTER_HOOK: &str = r#"
     if (!s?.saveMap) throw new Error('No save point');
     await window.__roIdleMove(s.saveMap);
   };
+  // Panel's Merge Items / Fan Out (see items.js).
+  window.__roIdleItems = overrides => {
+    const s = cache[streamId];
+    if (!s?.config) throw new Error('No character currently in play');
+    return {job: s.character?.job ?? '', items: roIdleSharedItems(s.config, overrides, s.character?.name)};
+  };
+  window.__roIdleApplyItems = async (items, overrides) => {
+    const id = streamId;
+    const snapshot = await roIdleApplyItems(id, cache[id], items, overrides);
+    if (snapshot && streamId === id) { cache[id] = snapshot; send(snapshot); }
+  };
   // Called by the tray panel: press the game's own 開始掛機 / 停止掛機 button.
   window.__roIdleToggle = () => {
     const btn = [...document.querySelectorAll('button.xp-btn.primary')]
@@ -337,7 +348,7 @@ const JOB_NAMES: &[(&str, &str)] = &[
 ];
 
 /// Mirrors the game's own label: `*_high` reuses the base name plus （轉生）.
-fn job_name(id: &str) -> String {
+pub(crate) fn job_name(id: &str) -> String {
     let lookup = |k: &str| JOB_NAMES.iter().find(|(j, _)| *j == k).map(|(_, n)| *n);
     match id.strip_suffix("_high").and_then(lookup) {
         Some(n) => format!("{n}（轉生）"),
@@ -544,6 +555,11 @@ pub fn run() {
             open_account,
             toggle_idle,
             atlas::recall_all,
+            atlas::items_merge,
+            atlas::items_apply,
+            atlas::items_read,
+            atlas::items_save,
+            open_items,
             enter_character,
             add_account,
             remove_account,
@@ -928,7 +944,7 @@ fn open_profile(app: &AppHandle, profile: &str, show: bool) {
         let _ = window.move_window(tauri_plugin_positioner::Position::TrayCenter);
         return;
     }
-    let script = format!("const RO_IDLE_PROFILE = {profile:?};{}{CHARACTER_HOOK}{}", include_str!("../../src/move.js"), format!("{}{}", include_str!("../../src/tutorial-ui.js"), include_str!("../../src/bubble.js")));
+    let script = format!("const RO_IDLE_PROFILE = {profile:?};{}{CHARACTER_HOOK}{}", format!("{}{}", include_str!("../../src/move.js"), include_str!("../../src/items.js")), format!("{}{}", include_str!("../../src/tutorial-ui.js"), include_str!("../../src/bubble.js")));
     let builder = WebviewWindowBuilder::new(
         app,
         &label,
@@ -1290,7 +1306,7 @@ fn quit(app: AppHandle) {
 }
 
 /// Game exports (settings, local saves) land here instead of loose in ~/Downloads.
-fn export_dir() -> Option<std::path::PathBuf> {
+pub(crate) fn export_dir() -> Option<std::path::PathBuf> {
     let home = std::env::var_os("HOME")?;
     Some(std::path::Path::new(&home).join("Downloads/RO Idle Tray"))
 }
@@ -1350,6 +1366,20 @@ fn open_classes(app: AppHandle) {
     let _ = WebviewWindowBuilder::new(&app, "classes", WebviewUrl::App("classes.html".into()))
         .title("RO Class Chart")
         .inner_size(1000.0, 820.0)
+        .build();
+}
+
+/// Item settings editor (src/items.html): one table for every character's 道具設定.
+#[tauri::command]
+fn open_items(app: AppHandle) {
+    if let Some(w) = app.get_webview_window("items") {
+        let _ = w.show();
+        let _ = w.set_focus();
+        return;
+    }
+    let _ = WebviewWindowBuilder::new(&app, "items", WebviewUrl::App("items.html".into()))
+        .title("RO Item Settings")
+        .inner_size(1100.0, 820.0)
         .build();
 }
 

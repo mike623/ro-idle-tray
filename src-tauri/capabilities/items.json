@@ -1,0 +1,6 @@
+{
+  "identifier": "items",
+  "description": "Item settings editor window.",
+  "windows": ["items"],
+  "permissions": ["items-commands", "core:default"]
+}

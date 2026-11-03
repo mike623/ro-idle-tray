@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RO Item Settings</title>
+<style>
+/* Same xp-title chrome as the map atlas; one table = every character's 道具設定. */
+:root {
+  --ground-1: #7fb85a; --ground-2: #6aa548;
+  --face: #ffffff; --face-2: #f4f6fb; --edge: #b4c0da; --border: #7d8fbc;
+  --text: #1b1b1b; --dim: #5d6273;
+  --title-1: #f7f9fe; --title-2: #dbe4f5; --title-3: #bccbe8; --title-text: #1d2d5a;
+  --select: #4f72c4; --bad: #c4271b; --bad-bg: #fde4e1;
+  --ui: "PMingLiU", "新細明體", "Microsoft JhengHei", "PingFang TC", -apple-system, sans-serif;
+  --num: ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --ground-1: #24361c; --ground-2: #1c2b16;
+  --face: #1e222b; --face-2: #252a35; --edge: #444d63; --border: #4a5570;
+  --text: #dde2ec; --dim: #98a0b3;
+  --title-1: #343c50; --title-2: #2b3244; --title-3: #232937; --title-text: #d6def2;
+  --select: #6f8fe0; --bad: #ff6b5e; --bad-bg: #4a2420;
+  color-scheme: dark;
+} }
+* { box-sizing: border-box; }
+body { margin: 0; background: linear-gradient(180deg, var(--ground-1), var(--ground-2)) fixed; color: var(--text); font: 13px/1.45 var(--ui); }
+.bar { position: sticky; top: 0; z-index: 5; background: linear-gradient(180deg, var(--title-1), var(--title-2) 55%, var(--title-3)); color: var(--title-text); border-bottom: 1px solid var(--border); padding: 10px 16px; }
+.bar-in, main { max-width: 1200px; margin: 0 auto; }
+.bar-in { display: grid; gap: 8px; }
+h1 { margin: 0; font-size: 17px; }
+.sub { font-size: 12px; opacity: .8; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+input, select { font: inherit; padding: 3px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--face); color: var(--text); }
+input[type=search] { flex: 1 1 200px; min-width: 0; padding: 6px 8px; }
+input[type=number] { width: 4.5em; font-family: var(--num); }
+.chip { font: inherit; font-size: 12px; padding: 5px 12px; border: 1px solid var(--border); border-radius: 4px; background: linear-gradient(180deg, var(--face), var(--face-2)); color: var(--title-text); cursor: pointer; }
+.chip.go { background: var(--select); color: #fff; border-color: var(--select); }
+.chip:disabled { opacity: .5; cursor: default; }
+#status { font-size: 12px; }
+#status.bad { color: var(--bad); }
+main { padding: 14px 16px 40px; display: grid; gap: 12px; }
+.card { background: var(--face); border: 1px solid var(--border); border-radius: 6px; box-shadow: 2px 3px 10px #001e0040; overflow: auto; }
+.card h2 { margin: 0; font-size: 13px; padding: 6px 10px; background: linear-gradient(180deg, var(--title-1), var(--title-3)); color: var(--title-text); border-bottom: 1px solid var(--border); }
+.general { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px; }
+.general label { display: flex; gap: 4px; align-items: center; white-space: nowrap; }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 4px 8px; border-bottom: 1px solid var(--edge); text-align: center; white-space: nowrap; }
+th { position: sticky; top: 0; background: var(--face-2); font-weight: normal; color: var(--dim); font-size: 12px; }
+td:first-child, th:first-child { text-align: left; }
+.icon { width: 24px; height: 24px; object-fit: contain; vertical-align: middle; margin-right: 6px; image-rendering: pixelated; }
+.id { color: var(--dim); font-family: var(--num); font-size: 11px; margin-left: 4px; }
+tr.conflict td { background: var(--bad-bg); }
+.warn { color: var(--bad); font-size: 11px; margin-left: 6px; }
+.icon { cursor: help; }
+/* Hover card, like the game's 物品資訊 window. */
+#tip { position: fixed; z-index: 20; width: 260px; pointer-events: none; background: var(--face); border: 1px solid var(--border); border-radius: 6px; box-shadow: 2px 3px 12px #001e0060; overflow: hidden; }
+#tip h3 { margin: 0; padding: 6px 10px; font-size: 13px; display: flex; gap: 6px; align-items: center; background: linear-gradient(180deg, var(--title-1), var(--title-3)); color: var(--title-text); border-bottom: 1px solid var(--border); }
+#tip .art { display: block; margin: 10px auto; width: 75px; height: 100px; object-fit: contain; background: #fff; border-radius: 3px; }
+#tip .desc { margin: 0 10px 8px; padding: 6px 8px; border: 1px solid var(--edge); border-radius: 4px; white-space: pre-line; }
+#tip dl { margin: 0 10px 10px; display: grid; grid-template-columns: auto 1fr; gap: 0 12px; font-size: 12px; color: var(--dim); }
+#tip dd { margin: 0; color: var(--text); }
+tr.over td { background: var(--face-2); }
+tr.over.conflict td { background: var(--bad-bg); }
+.who { padding-left: 30px; }
+.tag { display: inline-block; padding: 1px 8px; border: 1px solid var(--select); border-radius: 10px; color: var(--select); font-size: 12px; }
+.jobs summary { cursor: pointer; font-size: 12px; color: var(--dim); list-style: none; }
+.jobs summary.set { color: var(--select); font-weight: bold; }
+.jobs label { display: block; text-align: left; font-size: 12px; }
+.del { border: 0; background: none; color: var(--dim); cursor: pointer; font-size: 14px; }
+</style>
+</head>
+<body>
+<header class="bar"><div class="bar-in">
+  <div><h1>道具設定（全部角色）</h1>
+    <div class="sub" id="sub">撿取、存倉、補給、販賣、藥水與回復。改一次，套用到每隻角色；技能、地圖、換裝不動。</div></div>
+  <div class="tools">
+    <input type="search" id="q" placeholder="搜尋道具名稱或編號…" aria-label="搜尋道具">
+    <input id="add" list="names" placeholder="＋ 加入道具…" aria-label="加入道具">
+    <datalist id="names"></datalist>
+    <button class="chip" id="merge" title="Read every character in play and rebuild this list (discards unsaved edits)">重新合併</button>
+    <button class="chip" id="save" title="Save to ~/Downloads/RO Idle Tray">儲存</button>
+    <button class="chip go" id="apply" title="Save, then write these settings onto every character in play">套用到全部角色</button>
+    <span id="status" aria-live="polite"></span>
+  </div>
+</div></header>
+<main>
+  <section class="card"><h2>通用</h2><div class="general" id="general"></div></section>
+  <section class="card"><h2 id="count">道具</h2>
+    <table><thead><tr>
+      <th>道具</th><th title="lootPriority">優先撿取</th><th title="autoStorage">存倉</th><th title="autoSell">販賣</th>
+      <th title="hpPotion">HP 藥</th><th title="spPotion">SP 藥</th><th title="buffPotion">增益藥</th>
+      <th title="restock: take from storage">倉庫補</th><th title="townBuy: buy in town">回城買</th><th>少於</th><th>補到</th><th title="Give one character its own row for this item; everyone else keeps the shared row.">角色覆寫</th><th></th>
+    </tr></thead><tbody id="rows"></tbody></table>
+  </section>
+</main>
+<div id="tip" hidden></div>
+<script src="items.js"></script>
+<script>
+const invoke = (c, a) => window.__TAURI__.core.invoke(c, a);
+const $ = id => document.getElementById(id);
+const esc = t => String(t ?? '').replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
+let info = {}, names = {}, file = null, dirty = false;
+const cfg = () => file.config;
+const name = id => names[id] ?? `#${id}`;
+const touch = msg => { dirty = true; status(msg ?? '有未儲存的修改'); };
+const status = (t, bad) => { $('status').textContent = t; $('status').className = bad ? 'bad' : ''; };
+// Row logic lives in items.js, shared with the fan-out in each game page.
+const COLS = [...Object.keys(RO_IDLE_ITEM_LISTS), ...Object.keys(RO_IDLE_ITEM_RULES)];
+const added = new Set(); // ＋ 加入道具 rows that have no list yet
+// file.overrides {itemId: {characterName: row}}: that character gets its own row instead of the shared one.
+const overrides = id => file.overrides?.[id] ?? {};
+const chars = () => (file.mergedFrom ?? []).map(n => [n, (file.characters ?? []).find(c => c.name === n)?.class ?? '']);
+const ids = () => {
+  const s = new Set(added);
+  for (const path of Object.values(RO_IDLE_ITEM_LISTS)) roIdleItemList(cfg(), path).forEach(i => s.add(i));
+  for (const k of Object.values(RO_IDLE_ITEM_RULES)) (cfg()[k] ?? []).forEach(r => s.add(r.itemId));
+  Object.keys(file.overrides ?? {}).forEach(i => s.add(Number(i)));
+  return [...s].sort((a, b) => a - b);
+};
+// Selling something you also store, drink or restock undoes that rule.
+const conflict = row => row.sell && ['store', 'hp', 'sp', 'buff', 'restock', 'town'].some(c => row[c]);
+
+function cells(row) {
+  return COLS.map(c => `<td><input type="checkbox" data-col="${c}" ${row[c] ? 'checked' : ''} aria-label="${c}"></td>`).join('')
+    + (row.restock || row.town
+      ? `<td><input type="number" min="0" data-k="below" value="${row.below}"></td><td><input type="number" min="1" data-k="qty" value="${row.qty}"></td>`
+      : '<td></td><td></td>');
+}
+// Edits on one row: `get` reads it, `set` writes it back (shared config or an override).
+function wire(tr, get, set) {
+  tr.addEventListener('change', e => {
+    const t = e.target, row = get();
+    if (t.dataset.col) row[t.dataset.col] = t.checked;
+    else if (t.dataset.k) row[t.dataset.k] = Math.max(0, Math.round(+t.value || 0));
+    else return;
+    set(row); touch(); if (t.dataset.col) render();
+  });
+}
+function render() {
+  const q = $('q').value.trim();
+  const all = ids(), shown = all.filter(id => !q || name(id).includes(q) || String(id).includes(q));
+  const bad = all.filter(id => conflict(roIdleItemRow(cfg(), id))).length;
+  const over = all.reduce((n, id) => n + Object.keys(overrides(id)).length, 0);
+  $('count').textContent = `道具 ${all.length}` + (over ? `・${over} 個角色覆寫` : '') + (bad ? `（${bad} 個衝突：又賣又留）` : '');
+  $('rows').replaceChildren(...shown.flatMap(id => {
+    const row = roIdleItemRow(cfg(), id), mine = overrides(id);
+    const tr = document.createElement('tr');
+    tr.dataset.id = id;
+    if (conflict(row)) tr.className = 'conflict';
+    const free = chars().filter(([n]) => !mine[n]);
+    tr.innerHTML = `<td><img class="icon" src="${ICON}${id}.png" alt="" loading="lazy" onerror="this.style.visibility='hidden'">${esc(name(id))}<span class="id">${id}</span>${conflict(row) ? '<span class="warn">又賣又留</span>' : ''}</td>`
+      + cells(row)
+      + `<td>${free.length ? `<select class="add-over" aria-label="加入角色覆寫"><option value="">＋ 角色</option>${free.map(([n, c]) => `<option value="${esc(n)}">${esc(n)}${c ? `（${esc(c)}）` : ''}</option>`).join('')}</select>` : ''}</td>`
+      + `<td><button class="del" title="Remove from every list and drop its overrides" aria-label="移除">✕</button></td>`;
+    wire(tr, () => roIdleItemRow(cfg(), id), r => roIdleSetItemRow(cfg(), id, r));
+    tr.querySelector('.add-over')?.addEventListener('change', e => {
+      e.stopPropagation();
+      ((file.overrides ??= {})[id] ??= {})[e.target.value] = roIdleItemRow(cfg(), id); // starts as a copy of the shared row
+      touch(); render();
+    });
+    tr.querySelector('.del').addEventListener('click', () => {
+      roIdleSetItemRow(cfg(), id, Object.fromEntries(COLS.map(c => [c, false])));
+      delete file.overrides?.[id]; added.delete(id); touch(); render();
+    });
+    const subs = Object.entries(mine).map(([n, r]) => {
+      const sub = document.createElement('tr');
+      sub.className = 'over' + (conflict(r) ? ' conflict' : '');
+      sub.innerHTML = `<td class="who">↳ <span class="tag">${esc(n)}</span></td>` + cells(r)
+        + `<td></td><td><button class="del" title="Remove this override; ${esc(n)} uses the shared row again" aria-label="移除覆寫">✕</button></td>`;
+      wire(sub, () => mine[n], v => { mine[n] = v; });
+      sub.querySelector('.del').addEventListener('click', () => {
+        delete mine[n];
+        if (!Object.keys(mine).length) delete file.overrides[id];
+        touch(); render();
+      });
+      return sub;
+    });
+    return [tr, ...subs];
+  }));
+}
+
+// 通用: on/off switches and thresholds. Keys not shown here are kept as merged.
+const GENERAL = [
+  ['自動撿取', ['autoLoot']], ['自動鑑定', ['autoIdentify']],
+  ['存倉', ['autoStorage', 'enabled'], '負重超過', ['autoStorage', 'abovePercent'], '%'],
+  ['HP 藥', ['hpPotion', 'enabled'], 'HP 低於', ['hpPotion', 'belowPercent'], '%'],
+  ['SP 藥', ['spPotion', 'enabled'], 'SP 低於', ['spPotion', 'belowPercent'], '%'],
+  ['增益藥', ['buffPotion', 'enabled']],
+  ['坐下回復', ['sit', 'enabled'], 'HP 低於', ['sit', 'hpBelow'], '%'],
+];
+const get = p => p.reduce((o, k) => o?.[k], cfg());
+const put = (p, v) => { let o = cfg(); for (const k of p.slice(0, -1)) o = o[k] ??= {}; o[p.at(-1)] = v; touch(); };
+function renderGeneral() {
+  $('general').replaceChildren(...GENERAL.map(([label, on, numLabel, num, unit]) => {
+    const l = document.createElement('label');
+    const c = Object.assign(document.createElement('input'), {type: 'checkbox', checked: !!get(on)});
+    c.onchange = () => put(on, c.checked);
+    l.append(c, label);
+    if (num) {
+      const n = Object.assign(document.createElement('input'), {type: 'number', min: 0, max: 100, value: get(num) ?? 0});
+      n.onchange = () => put(num, Math.min(100, Math.max(0, Math.round(+n.value || 0))));
+      l.append(`　${numLabel}`, n, unit);
+    }
+    return l;
+  }));
+}
+function show(f) {
+  file = f; dirty = false;
+  $('sub').textContent = f ? `合併自 ${(f.mergedFrom ?? []).join('、') || '—'}・${new Date(f.exportedAt).toLocaleString('zh-TW')}。改一次，套用到每隻角色；技能、地圖、換裝不動。`
+    : '還沒有合併過：按「重新合併」從每隻角色讀取。';
+  for (const b of ['save', 'apply']) $(b).disabled = !f;
+  if (f) { renderGeneral(); render(); }
+}
+const report = (verb, rs) => {
+  const bad = rs.filter(r => r.error);
+  status(`${verb} ${rs.length - bad.length}/${rs.length}` + (bad.length ? `：${bad.map(r => `${r.name} ${r.error}`).join('；')}` : ''), bad.length);
+};
+const busy = async (fn) => {
+  document.querySelectorAll('.chip').forEach(b => b.disabled = true);
+  try { await fn(); } catch (e) { status(String(e), true); }
+  document.querySelectorAll('.chip').forEach(b => b.disabled = false);
+  if (!file) $('save').disabled = $('apply').disabled = true;
+};
+const save = async () => { await invoke('items_save', {file}); dirty = false; };
+
+const ICON = 'https://ro-idle.app/client/item/', ART = 'https://ro-idle.app/client/collection/';
+$('rows').addEventListener('mouseover', e => {
+  const img = e.target.closest('.icon'), tip = $('tip');
+  if (!img) return;
+  const id = img.closest('tr').dataset.id, i = info[id] ?? {name: `#${id}`};
+  tip.innerHTML = `<h3><img class="icon" src="${ICON}${id}.png" alt="">${esc(i.name)}</h3>`
+    + `<img class="art" src="${ART}${id}.png" alt="" onerror="this.remove()">`
+    + (i.desc ? `<p class="desc">${esc(i.desc)}</p>` : '')
+    + `<dl><dt>重量</dt><dd>${esc(i.weight ?? '—')}</dd><dt>商店收購價</dt><dd>${esc(i.sell ?? '—')} Zeny</dd></dl>`;
+  const r = img.getBoundingClientRect();
+  tip.hidden = false;
+  tip.style.left = `${Math.min(r.right + 8, innerWidth - 270)}px`;
+  tip.style.top = `${Math.max(8, Math.min(r.top - 10, innerHeight - tip.offsetHeight - 8))}px`;
+});
+$('rows').addEventListener('mouseout', e => { if (e.target.closest('.icon')) $('tip').hidden = true; });
+$('q').oninput = render;
+$('add').onchange = () => {
+  const v = $('add').value.trim(), hit = Object.entries(names).find(([id, n]) => n === v || id === v);
+  if (!hit || !file) return status(`找不到「${v}」`, true);
+  $('add').value = ''; $('q').value = '';
+  added.add(+hit[0]); render();
+};
+$('merge').onclick = () => (!dirty || confirm('有未儲存的修改，重新合併會取代。要繼續嗎？')) && busy(async () => {
+  const rs = await invoke('items_merge');
+  show(await invoke('items_read')); report('合併', rs);
+});
+$('save').onclick = () => busy(async () => { await save(); status('已儲存'); });
+// Fan Out overwrites every character's item settings, so it arms first.
+$('apply').onclick = () => {
+  const b = $('apply');
+  if (!b.dataset.armed) {
+    b.dataset.armed = 1; b.textContent = '確定套用？';
+    return setTimeout(() => { delete b.dataset.armed; b.textContent = '套用到全部角色'; }, 3000);
+  }
+  delete b.dataset.armed; b.textContent = '套用到全部角色';
+  busy(async () => { await save(); report('套用', await invoke('items_apply')); });
+};
+
+(async () => {
+  info = await (await fetch('item-info.json')).json();
+  names = Object.fromEntries(Object.entries(info).map(([id, i]) => [id, i.name]));
+  $('names').replaceChildren(...Object.values(names).map(n => Object.assign(document.createElement('option'), {value: n})));
+  show(await invoke('items_read'));
+})().catch(e => status(String(e), true));
+</script>
+</body>
+</html>

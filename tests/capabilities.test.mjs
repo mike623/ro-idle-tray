@@ -14,12 +14,13 @@ test('game origin can report characters and use scoped chat, without tray admini
 
 test('every registered application command has an explicit capability', () => {
   const permissions = JSON.parse(read('permissions/app.json')).permission;
-  const capabilities = ['default', 'remote', 'atlas'].map(name => JSON.parse(read(`capabilities/${name}.json`)));
+  const capabilities = ['default', 'remote', 'atlas', 'items'].map(name => JSON.parse(read(`capabilities/${name}.json`)));
   const granted = new Set(capabilities.flatMap(c => c.permissions));
   const allowed = new Set(permissions.filter(p => granted.has(p.identifier)).flatMap(p => p.commands.allow));
   const handlers = read('src/lib.rs').match(/generate_handler!\[([\s\S]*?)\]/)[1]
     .split(',').map(s => s.trim().split('::').at(-1)).filter(Boolean);
   for (const command of handlers) assert.ok(allowed.has(command), `No capability grants ${command}`);
   assert.deepEqual(JSON.parse(read('capabilities/atlas.json')).windows, ['atlas']);
+  assert.deepEqual(JSON.parse(read('capabilities/items.json')).windows, ['items']);
   assert.deepEqual(permissions.find(p => p.identifier === 'atlas-commands').commands.allow, ['atlas_characters', 'move_all', 'move_selected']);
 });

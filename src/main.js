@@ -528,6 +528,7 @@ $("recall").addEventListener("click", (e) => {
   b.dataset.armed = "1"; b.textContent = "確定回城？";
   setTimeout(() => { if (b.dataset.armed) { delete b.dataset.armed; b.textContent = "Recall"; } }, 3000);
 });
+$("items").addEventListener("click", () => invoke("open_items"));
 $("maps").addEventListener("click", () => invoke("open_atlas", { q: null }));
 $("classes").addEventListener("click", () => invoke("open_classes"));
 $("exports").addEventListener("click", () => invoke("open_export_folder"));

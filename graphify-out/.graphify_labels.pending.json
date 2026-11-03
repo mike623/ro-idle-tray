@@ -22,7 +22,7 @@
   "20": "atlas.rs",
   "21": "Domain Docs",
   "22": "Agent skills",
-  "23": "alerts.rs",
+  "23": "memory.rs",
   "24": "triage-labels.md",
   "25": "secret.rs",
   "26": "chat.js",
@@ -31,5 +31,12 @@
   "29": "move.js",
   "30": "app.json",
   "31": "refresh",
-  "32": "bubble.js"
+  "32": "bubble.js",
+  "33": "items.js",
+  "34": "AppHandle",
+  "35": "run",
+  "36": "notify",
+  "37": "toggle_panel",
+  "38": "write_panel_geometry",
+  "39": "open_exports"
 }

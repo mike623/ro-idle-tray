@@ -10,6 +10,9 @@ pub struct MoveResult {
     profile: u8,
     name: String,
     error: Option<String>,
+    /// What `call` resolved to (Merge Items collects each character's settings).
+    #[serde(default, skip_serializing)]
+    data: Option<serde_json::Value>,
 }
 
 /// A character currently in play, offered as a move target in the atlas.
@@ -155,6 +158,119 @@ pub async fn recall_all(app: AppHandle) -> Result<Vec<MoveResult>, String> {
     run_move(&app, "window.__roIdleRecall()", pending).await
 }
 
+/// The one merged 道具設定 file: game's own export format, so 匯入檔案 also takes it.
+fn items_file() -> Result<std::path::PathBuf, String> {
+    crate::export_dir()
+        .map(|d| d.join("道具設定（全部角色）.ro-idle.json"))
+        .ok_or_else(|| "No home folder".into())
+}
+
+/// Objects merge per key, lists union (rules matched by itemId), booleans OR,
+/// other values keep the first character's (profile order).
+fn merge_items(into: &mut serde_json::Value, from: &serde_json::Value) {
+    use serde_json::Value;
+    match (into, from) {
+        (Value::Object(a), Value::Object(b)) => {
+            for (k, v) in b {
+                match a.get_mut(k) {
+                    Some(x) => merge_items(x, v),
+                    None => {
+                        a.insert(k.clone(), v.clone());
+                    }
+                }
+            }
+        }
+        (Value::Array(a), Value::Array(b)) => {
+            for v in b {
+                let same = |x: &Value| match (x.get("itemId"), v.get("itemId")) {
+                    (Some(p), Some(q)) => p == q,
+                    _ => x == v,
+                };
+                if !a.iter().any(same) {
+                    a.push(v.clone());
+                }
+            }
+        }
+        (Value::Bool(a), Value::Bool(b)) => *a |= *b,
+        _ => {}
+    }
+}
+
+/// Panel's Merge Items: every in-play character's item settings into one file.
+#[tauri::command]
+pub async fn items_merge(app: AppHandle) -> Result<Vec<MoveResult>, String> {
+    let lock = app.state::<MoveLock>();
+    let _guard = lock.0.try_lock().map_err(|_| "A move is already in progress")?;
+    let pending = pending_profiles(&app, None)?;
+    // Per-character overrides survive a re-merge and stay out of the shared rows.
+    let overrides = items_read()
+        .ok()
+        .and_then(|f| f.get("overrides").filter(|o| o.is_object()).cloned())
+        .unwrap_or_else(|| serde_json::json!({}));
+    let call = format!("window.__roIdleItems({overrides})");
+    let results = run_move(&app, &call, pending).await?;
+    let mut config = serde_json::json!({});
+    let (mut from, mut characters) = (Vec::new(), Vec::new());
+    for r in &results {
+        if let (None, Some(d)) = (&r.error, &r.data) {
+            merge_items(&mut config, &d["items"]);
+            from.push(r.name.clone());
+            let job = d["job"].as_str().unwrap_or("");
+            characters.push(serde_json::json!({"name": r.name, "job": job, "class": crate::job_name(job)}));
+        }
+    }
+    if from.is_empty() {
+        return Ok(results);
+    }
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis() as u64);
+    let file = serde_json::json!({
+        "format": "ro-idle-autoconfig", "version": 1, "name": "全部角色的道具設定", "job": "",
+        "exportedAt": now, "sections": ["items", "recovery"], "mergedFrom": from, "characters": characters,
+        "overrides": overrides,
+        "config": config,
+    });
+    let path = items_file()?;
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(&path, serde_json::to_string_pretty(&file).unwrap()).map_err(|e| e.to_string())?;
+    Ok(results)
+}
+
+/// Item editor window (src/items.html): the merged file, or null before the first merge.
+#[tauri::command]
+pub fn items_read() -> Result<serde_json::Value, String> {
+    match std::fs::read_to_string(items_file()?) {
+        Ok(text) => serde_json::from_str(&text).map_err(|e| format!("Bad file: {e}")),
+        Err(_) => Ok(serde_json::Value::Null),
+    }
+}
+
+/// Item editor's 儲存: only a game-format settings file is written.
+#[tauri::command]
+pub fn items_save(file: serde_json::Value) -> Result<(), String> {
+    if file["format"] != "ro-idle-autoconfig" || !file["config"].is_object() {
+        return Err("Bad file: not an item settings file".into());
+    }
+    std::fs::write(items_file()?, serde_json::to_string_pretty(&file).unwrap()).map_err(|e| e.to_string())
+}
+
+/// Item editor's 套用到全部角色: the merged file's settings onto every in-play character.
+#[tauri::command]
+pub async fn items_apply(app: AppHandle) -> Result<Vec<MoveResult>, String> {
+    let lock = app.state::<MoveLock>();
+    let _guard = lock.0.try_lock().map_err(|_| "A move is already in progress")?;
+    let text = std::fs::read_to_string(items_file()?).map_err(|_| "Press Merge Items first")?;
+    let file: serde_json::Value = serde_json::from_str(&text).map_err(|e| format!("Bad file: {e}"))?;
+    let config = file.get("config").filter(|c| c.is_object()).ok_or("Bad file: no config")?;
+    let pending = pending_profiles(&app, None)?;
+    let overrides = file.get("overrides").filter(|o| o.is_object()).cloned().unwrap_or_else(|| serde_json::json!({}));
+    let call = format!("window.__roIdleApplyItems({config}, {overrides})");
+    run_move(&app, &call, pending).await
+}
+
 /// Runs `call` (a JS promise expression) in each pending profile's game window.
 async fn run_move(
     app: &AppHandle,
@@ -174,9 +290,9 @@ async fn run_move(
     for (&n, name) in &pending {
         let script = format!(
             r#"(async () => {{
-            let error = null;
-            try {{ await {call}; }} catch(e) {{ error = String(e.message || e); }}
-            await window.__TAURI_INTERNALS__.invoke('plugin:event|emit', {{event:{event_js}, payload:{{profile:{n}, name:'', error}}}});
+            let error = null, data = null;
+            try {{ data = (await {call}) ?? null; }} catch(e) {{ error = String(e.message || e); }}
+            await window.__TAURI_INTERNALS__.invoke('plugin:event|emit', {{event:{event_js}, payload:{{profile:{n}, name:'', error, data}}}});
         }})()"#
         );
         let dispatched = app
@@ -188,6 +304,7 @@ async fn run_move(
                 profile: n,
                 name: name.clone(),
                 error: Some(error),
+                data: None,
             });
         }
     }
@@ -209,6 +326,7 @@ async fn run_move(
         profile,
         name,
         error: Some("No response; check the character's map before retrying".into()),
+        data: None,
     }));
     results.sort_by_key(|r| r.profile);
     Ok(results)
@@ -217,6 +335,20 @@ async fn run_move(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn merge_unions_item_lists_and_keeps_first_values() {
+        use serde_json::json;
+        let mut m = json!({});
+        merge_items(&mut m, &json!({"hpPotion": {"enabled": false, "belowPercent": 35, "items": [501]},
+            "restock": [{"itemId": 501, "below": 5, "qty": 20}], "autoLoot": false}));
+        merge_items(&mut m, &json!({"hpPotion": {"enabled": true, "belowPercent": 50, "items": [502, 501]},
+            "restock": [{"itemId": 501, "below": 9, "qty": 9}, {"itemId": 602, "below": 1, "qty": 2}],
+            "autoSell": [909], "autoLoot": true}));
+        assert_eq!(m, json!({"hpPotion": {"enabled": true, "belowPercent": 35, "items": [501, 502]},
+            "restock": [{"itemId": 501, "below": 5, "qty": 20}, {"itemId": 602, "below": 1, "qty": 2}],
+            "autoSell": [909], "autoLoot": true}));
+    }
 
     #[test]
     fn destinations_must_exist_in_bundled_atlas() {
