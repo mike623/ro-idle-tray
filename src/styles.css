@@ -71,16 +71,25 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .top { cursor: grab; }
 .pin { font-size: 11px; opacity: .45; filter: grayscale(1); }
 .pin[aria-pressed="true"] { opacity: 1; filter: none; border-color: var(--select); }
+.panel-hide { font-size: 12px; opacity: .55; }
+.panel-hide:hover { opacity: 1; }
 .top .dim, .foot .dim { color: var(--title-text); opacity: .8; }
 .title { font-size: 14px; font-weight: 700; }
 #summary { font-size: 11px; line-height: 1.3; }
 .pill { vertical-align: 1px; margin-left: 4px; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 9px; border: 1px solid currentColor; background: var(--face); white-space: nowrap; }
 .pill.ok { color: var(--ink-green); }
 .pill.warn { color: var(--danger); }
-.foot { border-top: 1px solid var(--edge-dark); padding: 5px 8px; display: flex; align-items: center; gap: 5px; }
-.foot .row { flex-wrap: nowrap; }
+.foot { border-top: 1px solid var(--edge-dark); padding: 5px 8px; display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 6px; row-gap: 4px; }
+/* Five actions no longer fit beside "Start at Login" in the 360px panel, so the
+   footer stacks: toggle + version on top, actions below. Wider (board) panels
+   keep a single line. */
+.foot .row { grid-column: 1 / -1; grid-row: 2; }
+.foot .ver { grid-column: 2; grid-row: 1; justify-self: end; white-space: nowrap; }
+@media (min-width: 470px) {
+  .foot { display: flex; gap: 5px; }
+  .foot .ver { margin-left: auto; }
+}
 #add { min-width: 24px; padding-inline: 5px; }
-.foot .ver { margin-left: auto; white-space: nowrap; }
 .list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
 /* Rows keep their height; the list scrolls instead of squashing them. */
 .list > * { flex-shrink: 0; }
@@ -317,13 +326,62 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .ai-x:hover { background: var(--z-muted); color: var(--z-fg); }
 .ai-field { display: grid; gap: 4px; font-size: 12px; font-weight: 500; }
 .ai-field > span { display: flex; align-items: center; gap: 6px; }
-.ai-field input {
+.ai-field input { user-select: text; -webkit-user-select: text; }
+.ai-field > input:not([type="hidden"]), .ai-field > select, .ai-field > .ai-combo > .ai-combo-trigger {
   height: 30px; padding: 0 9px; border: 1px solid var(--z-border); border-radius: 6px;
   background: var(--z-bg); color: var(--z-fg); font: 12px ui-monospace, "SF Mono", Menlo, monospace;
-  user-select: text; -webkit-user-select: text;
 }
+.ai-field > input:not([type="hidden"]) { width: 100%; }
 .ai-field input::placeholder { color: var(--z-muted-fg); }
-.ai-field input:focus { outline: none; border-color: var(--z-ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--z-ring) 35%, transparent); }
+.ai-field > input:not([type="hidden"]):focus { outline: none; border-color: var(--z-ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--z-ring) 35%, transparent); }
+
+/* Model combobox: shadcn/ui Command in a popover, rendered inline below the
+   trigger so the settings scroll container never clips it. */
+.ai-combo { position: relative; }
+.ai-combo-trigger {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  text-align: left; cursor: pointer;
+}
+.ai-combo-trigger:hover { border-color: var(--z-ring); }
+.ai-combo-trigger:focus-visible {
+  outline: none; border-color: var(--z-ring);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--z-ring) 35%, transparent);
+}
+.ai-combo-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-combo-value.placeholder { color: var(--z-muted-fg); }
+.ai-combo-trigger svg { flex-shrink: 0; width: 14px; height: 14px; color: var(--z-muted-fg); }
+.ai-combo-chevron { transition: transform .15s ease; }
+.ai-combo-trigger[aria-expanded="true"] .ai-combo-chevron { transform: rotate(180deg); }
+.ai-combo-pop {
+  margin-top: 4px; border: 1px solid var(--z-border); border-radius: 8px;
+  background: var(--z-bg); box-shadow: 0 8px 24px #00000024; overflow: hidden;
+}
+.ai-combo-search { display: flex; align-items: center; gap: 7px; padding: 0 10px; border-bottom: 1px solid var(--z-border); }
+.ai-combo-search:focus-within { border-bottom-color: var(--z-ring); }
+.ai-combo-search svg { flex-shrink: 0; width: 14px; height: 14px; color: var(--z-muted-fg); }
+.ai-combo-search input {
+  flex: 1; min-width: 0; width: auto; height: 32px; padding: 0; border: 0; border-radius: 0;
+  background: transparent; color: var(--z-fg);
+  font: 12px ui-sans-serif, -apple-system, "PingFang TC", sans-serif;
+}
+.ai-combo-search input:focus { outline: none; border: 0; box-shadow: none; }
+.ai-combo-list { max-height: 186px; overflow-y: auto; margin: 0; padding: 4px; list-style: none; }
+.ai-combo-item {
+  display: flex; align-items: center; gap: 8px; padding: 5px 7px; border-radius: 5px;
+  font: 12px ui-monospace, "SF Mono", Menlo, monospace; cursor: pointer;
+}
+.ai-combo-item[data-active="true"] { background: var(--z-muted); }
+.ai-combo-item[aria-selected="true"] { color: var(--z-fg); }
+.ai-combo-item-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-combo-item svg { flex-shrink: 0; width: 13px; height: 13px; opacity: 0; }
+.ai-combo-item[aria-selected="true"] svg { opacity: 1; }
+.ai-combo-empty { padding: 10px; font-size: 12px; color: var(--z-muted-fg); text-align: center; }
+.ai svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ai-hint { font-weight: 400; font-size: 10px; line-height: 1.35; color: var(--z-muted-fg); }
+.ai-refresh { padding: 0 3px; border: 0; border-radius: 4px; background: none; color: var(--z-muted-fg); font: 13px/1 inherit; cursor: pointer; }
+.ai-refresh:hover:not(:disabled) { background: var(--z-muted); color: var(--z-fg); }
+.ai-refresh:disabled { opacity: .5; cursor: default; }
+.ai-refresh:focus-visible { outline: 2px solid var(--z-ring); outline-offset: 1px; }
 .ai-badge { font-style: normal; font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 9px; background: var(--z-muted); color: var(--z-muted-fg); }
 .ai-actions { display: flex; gap: 6px; }
 .ai-btn { height: 30px; padding: 0 12px; border-radius: 6px; font-size: 12px; font-weight: 500; }
@@ -356,3 +414,7 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 #chat-form label { width: 100%; }
 #chat-input { flex: 1; min-width: 100px; font: inherit; padding: 8px; color: var(--text); background: var(--face); border: 1px solid var(--edge-mid); border-radius: 6px; }
 #chat-error { color: var(--danger); white-space: pre-wrap; margin: 0; }
+
+/* Offline profile: game page closed, last data kept. */
+.prow.offline { opacity: 0.55; }
+.prow.offline .dot { background: transparent; border: 1px dashed var(--text-dim); box-shadow: none; }

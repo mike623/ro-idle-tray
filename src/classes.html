@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RO Class Chart</title>
+<style>
+/* Same xp-title chrome as the map atlas, with a pan/zoom stage for the chart. */
+:root {
+  --ground-1: #7fb85a; --ground-2: #6aa548;
+  --face: #ffffff; --face-2: #f4f6fb; --edge: #b4c0da; --border: #7d8fbc;
+  --text: #1b1b1b; --dim: #5d6273;
+  --title-1: #f7f9fe; --title-2: #dbe4f5; --title-3: #bccbe8; --title-text: #1d2d5a;
+  --select: #4f72c4;
+  --ui: "PMingLiU", "新細明體", "Microsoft JhengHei", "PingFang TC", -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --ground-1: #24361c; --ground-2: #1c2b16;
+  --face: #1e222b; --face-2: #252a35; --edge: #444d63; --border: #4a5570;
+  --text: #dde2ec; --dim: #98a0b3;
+  --title-1: #343c50; --title-2: #2b3244; --title-3: #232937; --title-text: #d6def2;
+  --select: #6f8fe0;
+  color-scheme: dark;
+} }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; display: flex; flex-direction: column; background: linear-gradient(180deg, var(--ground-1), var(--ground-2)) fixed; color: var(--text); font: 13px/1.45 var(--ui); }
+.bar { z-index: 5; background: linear-gradient(180deg, var(--title-1), var(--title-2) 55%, var(--title-3)); color: var(--title-text); border-bottom: 1px solid var(--border); padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
+.bar-in { max-width: 1200px; margin: 0 auto; display: grid; gap: 8px; }
+h1 { margin: 0; font-size: 17px; text-wrap: balance; }
+.sub { font-size: 12px; opacity: .8; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip { font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; background: linear-gradient(180deg, var(--face), var(--face-2)); color: var(--title-text); cursor: pointer; }
+.chip:hover { border-color: var(--select); }
+button:focus-visible { outline: 2px solid var(--select); outline-offset: 1px; }
+.zoom { min-width: 46px; text-align: center; font: 12px ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+main { flex: 1; min-height: 0; position: relative; overflow: hidden; touch-action: none; cursor: grab; }
+main.dragging { cursor: grabbing; }
+#canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; visibility: hidden; }
+#canvas.ready { visibility: visible; }
+#chart { display: block; background: #fff; border: 1px solid var(--border); border-radius: 6px; box-shadow: 2px 3px 18px #001e0060; max-width: none; user-select: none; -webkit-user-drag: none; }
+/* Pixel art stays sharp when zoomed in; smooth when fitted smaller than 1:1. */
+#canvas.pixelated #chart { image-rendering: pixelated; }
+.hint { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); padding: 3px 10px; border-radius: 10px; background: #00000080; color: #fff; font-size: 11px; pointer-events: none; transition: opacity .3s; }
+.hint.gone { opacity: 0; }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in">
+    <div>
+      <h1>RO 放置仙境 · 職業圖</h1>
+      <div class="sub">Expanded classes plus the 1st → 2nd → transcendent → 3rd → 4th class lines. Drag to pan, scroll to zoom, double-click to toggle fit / 1:1.</div>
+    </div>
+    <div class="tools">
+      <button class="chip" id="out" type="button" title="Zoom out" aria-label="Zoom out">−</button>
+      <output class="zoom" id="zoom" aria-live="polite">100%</output>
+      <button class="chip" id="in" type="button" title="Zoom in" aria-label="Zoom in">＋</button>
+      <button class="chip" id="fit" type="button" title="Fit the whole chart in the window">Fit</button>
+      <button class="chip" id="actual" type="button" title="Show the chart at 100%">1:1</button>
+    </div>
+  </div>
+</header>
+<main id="stage" aria-label="Class chart. Drag to pan and scroll to zoom.">
+  <div id="canvas">
+    <img id="chart" src="class-chart.png" width="1647" height="1594" draggable="false"
+         alt="Class chart: Novice branching into Swordsman, Magician, Merchant, Thief, Archer and Acolyte lines, each through 1st, 2nd, transcendent, 3rd and 4th classes, plus expanded classes such as Taekwon, Ninja, Gunslinger, Star Gladiator and Soul Reaper.">
+  </div>
+  <div class="hint" id="hint">拖曳平移 · 滾輪縮放 · 雙擊貼合</div>
+</main>
+
+<script>
+const stage = document.getElementById('stage');
+const canvas = document.getElementById('canvas');
+const img = document.getElementById('chart');
+const zoomLabel = document.getElementById('zoom');
+const hint = document.getElementById('hint');
+const PAD = 16, MIN = 0.1, MAX = 4;
+let scale = 1, x = 0, y = 0;
+
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const natural = () => ({ w: img.naturalWidth || img.width, h: img.naturalHeight || img.height });
+
+function draw() {
+  canvas.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+  canvas.classList.add('ready');
+  canvas.classList.toggle('pixelated', scale > 1.05);
+  zoomLabel.textContent = `${Math.round(scale * 100)}%`;
+}
+
+// Keep the point under (cx, cy) fixed while the scale changes.
+function zoomTo(next, cx = stage.clientWidth / 2, cy = stage.clientHeight / 2) {
+  const s = clamp(next, MIN, MAX);
+  x = cx - ((cx - x) / scale) * s;
+  y = cy - ((cy - y) / scale) * s;
+  scale = s;
+  draw();
+}
+
+function fit() {
+  const { w, h } = natural();
+  scale = clamp(Math.min(
+    (stage.clientWidth - PAD * 2) / w,
+    (stage.clientHeight - PAD * 2) / h,
+  ), MIN, MAX);
+  x = (stage.clientWidth - w * scale) / 2;
+  y = (stage.clientHeight - h * scale) / 2;
+  draw();
+}
+
+function actual() {
+  const { w, h } = natural();
+  scale = 1;
+  x = (stage.clientWidth - w) / 2;
+  y = (stage.clientHeight - h) / 2;
+  draw();
+}
+
+document.getElementById('in').addEventListener('click', () => zoomTo(scale * 1.25));
+document.getElementById('out').addEventListener('click', () => zoomTo(scale / 1.25));
+document.getElementById('fit').addEventListener('click', fit);
+document.getElementById('actual').addEventListener('click', actual);
+
+stage.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const r = stage.getBoundingClientRect();
+  // Trackpad pinch arrives as a ctrl+wheel with much larger deltas.
+  const step = e.ctrlKey ? 0.01 : 0.0015;
+  zoomTo(scale * Math.exp(-e.deltaY * step), e.clientX - r.left, e.clientY - r.top);
+}, { passive: false });
+
+let drag = null;
+stage.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return;
+  drag = { id: e.pointerId, px: e.clientX, py: e.clientY, x, y };
+  try { stage.setPointerCapture(e.pointerId); } catch {}
+  stage.classList.add('dragging');
+});
+stage.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  x = drag.x + e.clientX - drag.px;
+  y = drag.y + e.clientY - drag.py;
+  draw();
+});
+const endDrag = (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  drag = null;
+  stage.classList.remove('dragging');
+};
+stage.addEventListener('pointerup', endDrag);
+stage.addEventListener('pointercancel', endDrag);
+stage.addEventListener('dblclick', () => (Math.abs(scale - 1) < 0.01 ? fit() : actual()));
+
+// Pan with the keyboard too, and zoom/fit/actual like the buttons.
+window.addEventListener('keydown', (e) => {
+  const pan = { ArrowLeft: [40, 0], ArrowRight: [-40, 0], ArrowUp: [0, 40], ArrowDown: [0, -40] }[e.key];
+  if (pan) { x += pan[0]; y += pan[1]; draw(); e.preventDefault(); return; }
+  if (e.key === '+' || e.key === '=') zoomTo(scale * 1.25);
+  else if (e.key === '-') zoomTo(scale / 1.25);
+  else if (e.key === '0') fit();
+  else if (e.key === '1') actual();
+});
+
+// Fit once the image has dimensions (it has width/height attributes, so the
+// first fit is stable). Resizing keeps the current view; Fit and 1:1 recenter.
+if (img.complete) fit();
+else img.addEventListener('load', fit, { once: true });
+setTimeout(() => hint.classList.add('gone'), 6000);
+</script>
+</body>
+</html>

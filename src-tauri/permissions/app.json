@@ -1,0 +1,30 @@
+{
+  "permission": [
+    {
+      "identifier": "panel-commands",
+      "description": "Local tray controls, settings and assistant.",
+      "commands": {
+        "allow": [
+          "get_state", "open_account", "toggle_idle", "enter_character",
+          "add_account", "remove_account", "set_login", "update_app",
+          "open_export_folder", "open_atlas", "open_classes", "set_nickname", "set_goal",
+          "reorder_profiles", "set_panel_width", "set_pinned", "hide_panel", "profile_menu",
+          "ai_get_settings", "ai_save_settings", "ai_list_models", "ai_test_connection",
+          "chat_history", "chat_send", "chat_new", "chat_memory", "chat_tutorial", "quit"
+        ]
+      }
+    },
+    {
+      "identifier": "game-commands",
+      "description": "Character reports and chat; handlers validate the calling game profile.",
+      "commands": {
+        "allow": ["character_report", "chat_character", "chat_history", "chat_memory", "chat_new", "chat_send", "chat_alerts", "chat_alert_open", "chat_alert_ack", "chat_tutorial"]
+      }
+    },
+    {
+      "identifier": "atlas-commands",
+      "description": "Map explorer character list and movement.",
+      "commands": {"allow": ["atlas_characters", "move_all", "move_selected"]}
+    }
+  ]
+}

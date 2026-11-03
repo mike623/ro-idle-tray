@@ -6,5 +6,5 @@
   "remote": {
     "urls": ["https://ro-idle.app", "https://ro-idle.app/*"]
   },
-  "permissions": ["core:event:allow-emit"]
+  "permissions": ["core:event:allow-emit", "game-commands"]
 }

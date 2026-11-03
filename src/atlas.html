@@ -45,6 +45,7 @@ h1 { margin: 0; font-size: 17px; text-wrap: balance; }
 input[type=search] { flex: 1 1 240px; min-width: 0; font: inherit; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--face); color: var(--text); }
 .chip { font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; background: linear-gradient(180deg, var(--face), var(--face-2)); color: var(--title-text); cursor: pointer; }
 .chip[aria-pressed="true"] { background: var(--select); color: #fff; border-color: var(--select); }
+.chip:disabled { opacity: .5; cursor: default; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--select); outline-offset: 1px; }
 main { max-width: 1200px; margin: 0 auto; padding-block: 14px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .count { color: #fff; font-size: 12px; margin-bottom: 10px; text-shadow: 0 1px 2px #0006; }
@@ -70,6 +71,15 @@ tr.hit td { background: var(--hit); }
 .links { display: flex; flex-wrap: wrap; gap: 4px; }
 .link { font: 11px var(--ui); padding: 1px 6px; border: 1px solid var(--edge); border-radius: 3px; background: var(--face-2); color: var(--text); cursor: pointer; }
 .link:hover { border-color: var(--select); }
+.cast { border: 1px solid var(--border); border-radius: 4px; background: var(--face); color: var(--text); padding: 6px 8px; display: grid; gap: 6px; }
+.cast[hidden] { display: none; }
+.cast-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; }
+.cast-list { display: flex; flex-wrap: wrap; gap: 4px 10px; max-height: 96px; overflow-y: auto; }
+.cast-pick { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border: 1px solid var(--edge); border-radius: 4px; background: var(--face-2); font-size: 12px; cursor: pointer; }
+.cast-pick:has(input:checked) { border-color: var(--select); background: var(--select); color: #fff; }
+.cast-pick input { margin: 0; accent-color: var(--select); }
+.cast-pick small { opacity: .75; font: 10px var(--num); }
+.actions { display: flex; flex-wrap: wrap; gap: 4px; }
 .empty { color: #fff; text-shadow: 0 1px 2px #0006; }
 </style>
 </head>
@@ -86,10 +96,21 @@ tr.hit td { background: var(--hit); }
       <button class="chip" data-type="town" aria-pressed="false">Towns</button>
       <button class="chip" id="mvp" aria-pressed="false">MVP / Boss only</button>
     </div>
+    <div class="cast" id="cast" hidden>
+      <div class="cast-head">
+        <b>Move these characters</b>
+        <span class="sub" id="cast-count"></span>
+        <button class="chip" id="cast-all" type="button">Select all</button>
+        <button class="chip" id="cast-none" type="button">Clear</button>
+        <button class="chip" id="cast-refresh" type="button" title="Re-read the characters currently in play">Refresh</button>
+      </div>
+      <div class="cast-list" id="cast-list"></div>
+    </div>
   </div>
 </header>
 <main>
   <div class="count" id="count"></div>
+  <div class="count" id="move-status" role="status" aria-live="polite"></div>
   <div class="grid" id="grid"></div>
 </main>
 
@@ -99,9 +120,63 @@ tr.hit td { background: var(--hit); }
 const byId = new Map(MAPS.map(m => [m[0], m]));
 const TYPE = { town: "城鎮", field: "原野", dungeon: "地城" };
 let type = "all", bossOnly = false;
+let moving = false;
+// Characters offered for selective moves; `chosen` holds profile numbers.
+let characters = [];
+const chosen = new Set();
+const invoke = (command, args) => window.__TAURI__.core.invoke(command, args);
 const $ = id => document.getElementById(id);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const tag = b => b === 2 ? el("span", "tag mvp", "MVP") : b === 1 ? el("span", "tag boss", "BOSS") : null;
+
+function updateChooseCount() {
+  $("cast-count").textContent = characters.length ? `${chosen.size}/${characters.length} selected` : "";
+}
+
+function syncMoveButtons() {
+  for (const b of document.querySelectorAll(".move-all")) b.disabled = moving || !window.__TAURI__;
+  for (const b of document.querySelectorAll(".move-selected")) {
+    b.disabled = moving || !window.__TAURI__ || !chosen.size;
+    b.textContent = chosen.size ? `Move selected (${chosen.size})` : "Move selected";
+  }
+}
+
+function renderCharacters() {
+  $("cast").hidden = !characters.length;
+  $("cast-list").replaceChildren(...characters.map(c => {
+    const pick = el("label", "cast-pick");
+    const box = el("input");
+    box.type = "checkbox";
+    box.checked = chosen.has(c.profile);
+    box.addEventListener("change", () => {
+      if (box.checked) chosen.add(c.profile); else chosen.delete(c.profile);
+      updateChooseCount();
+      syncMoveButtons();
+    });
+    const where = c.map ? ` · ${c.map}` : c.running === false ? " · stopped" : "";
+    pick.append(box, el("span", null, c.name), el("small", null, where));
+    pick.title = `Profile ${c.profile}${c.map ? ` · ${c.map}` : ""}`;
+    return pick;
+  }));
+  updateChooseCount();
+}
+
+async function loadCharacters() {
+  if (!window.__TAURI__?.core?.invoke) return;
+  try {
+    const list = await invoke("atlas_characters");
+    characters = Array.isArray(list)
+      ? list.filter(c => Number.isInteger(c?.profile) && typeof c.name === "string")
+      : [];
+  } catch {
+    characters = [];
+  }
+  // Keep the user's picks, but drop characters that left play while the atlas was open.
+  const valid = new Set(characters.map(c => c.profile));
+  for (const profile of [...chosen]) if (!valid.has(profile)) chosen.delete(profile);
+  renderCharacters();
+  syncMoveButtons();
+}
 
 function card(m, q) {
   const [id, name, t, travel, conns, spawns, timed] = m;
@@ -110,6 +185,22 @@ function card(m, q) {
   const left = el("div"); left.append(el("b", null, name), " ", el("span", "id", id));
   head.append(left, el("span", `pill ${t}`, TYPE[t] ?? t));
   const body = el("div", "body");
+  const actions = el("div", "actions");
+  const move = el("button", "chip move-all", "Move all");
+  move.type = "button";
+  move.disabled = moving || !window.__TAURI__;
+  move.title = "Move all characters currently in play here. Cancels current fights; towns stop idling.";
+  move.setAttribute("aria-label", `Move all characters to ${name}`);
+  move.addEventListener("click", () => moveAll(id, name));
+  const moveSome = el("button", "chip move-selected", "Move selected");
+  moveSome.type = "button";
+  moveSome.disabled = moving || !window.__TAURI__ || !chosen.size;
+  moveSome.textContent = chosen.size ? `Move selected (${chosen.size})` : "Move selected";
+  moveSome.title = "Move only the characters ticked above here. Cancels current fights; towns stop idling.";
+  moveSome.setAttribute("aria-label", `Move selected characters to ${name}`);
+  moveSome.addEventListener("click", () => moveSelected(id, name));
+  actions.append(move, moveSome);
+  body.append(actions);
   const lvs = [...spawns, ...timed].map(s => s[1]).filter(Boolean);
   const meta = el("div", "meta");
   if (lvs.length) meta.append(el("span", null, `Monster Lv ${Math.min(...lvs)}–${Math.max(...lvs)}`));
@@ -153,6 +244,37 @@ function card(m, q) {
   return box;
 }
 
+async function runMove(command, args, name, label) {
+  if (moving) return;
+  moving = true;
+  syncMoveButtons();
+  $("move-status").textContent = `Moving ${label} to ${name}…`;
+  try {
+    const results = await invoke(command, args);
+    const failures = results.filter(r => r.error);
+    $("move-status").textContent = `${results.length - failures.length}/${results.length} characters at ${name}.`
+      + failures.map(r => ` ${r.name}: ${r.error}`).join("");
+  } catch (e) {
+    $("move-status").textContent = `Move failed: ${e.message || e}`;
+  } finally {
+    moving = false;
+    syncMoveButtons();
+  }
+}
+
+function moveAll(mapId, name) {
+  return runMove("move_all", {mapId}, name, "all characters");
+}
+
+function moveSelected(mapId, name) {
+  if (!chosen.size) {
+    $("move-status").textContent = "Select at least one character first.";
+    return;
+  }
+  const count = chosen.size;
+  return runMove("move_selected", {mapId, profiles: [...chosen]}, name, `${count} character${count === 1 ? "" : "s"}`);
+}
+
 function render() {
   const q = $("q").value.trim().toLowerCase();
   let list = MAPS.filter(m => type === "all" || m[2] === type);
@@ -182,13 +304,23 @@ for (const b of document.querySelectorAll("[data-type]")) b.addEventListener("cl
 });
 $("mvp").addEventListener("click", e => { bossOnly = !bossOnly; e.currentTarget.setAttribute("aria-pressed", String(bossOnly)); render(); });
 $("q").addEventListener("input", render);
+$("cast-all").addEventListener("click", () => { for (const c of characters) chosen.add(c.profile); renderCharacters(); syncMoveButtons(); });
+$("cast-none").addEventListener("click", () => { chosen.clear(); renderCharacters(); syncMoveButtons(); });
+$("cast-refresh").addEventListener("click", loadCharacters);
 // Offline copy bundled with the tray app; the tray opens it with a map preselected.
 const mons = new Set(MAPS.flatMap(m => [...m[5], ...m[6]].map(s => s[0])));
 const kinds = t => MAPS.filter(m => m[2] === t).length;
 $("summary").textContent = `${MAPS.length} maps (${kinds("field")} fields, ${kinds("dungeon")} dungeons, ${kinds("town")} towns) · ${mons.size} monsters · offline data from ${MAPS_UPDATED}`;
 window.atlasSearch = q => { $("q").value = q ?? ""; render(); window.scrollTo({ top: 0 }); };
+// Re-read the in-play list when the atlas regains focus, so characters opened or
+// closed in the tray show up without reloading the page.
+window.atlasRefresh = loadCharacters;
+window.addEventListener?.("focus", loadCharacters);
 $("q").value = window.ATLAS_Q ?? "";
 render();
+renderCharacters();
+syncMoveButtons();
+loadCharacters();
 </script>
 </body>
 </html>

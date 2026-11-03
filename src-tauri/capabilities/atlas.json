@@ -1,0 +1,6 @@
+{
+  "identifier": "atlas",
+  "description": "Local map explorer controls.",
+  "windows": ["atlas"],
+  "permissions": ["atlas-commands"]
+}

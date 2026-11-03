@@ -4,14 +4,17 @@ mod alerts;
 mod memory;
 mod storage;
 mod knowledge;
+mod atlas;
 mod chat;
 mod ai;
+mod secret;
+mod mcp;
 #[cfg(target_os = "macos")]
 mod js_dialogs;
 
 use std::collections::HashMap;
 use std::sync::Mutex;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{
     AppHandle, Emitter, Listener, Manager, WebviewUrl, WebviewWindowBuilder,
     image::Image,
@@ -105,7 +108,9 @@ const CHARACTER_HOOK: &str = r#"
       streamId = id;
       if (cache[id]) send(cache[id]);
       this.addEventListener('snapshot', e => {
-        try { if (streamId === id) send(JSON.parse(e.data)?.snapshot); } catch {}
+        try {
+          if (streamId === id) { const s = JSON.parse(e.data)?.snapshot; if (s?.character) { cache[id] = s; send(s); } }
+        } catch {}
       });
       // Battle/log lines the game's log window shows; mirrored raw to logs/<profile>.log.
       this.addEventListener('events', e => {
@@ -119,6 +124,11 @@ const CHARACTER_HOOK: &str = r#"
   // their timers, so Rust calls this on its own clock (see poll_profiles).
   window.__roIdlePoll = () => {
     if (streamId !== null) window.fetch(`/api/characters/${streamId}?deferCatchup=1`, { credentials: 'same-origin' }).catch(() => {});
+  };
+  window.__roIdleMove = async mapId => {
+    const id = streamId;
+    const snapshot = await roIdleMove(mapId, id, cache[id]);
+    if (snapshot && streamId === id) { cache[id] = snapshot; send(snapshot); }
   };
   // Called by the tray panel: press the game's own 開始掛機 / 停止掛機 button.
   window.__roIdleToggle = () => {
@@ -198,6 +208,8 @@ struct Profiles {
     nicknames: Mutex<HashMap<String, String>>,
     /// Final job each character is heading for (e.g. "超魔導師"), so the assistant knows the build direction.
     goals: Mutex<HashMap<String, String>>,
+    /// Profiles switched to offline: no game window at all, so the server stops ticking them live.
+    offline: Mutex<Vec<u8>>,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
@@ -460,8 +472,8 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(chat::ChatLock::default())
+        .manage(atlas::MoveLock::default())
         .manage(PendingUpdate(Mutex::new(None)))
-        .manage(PanelHiddenAt(Mutex::new(None)))
         .manage(PanelWidth(Mutex::new(360.0)))
         .manage(PanelLayout(Mutex::new(PanelGeom::default())))
         .invoke_handler(tauri::generate_handler![
@@ -476,13 +488,20 @@ pub fn run() {
             update_app,
             open_export_folder,
             open_atlas,
+            open_classes,
+            atlas::atlas_characters,
+            atlas::move_all,
+            atlas::move_selected,
             set_nickname,
             set_goal,
             reorder_profiles,
             set_panel_width,
             set_pinned,
+            hide_panel,
+            profile_menu,
             ai::ai_get_settings,
             ai::ai_save_settings,
+            ai::ai_list_models,
             ai::ai_test_connection,
             chat::chat_history,
             chat::chat_send,
@@ -499,6 +518,17 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             let handle = app.handle().clone();
+            app.on_menu_event(|app, e| {
+                let id = e.id().as_ref();
+                let (off, rest) = match id.split_once('-') {
+                    Some(("online", r)) => (false, r),
+                    Some(("offline", r)) => (true, r),
+                    _ => return,
+                };
+                if let Ok(n) = rest.parse() {
+                    set_offline(app, n, off);
+                }
+            });
 
             let ids = load_profile_ids(&handle);
             app.manage(Profiles {
@@ -507,6 +537,7 @@ pub fn run() {
                 roster: Mutex::new(HashMap::new()),
                 nicknames: Mutex::new(load_nicknames(&handle)),
                 goals: Mutex::new(load_map(goals_path(&handle))),
+                offline: Mutex::new(load_offline(&handle)),
             });
             *handle.state::<PanelLayout>().0.lock().unwrap() = load_panel_geometry(&handle);
 
@@ -571,8 +602,6 @@ pub fn run() {
                 });
             });
 
-
-
             TrayIconBuilder::new()
                 // Sleepy Jelly, black + alpha; macOS tints template icons for light/dark bars.
                 .icon(Image::from_bytes(include_bytes!("../icons/tray.png"))?)
@@ -589,6 +618,8 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+            // Read once: a guard held across the builder chain would deadlock the next lock.
+            let pinned = handle.state::<PanelLayout>().0.lock().unwrap().pinned;
             let panel =
                 WebviewWindowBuilder::new(app, "panel", WebviewUrl::App("index.html".into()))
                     .title("RO Idle Tray")
@@ -596,23 +627,22 @@ pub fn run() {
                     .resizable(true)
                     .decorations(false)
                     .transparent(true)
-                    .always_on_top(true)
+                    .always_on_top(pinned)
+                    .visible_on_all_workspaces(pinned)
                     .skip_taskbar(true)
                     .visible(false)
                     // Tauri's file-drop handler swallows HTML5 drag events; the panel reorders by drag.
                     .disable_drag_drop_handler()
                     .build()?;
-            let blur_handle = handle.clone();
+            let layout_handle = handle.clone();
             panel.on_window_event(move |event| match event {
-                tauri::WindowEvent::Focused(false) if !blur_handle.state::<PanelLayout>().0.lock().unwrap().pinned => {
-                    hide_panel(&blur_handle);
-                }
-                tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => save_panel_geometry(&blur_handle),
+                tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => save_panel_geometry(&layout_handle),
                 _ => {}
             });
             // Boot every profile hidden so it logs in, enters its first
             // character and fills the tray label without a click.
-            for n in ids {
+            let offline = handle.state::<Profiles>().offline.lock().unwrap().clone();
+            for n in ids.into_iter().filter(|n| !offline.contains(n)) {
                 open_profile(&handle, &format!("profile-{n}"), false);
             }
             let poll_handle = handle.clone();
@@ -786,6 +816,8 @@ fn remove_profile(app: &AppHandle, n: u8) {
     }
     profiles.info.lock().unwrap().remove(&n);
     profiles.roster.lock().unwrap().remove(&n);
+    // Profile id is gone already, so this only drops it from the saved offline list.
+    set_offline(app, n, false);
     notify(app);
     let handle = app.clone();
     std::thread::spawn(move || {
@@ -817,7 +849,7 @@ fn open_profile(app: &AppHandle, profile: &str, show: bool) {
         let _ = window.move_window(tauri_plugin_positioner::Position::TrayCenter);
         return;
     }
-    let script = format!("const RO_IDLE_PROFILE = {profile:?};{CHARACTER_HOOK}{}", format!("{}{}", include_str!("../../src/tutorial-ui.js"), include_str!("../../src/bubble.js")));
+    let script = format!("const RO_IDLE_PROFILE = {profile:?};{}{CHARACTER_HOOK}{}", include_str!("../../src/move.js"), format!("{}{}", include_str!("../../src/tutorial-ui.js"), include_str!("../../src/bubble.js")));
     let builder = WebviewWindowBuilder::new(
         app,
         &label,
@@ -891,29 +923,26 @@ fn install_update(app: &AppHandle) {
     });
 }
 
-/// When blur hid the panel; a tray click right after must not reopen it.
-struct PanelHiddenAt(Mutex<Option<Instant>>);
-
-fn hide_panel(app: &AppHandle) {
+/// Hide the panel. The tray icon brings it back; the panel never hides on blur.
+fn hide_panel_window(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("panel") {
         let _ = w.hide();
-        *app.state::<PanelHiddenAt>().0.lock().unwrap() = Some(Instant::now());
     }
+}
+
+/// Header button: hide the panel without quitting the app.
+#[tauri::command]
+fn hide_panel(app: AppHandle) {
+    hide_panel_window(&app);
 }
 
 fn toggle_panel(app: &AppHandle) {
     let Some(w) = app.get_webview_window("panel") else {
         return;
     };
-    let just_hidden = app
-        .state::<PanelHiddenAt>()
-        .0
-        .lock()
-        .unwrap()
-        .is_some_and(|t| t.elapsed() < Duration::from_millis(300));
     if w.is_visible().unwrap_or(false) {
-        hide_panel(app);
-    } else if !just_hidden {
+        hide_panel_window(app);
+    } else {
         if !restore_panel(&w) {
             place_panel(&w, *app.state::<PanelWidth>().0.lock().unwrap());
         }
@@ -1015,7 +1044,7 @@ fn restore_panel(w: &tauri::WebviewWindow) -> bool {
     on_screen
 }
 
-/// Pinned: the panel stays open when it loses focus (it is always on top).
+/// Pinned: float above other apps and across Spaces, PiP-style.
 #[tauri::command]
 fn set_pinned(app: AppHandle, pinned: bool) {
     let state = app.state::<PanelLayout>();
@@ -1025,6 +1054,10 @@ fn set_pinned(app: AppHandle, pinned: bool) {
         *g
     };
     write_panel_geometry(&app, g);
+    if let Some(w) = app.get_webview_window("panel") {
+        let _ = w.set_always_on_top(pinned);
+        let _ = w.set_visible_on_all_workspaces(pinned);
+    }
     notify(&app);
 }
 
@@ -1064,6 +1097,7 @@ struct ProfileView {
     n: u8,
     info: Option<CharacterLabel>,
     roster: Vec<RosterChar>,
+    offline: bool,
 }
 
 #[derive(serde::Serialize)]
@@ -1084,6 +1118,7 @@ fn get_state(app: AppHandle) -> PanelState {
     let ids = profiles.ids.lock().unwrap().clone();
     let info = profiles.info.lock().unwrap();
     let roster = profiles.roster.lock().unwrap();
+    let offline = profiles.offline.lock().unwrap().clone();
     let update = app
         .state::<PendingUpdate>()
         .0
@@ -1101,6 +1136,7 @@ fn get_state(app: AppHandle) -> PanelState {
                 n,
                 info: info.get(&n).cloned(),
                 roster: roster.get(&n).cloned().unwrap_or_default(),
+                offline: offline.contains(&n),
             })
             .collect(),
         nicknames: profiles.nicknames.lock().unwrap().clone(),
@@ -1111,7 +1147,9 @@ fn get_state(app: AppHandle) -> PanelState {
 
 #[tauri::command]
 fn open_account(app: AppHandle, n: u8) {
-    hide_panel(&app);
+    hide_panel_window(&app);
+    // Opening the game is going online.
+    set_offline(&app, n, false);
     open_profile(&app, &format!("profile-{n}"), true);
 }
 
@@ -1150,13 +1188,13 @@ fn reorder_profiles(app: AppHandle, order: Vec<u8>) {
 
 #[tauri::command]
 fn add_account(app: AppHandle) {
-    hide_panel(&app);
+    hide_panel_window(&app);
     add_profile(&app);
 }
 
 #[tauri::command]
 fn remove_account(app: AppHandle, n: u8) {
-    hide_panel(&app);
+    hide_panel_window(&app);
     confirm_remove(&app, &format!("remove-profile-{n}"));
 }
 
@@ -1210,7 +1248,7 @@ fn open_exports() {
 /// Offline map/monster atlas (src/atlas.html), optionally searching for `q`.
 #[tauri::command]
 fn open_atlas(app: AppHandle, q: Option<String>) {
-    hide_panel(&app);
+    hide_panel_window(&app);
     let q = q.unwrap_or_default();
     let q_js = serde_json::to_string(&q).unwrap_or_else(|_| "\"\"".into());
     if let Some(w) = app.get_webview_window("atlas") {
@@ -1226,9 +1264,24 @@ fn open_atlas(app: AppHandle, q: Option<String>) {
         .build();
 }
 
+/// Class progression chart (src/classes.html), bundled with the tray.
+#[tauri::command]
+fn open_classes(app: AppHandle) {
+    hide_panel_window(&app);
+    if let Some(w) = app.get_webview_window("classes") {
+        let _ = w.show();
+        let _ = w.set_focus();
+        return;
+    }
+    let _ = WebviewWindowBuilder::new(&app, "classes", WebviewUrl::App("classes.html".into()))
+        .title("RO Class Chart")
+        .inner_size(1000.0, 820.0)
+        .build();
+}
+
 #[tauri::command]
 fn open_export_folder(app: AppHandle) {
-    hide_panel(&app);
+    hide_panel_window(&app);
     open_exports();
 }
 
@@ -1309,4 +1362,51 @@ fn character_report(window: tauri::WebviewWindow, app: AppHandle, mut data: Char
         update_title(&listen_handle, n);
         notify(&listen_handle);
     }
+}
+
+fn load_offline(app: &AppHandle) -> Vec<u8> {
+    app.path().app_config_dir().ok()
+        .and_then(|d| std::fs::read_to_string(d.join("offline")).ok())
+        .map(|s| parse_ids(&s))
+        .unwrap_or_default()
+}
+
+/// Offline destroys the profile's game window (no page, no stream, no live server ticks);
+/// online boots it hidden again. Last known character data stays for comparison.
+fn set_offline(app: &AppHandle, n: u8, off: bool) {
+    let profiles = app.state::<Profiles>();
+    {
+        let mut list = profiles.offline.lock().unwrap();
+        if list.contains(&n) == off {
+            return;
+        }
+        if off { list.push(n) } else { list.retain(|x| *x != n) }
+        if let Ok(dir) = app.path().app_config_dir() {
+            let text: Vec<String> = list.iter().map(u8::to_string).collect();
+            let _ = std::fs::create_dir_all(&dir).and_then(|_| std::fs::write(dir.join("offline"), text.join(",")));
+        }
+    }
+    let label = format!("game-profile-{n}");
+    if off {
+        if let Some(w) = app.get_webview_window(&label) {
+            let _ = w.destroy();
+        }
+        profiles.roster.lock().unwrap().remove(&n);
+    } else if app.get_webview_window(&label).is_none() {
+        open_profile(app, &format!("profile-{n}"), false);
+    }
+    notify(app);
+}
+
+/// Right-click menu on a profile card: Online (game kept in a hidden window) vs Offline (closed).
+#[tauri::command]
+fn profile_menu(window: tauri::Window, app: AppHandle, n: u8) -> Result<(), String> {
+    use tauri::menu::{CheckMenuItem, Menu};
+    let off = app.state::<Profiles>().offline.lock().unwrap().contains(&n);
+    let on_item = CheckMenuItem::with_id(&app, format!("online-{n}"), "Online（背景保持遊戲網頁）", true, !off, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let off_item = CheckMenuItem::with_id(&app, format!("offline-{n}"), "Offline（完全關閉背景網頁）", true, off, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let menu = Menu::with_items(&app, &[&on_item, &off_item]).map_err(|e| e.to_string())?;
+    window.popup_menu(&menu).map_err(|e| e.to_string())
 }

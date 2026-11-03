@@ -18,13 +18,14 @@
         </div>
         <div class="top-side">
           <button type="button" class="icon-btn" id="update" hidden></button>
-          <button type="button" class="icon-btn pin" id="pin" title="Pin: keep the panel open when you click elsewhere" aria-label="Pin panel" aria-pressed="false">📌</button>
+          <button type="button" class="icon-btn pin" id="pin" title="Pin: float above other windows and Spaces" aria-label="Keep panel on top" aria-pressed="false">📌</button>
           <button type="button" class="icon-btn gear" id="ai-open" title="AI provider settings" aria-label="AI provider settings" aria-expanded="false">⚙</button>
           <div class="view-tabs" role="tablist" aria-label="Layout">
             <button type="button" role="tab" data-view="list" title="List view" aria-label="List view">☰</button>
             <button type="button" role="tab" data-view="grid" title="Grid view" aria-label="Grid view">▦</button>
             <button type="button" role="tab" data-view="board" title="Board view: drag rows between groups" aria-label="Board view">▥</button>
           </div>
+          <button type="button" class="icon-btn panel-hide" id="panel-hide" title="Hide panel (reopen from the menu bar)" aria-label="Hide panel">✕</button>
         </div>
       </header>
       <section class="ai" id="ai" hidden aria-label="AI provider settings">
@@ -42,8 +43,42 @@
           <label class="ai-field"><span>API key <em class="ai-badge" id="ai-keystate" hidden>Saved in Keychain</em></span>
             <input id="ai-key" type="password" placeholder="Paste key" spellcheck="false" autocomplete="off" />
           </label>
-          <label class="ai-field"><span>Model</span>
-            <input id="ai-model" placeholder="claude-opus-5-5" spellcheck="false" autocomplete="off" />
+          <label class="ai-field"><span>Web search key <em class="ai-badge" id="ai-tavily-state" hidden>Saved in Keychain</em></span>
+            <input id="ai-tavily-key" type="password" placeholder="tvly-… (optional)" spellcheck="false" autocomplete="off" aria-describedby="ai-tavily-hint" />
+            <small class="ai-hint" id="ai-tavily-hint">Optional. A Tavily key lets the tray's chat search the web through Tavily's MCP server (never the in-game chats).</small>
+          </label>
+          <div class="ai-field">
+            <span><label id="ai-model-label">Model</label>
+              <button type="button" class="ai-refresh" id="ai-model-refresh" title="Reload model list" aria-label="Reload model list">↻</button>
+            </span>
+            <input type="hidden" id="ai-model" />
+            <div class="ai-combo" id="ai-model-combo">
+              <button type="button" class="ai-combo-trigger" id="ai-model-trigger"
+                      aria-haspopup="listbox" aria-expanded="false" aria-controls="ai-model-list"
+                      aria-labelledby="ai-model-label" aria-describedby="ai-model-hint">
+                <span class="ai-combo-value placeholder" id="ai-model-value">Select a model…</span>
+                <svg class="ai-combo-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              <div class="ai-combo-pop" id="ai-model-pop" hidden>
+                <div class="ai-combo-search">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>
+                  <input id="ai-model-search" type="text" placeholder="Search models…" autocomplete="off"
+                         spellcheck="false" role="combobox" aria-expanded="true" aria-autocomplete="list"
+                         aria-controls="ai-model-list" aria-label="Search models" />
+                </div>
+                <ul class="ai-combo-list" id="ai-model-list" role="listbox" aria-labelledby="ai-model-label"></ul>
+                <div class="ai-combo-empty" id="ai-model-empty" hidden>No model found.</div>
+              </div>
+            </div>
+            <small class="ai-hint" id="ai-model-hint" role="status" aria-live="polite"></small>
+          </div>
+          <label class="ai-field"><span>Request format</span>
+            <select id="ai-format" aria-describedby="ai-format-hint">
+              <option value="auto">Auto (Anthropic for claude-*, else OpenAI)</option>
+              <option value="anthropic">Anthropic Messages (/v1/messages)</option>
+              <option value="openai">OpenAI chat completions (/v1/chat/completions)</option>
+            </select>
+            <small class="ai-hint" id="ai-format-hint">How chat talks to CLIProxyAPI. Change it if a model answers with a format error.</small>
           </label>
           <div class="ai-actions">
             <button type="button" class="ai-btn primary" id="ai-save">Save</button>
@@ -78,6 +113,7 @@
         <div class="row">
           <button type="button" class="btn" id="add" title="Add another isolated account profile" aria-label="Add Profile">＋</button>
           <button type="button" class="btn" id="maps" title="Offline map and monster atlas">Maps</button>
+          <button type="button" class="btn" id="classes" title="Class progression chart: Novice to 4th class">Classes</button>
           <button type="button" class="btn" id="exports" title="Open ~/Downloads/RO Idle Tray">Exports</button>
           <button type="button" class="btn" id="quit" title="Quit RO Idle Tray">Quit</button>
         </div>

@@ -2,7 +2,7 @@
 //!
 //! The provider is an Anthropic Messages API endpoint, by default the user's
 //! local CLIProxyAPI. Base URL and model live in `ai.json` in the app config
-//! dir; the API key lives only in the macOS Keychain. Commands here are for
+//! dir; the API key is encrypted at rest by `secret`. Commands here are for
 //! the local panel window only: game windows load a remote page and must never
 //! reach the key.
 
@@ -13,29 +13,49 @@ use tauri::{AppHandle, Manager, WebviewWindow};
 pub const DEFAULT_BASE_URL: &str = "http://127.0.0.1:8317";
 pub const DEFAULT_MODEL: &str = "claude-opus-5-5";
 const ANTHROPIC_VERSION: &str = "2023-06-01";
-const KEYCHAIN_SERVICE: &str = "com.mikewong.ro-idle-tray.ai";
-const KEYCHAIN_ACCOUNT: &str = "api-key";
 
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
 pub struct AiConfig {
     pub base_url: String,
     pub model: String,
+    /// Wire format: "auto" (Anthropic for claude-* models, else OpenAI), "anthropic" or "openai".
+    pub format: String,
 }
 
 impl Default for AiConfig {
     fn default() -> Self {
-        Self { base_url: DEFAULT_BASE_URL.into(), model: DEFAULT_MODEL.into() }
+        Self { base_url: DEFAULT_BASE_URL.into(), model: DEFAULT_MODEL.into(), format: "auto".into() }
     }
 }
 
-/// What the panel sees. Never carries the key itself.
+impl AiConfig {
+    /// True when chat should speak Anthropic Messages, false for OpenAI chat completions.
+    pub fn uses_anthropic(&self) -> bool {
+        match self.format.as_str() {
+            "anthropic" => true,
+            "openai" => false,
+            _ => self.model.to_ascii_lowercase().contains("claude"),
+        }
+    }
+}
+
+fn normalize_format(f: Option<&str>) -> Result<String, String> {
+    match f.map(str::trim).unwrap_or("auto") {
+        f @ ("auto" | "anthropic" | "openai") => Ok(f.into()),
+        _ => Err("Format must be auto, anthropic or openai".into()),
+    }
+}
+
+/// What the panel sees. Never carries a key itself.
 #[derive(Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsView {
     pub base_url: String,
     pub model: String,
+    pub format: String,
     pub has_key: bool,
+    pub has_tavily_key: bool,
 }
 
 /// Token counts from a reply. Cache fields are None when the proxy drops them.
@@ -118,17 +138,52 @@ pub fn test_request_body(model: &str) -> Value {
     })
 }
 
+/// Readable text for a non-2xx reply, from either an Anthropic or proxy error shape.
+pub fn error_text(status: u16, body: &str) -> String {
+    let v: Option<Value> = serde_json::from_str(body).ok();
+    let detail = v
+        .as_ref()
+        .and_then(|v| v.pointer("/error/message").or_else(|| v.get("error")).or_else(|| v.get("message")))
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .unwrap_or_else(|| clip(body.trim(), 300));
+    if detail.is_empty() { format!("HTTP {status}") } else { format!("HTTP {status}: {detail}") }
+}
+
+/// Model ids from a `GET /v1/models` reply. Accepts Anthropic (`data[].id`)
+/// and OpenAI (`data[].id`) shapes, plus `{"models":[...]}` proxies.
+pub fn parse_models(body: &str) -> Result<Vec<String>, String> {
+    let v: Value = serde_json::from_str(body).map_err(|_| "Model list is not JSON".to_string())?;
+    let arr = v
+        .get("data")
+        .or_else(|| v.get("models"))
+        .and_then(Value::as_array)
+        .ok_or("Model list has no data")?;
+    let mut out: Vec<String> = Vec::new();
+    for item in arr {
+        let id = item
+            .as_str()
+            .map(str::to_string)
+            .or_else(|| item.get("id").and_then(Value::as_str).map(str::to_string))
+            .or_else(|| item.get("name").and_then(Value::as_str).map(str::to_string));
+        let Some(id) = id.map(|s| s.trim().to_string()) else { continue };
+        if id.is_empty()
+            || id.len() > 100
+            || id.chars().any(|c| c.is_whitespace() || c.is_control())
+            || out.iter().any(|m| m == &id)
+        {
+            continue;
+        }
+        out.push(id);
+    }
+    if out.is_empty() { Err("The provider reported no models".into()) } else { Ok(out) }
+}
+
 /// Ok((model, usage)) for a 2xx Messages reply, Err(text to show) otherwise.
 pub fn parse_reply(status: u16, body: &str) -> Result<(String, Usage), String> {
     let v: Option<Value> = serde_json::from_str(body).ok();
     if !(200..300).contains(&status) {
-        let detail = v
-            .as_ref()
-            .and_then(|v| v.pointer("/error/message").or_else(|| v.get("error")).or_else(|| v.get("message")))
-            .and_then(Value::as_str)
-            .map(str::to_string)
-            .unwrap_or_else(|| clip(body.trim(), 300));
-        return Err(if detail.is_empty() { format!("HTTP {status}") } else { format!("HTTP {status}: {detail}") });
+        return Err(error_text(status, body));
     }
     let v = v.ok_or("Reply is not JSON")?;
     if let Some(msg) = v.pointer("/error/message").and_then(Value::as_str) {
@@ -196,29 +251,14 @@ fn save_config(app: &AppHandle, cfg: &AiConfig) -> Result<(), String> {
         .map_err(|e| format!("Cannot save settings: {e}"))
 }
 
-#[cfg(target_os = "macos")]
-pub(crate) mod keychain {
-    use security_framework::passwords;
-    const NOT_FOUND: i32 = -25300; // errSecItemNotFound
-
-    pub fn get() -> Result<Option<String>, String> {
-        match passwords::get_generic_password(super::KEYCHAIN_SERVICE, super::KEYCHAIN_ACCOUNT) {
-            Ok(b) => Ok(Some(String::from_utf8_lossy(&b).into_owned())),
-            Err(e) if e.code() == NOT_FOUND => Ok(None),
-            Err(e) => Err(format!("Keychain read failed ({})", e.code())),
-        }
-    }
-
-    pub fn set(key: &str) -> Result<(), String> {
-        passwords::set_generic_password(super::KEYCHAIN_SERVICE, super::KEYCHAIN_ACCOUNT, key.as_bytes())
-            .map_err(|e| format!("Keychain write failed ({})", e.code()))
-    }
+/// The saved API key, from the macOS Keychain.
+pub(crate) fn api_key(app: &AppHandle) -> Result<Option<String>, String> {
+    crate::secret::load(app)
 }
 
-#[cfg(not(target_os = "macos"))]
-pub(crate) mod keychain {
-    pub fn get() -> Result<Option<String>, String> { Ok(None) }
-    pub fn set(_: &str) -> Result<(), String> { Err("Key storage needs the macOS Keychain".into()) }
+/// The saved Tavily key, used only for web search in chat.
+pub(crate) fn tavily_key(app: &AppHandle) -> Result<Option<String>, String> {
+    crate::secret::load_named(app, crate::secret::TAVILY)
 }
 
 // ---- commands (panel window only) ----
@@ -227,17 +267,23 @@ pub(crate) fn panel_only(w: &WebviewWindow) -> Result<(), String> {
     if w.label() == "panel" { Ok(()) } else { Err("Not allowed from this window".into()) }
 }
 
-fn settings_view(cfg: AiConfig) -> Result<SettingsView, String> {
-    Ok(SettingsView { base_url: cfg.base_url, model: cfg.model, has_key: keychain::get()?.is_some() })
+fn settings_view(app: &AppHandle, cfg: AiConfig) -> Result<SettingsView, String> {
+    Ok(SettingsView {
+        base_url: cfg.base_url,
+        model: cfg.model,
+        format: cfg.format,
+        has_key: api_key(app)?.is_some(),
+        has_tavily_key: tavily_key(app)?.is_some(),
+    })
 }
 
 #[tauri::command]
 pub fn ai_get_settings(window: WebviewWindow, app: AppHandle) -> Result<SettingsView, String> {
     panel_only(&window)?;
-    settings_view(load_config(&app))
+    settings_view(&app, load_config(&app))
 }
 
-/// `api_key` None or blank keeps the saved key.
+/// `api_key` / `tavily_key` None or blank keeps the saved value.
 #[tauri::command]
 pub fn ai_save_settings(
     window: WebviewWindow,
@@ -245,17 +291,61 @@ pub fn ai_save_settings(
     base_url: String,
     model: String,
     api_key: Option<String>,
+    tavily_key: Option<String>,
+    format: Option<String>,
 ) -> Result<SettingsView, String> {
     panel_only(&window)?;
-    let cfg = AiConfig { base_url: normalize_base_url(&base_url)?, model: normalize_model(&model)? };
+    let cfg = AiConfig {
+        base_url: normalize_base_url(&base_url)?,
+        model: normalize_model(&model)?,
+        format: normalize_format(format.as_deref())?,
+    };
     if let Some(k) = api_key.as_deref().map(str::trim).filter(|k| !k.is_empty()) {
         if k.chars().any(char::is_control) {
             return Err("API key has invalid characters".into());
         }
-        keychain::set(k)?;
+        crate::secret::save(&app, k)?;
+    }
+    if let Some(k) = tavily_key.as_deref().map(str::trim).filter(|k| !k.is_empty()) {
+        if k.chars().any(char::is_control) {
+            return Err("Tavily key has invalid characters".into());
+        }
+        crate::secret::save_named(&app, crate::secret::TAVILY, k)?;
     }
     save_config(&app, &cfg)?;
-    settings_view(cfg)
+    settings_view(&app, cfg)
+}
+
+/// Valid model ids from the saved provider, for the settings picker. Bearer
+/// auth returns the OpenAI-compatible catalog, which covers Claude, Gemini and
+/// GPT models, so a single request is enough.
+#[tauri::command]
+pub async fn ai_list_models(window: WebviewWindow, app: AppHandle) -> Result<Vec<String>, String> {
+    panel_only(&window)?;
+    let cfg = load_config(&app);
+    let key = crate::secret::load(&app)?;
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .no_proxy()
+        .build()
+        .map_err(|e| e.to_string())?;
+    let mut request = client.get(format!("{}/v1/models?limit=1000", cfg.base_url));
+    if let Some(key) = key.as_deref() {
+        request = request.header("authorization", format!("Bearer {key}"));
+    }
+    let res = request
+        .send()
+        .await
+        .map_err(|e| format!("Cannot reach {}: {}", cfg.base_url, error_chain(&e)))?;
+    let status = res.status().as_u16();
+    let text = res.text().await.map_err(|e| e.to_string())?;
+    if !(200..300).contains(&status) {
+        let msg = error_text(status, &text);
+        return Err(key.as_deref().map_or(msg.clone(), |k| redact(&msg, k)));
+    }
+    let mut models = parse_models(&text)?;
+    models.sort_unstable();
+    Ok(models)
 }
 
 /// Uses the saved settings. Sends the same minimal request twice.
@@ -263,7 +353,7 @@ pub fn ai_save_settings(
 pub async fn ai_test_connection(window: WebviewWindow, app: AppHandle) -> Result<TestReport, String> {
     panel_only(&window)?;
     let cfg = load_config(&app);
-    let Some(key) = keychain::get()? else {
+    let Some(key) = api_key(&app)? else {
         return Ok(TestReport { ok: false, model: None, message: "No API key saved".into(), caching: None });
     };
     let client = reqwest::Client::builder()
@@ -365,6 +455,19 @@ mod tests {
     }
 
     #[test]
+    fn parses_model_lists() {
+        // Anthropic.
+        let anthropic = r#"{"data":[{"id":"claude-a","display_name":"A"},{"id":"claude-b"}],"has_more":false}"#;
+        assert_eq!(parse_models(anthropic).unwrap(), vec!["claude-a", "claude-b"]);
+        // OpenAI and plain proxy lists; duplicates, blanks and bad ids are dropped.
+        assert_eq!(parse_models(r#"{"models":["gpt-a","gpt-a"," gpt-b ",""]}"#).unwrap(), vec!["gpt-a", "gpt-b"]);
+        assert_eq!(parse_models(r#"{"data":[{"name":"gpt-c"}]}"#).unwrap(), vec!["gpt-c"]);
+        assert!(parse_models("not json").is_err());
+        assert!(parse_models(r#"{"data":[]}"#).is_err());
+        assert!(parse_models(r#"{"data":[{"id":"has space"}]}"#).is_err());
+    }
+
+    #[test]
     fn caching_verdicts() {
         let u = |c, r| Usage { input_tokens: Some(5), cache_creation_input_tokens: c, cache_read_input_tokens: r };
         assert_eq!(caching_verdict(&u(Some(4300), Some(0)), &u(Some(0), Some(4300))), Some(true));
@@ -388,7 +491,36 @@ mod tests {
 
     #[test]
     fn settings_view_has_no_key_field() {
-        let v = serde_json::to_value(SettingsView { base_url: "u".into(), model: "m".into(), has_key: true }).unwrap();
-        assert_eq!(v, json!({"baseUrl":"u","model":"m","hasKey":true}));
+        let v = serde_json::to_value(SettingsView {
+            base_url: "u".into(),
+            model: "m".into(),
+            format: "auto".into(),
+            has_key: true,
+            has_tavily_key: false,
+        })
+        .unwrap();
+        assert_eq!(
+            v,
+            json!({"baseUrl":"u","model":"m","format":"auto","hasKey":true,"hasTavilyKey":false})
+        );
+    }
+}
+
+#[cfg(test)]
+mod format_tests {
+    use super::*;
+
+    #[test]
+    fn format_setting_overrides_model_name_guess() {
+        let cfg = |model: &str, format: &str| AiConfig { base_url: String::new(), model: model.into(), format: format.into() };
+        assert!(cfg("claude-opus-5-5", "auto").uses_anthropic());
+        assert!(!cfg("gpt-5", "auto").uses_anthropic());
+        assert!(!cfg("claude-opus-5-5", "openai").uses_anthropic());
+        assert!(cfg("gemini-3-pro", "anthropic").uses_anthropic());
+        assert_eq!(normalize_format(None).unwrap(), "auto");
+        assert!(normalize_format(Some("grpc")).is_err());
+        // Old ai.json without the field still loads, as auto.
+        let old: AiConfig = serde_json::from_str(r#"{"base_url":"u","model":"m"}"#).unwrap();
+        assert_eq!(old.format, "auto");
     }
 }

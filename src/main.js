@@ -10,19 +10,22 @@ const el = (tag, className, textContent = "") => Object.assign(document.createEl
 const pending = new Map();
 let nicknames = {};
 let goals = {};
-// Final (transcendent) jobs and the classes on the way there. Novice can pick any.
+// Final (transcendent) jobs, their English names, and the classes on the way there. Novice can pick any.
 const GOALS = [
-  ["騎士領主", "劍士", "騎士"], ["聖殿十字軍", "劍士", "十字軍"],
-  ["超魔導師", "魔法師", "巫師"], ["智者", "魔法師", "賢者"],
-  ["神射手", "弓箭手", "獵人"], ["搞笑藝人", "弓箭手", "吟遊詩人"], ["冷豔舞姬", "弓箭手", "舞孃"],
-  ["神官", "服事", "祭司"], ["武術宗師", "服事", "武道家"],
-  ["神工匠", "商人", "鐵匠"], ["創造者", "商人", "鍊金術師"],
-  ["十字刺客", "盜賊", "刺客"], ["神行太保", "盜賊", "流氓"],
-  ["超級初心者"],
+  ["騎士領主", "Lord Knight", "劍士", "騎士"], ["聖殿十字軍", "Paladin", "劍士", "十字軍"],
+  ["超魔導師", "High Wizard", "魔法師", "巫師"], ["智者", "Scholar", "魔法師", "賢者"],
+  ["神射手", "Sniper", "弓箭手", "獵人"], ["搞笑藝人", "Clown", "弓箭手", "吟遊詩人"], ["冷豔舞姬", "Gypsy", "弓箭手", "舞孃"],
+  ["神官", "High Priest", "服事", "祭司"], ["武術宗師", "Champion", "服事", "武道家"],
+  ["神工匠", "Whitesmith", "商人", "鐵匠"], ["創造者", "Creator", "商人", "鍊金術師"],
+  ["十字刺客", "Assassin Cross", "盜賊", "刺客"], ["神行太保", "Stalker", "盜賊", "流氓"],
+  ["超級初心者", "Super Novice"],
 ];
+// Display label only; the stored goal stays the Chinese name so goals.json and the API are unchanged.
+const goalLabel = (g) => `${g[0]}（${g[1]}）`;
+const goalName = (zh) => { const g = GOALS.find((r) => r[0] === zh); return g ? goalLabel(g) : zh; };
 const goalsFor = (cls = "") => {
   const base = cls.replace("（轉生）", "");
-  return base === "初學者" || base === "" ? GOALS.map((g) => g[0]) : GOALS.filter((g) => g.includes(base)).map((g) => g[0]);
+  return base === "初學者" || base === "" ? GOALS : GOALS.filter((g) => g.includes(base));
 };
 // Don't re-render while a nickname is being typed.
 let editing = false;
@@ -231,11 +234,12 @@ function card(n, info, othersIdling) {
   nickBtn.setAttribute("aria-label", nick ? `Nickname ${nick}, click to edit` : `Add nickname for ${info.name}`);
   nickBtn.addEventListener("click", () => editNickname(nickBtn, info.name));
   const goal = goals[info.name];
-  q(".cls").textContent = goal && goal !== info.class ? `${info.class ?? ""} → ${goal}` : info.class ?? "";
+  const rows = goalsFor(info.class);
+  q(".cls").textContent = goal && goal !== info.class ? `${info.class ?? ""} → ${goalName(goal)}` : info.class ?? "";
   const sel = q(".goal");
-  sel.append(el("option", "", "未設定"), ...goalsFor(info.class).map((g) => el("option", "", g)));
-  sel.firstChild.value = "";
-  if (goal && !goalsFor(info.class).includes(goal)) sel.append(el("option", "", goal));
+  const opt = (text, value) => { const o = el("option", "", text); o.value = value; return o; };
+  sel.append(opt("未設定", ""), ...rows.map((g) => opt(goalLabel(g), g[0])));
+  if (goal && !rows.some((g) => g[0] === goal)) sel.append(opt(goalName(goal), goal));
   sel.value = goal ?? "";
   sel.setAttribute("aria-label", `Job direction for ${info.name}`);
   sel.addEventListener("focus", () => { editing = true; });
@@ -363,6 +367,20 @@ function card(n, info, othersIdling) {
   return tpl;
 }
 
+// Offline = game page closed; the card keeps the last data it saw, greyed out.
+function markOffline(box) {
+  box.classList.remove("is-on", "is-wait", "is-off", "alert");
+  box.classList.add("offline");
+  box.title = "Offline: background game page closed. Right-click to go online.";
+  const status = box.querySelector(".status .ago");
+  if (status) { status.dataset.state = "離線"; setAgo(status); }
+  box.querySelector(".status")?.classList.remove("on", "wait");
+  box.querySelector(".dot")?.classList.add("off");
+  const name = box.querySelector(".empty .name");
+  if (name) name.textContent = "離線";
+  box.querySelectorAll(".idle, .enter, .char-list button").forEach((b) => { b.disabled = true; });
+}
+
 // Fixed position escapes the scrolling column; prefer the card's right side, else left.
 function placePopup(card, pop) {
   const r = card.getBoundingClientRect();
@@ -384,14 +402,17 @@ async function refresh() {
   nicknames = state.nicknames ?? {};
   goals = state.goals ?? {};
   const list = $("list");
-  const idling = state.profiles.filter((p) => p.info?.running).length;
+  const live = state.profiles.filter((p) => !p.offline);
+  const idling = live.filter((p) => p.info?.running).length;
   const scroll = list.scrollTop;
   const boxes = state.profiles.map((p) => {
     const frag = p.roster?.length ? rosterCard(p.n, p.roster)
       : !p.info ? emptyCard(p.n)
-      : card(p.n, p.info, idling - (p.info.running ? 1 : 0) > 0);
+      : card(p.n, p.info, !p.offline && idling - (p.info.running ? 1 : 0) > 0);
     const box = frag.firstElementChild;
     box.dataset.n = p.n;
+    box.addEventListener("contextmenu", (e) => { e.preventDefault(); invoke("profile_menu", { n: p.n }); });
+    if (p.offline) markOffline(box);
     box.draggable = true;
     return box;
   });
@@ -399,9 +420,10 @@ async function refresh() {
   else list.replaceChildren(...boxes);
   list.scrollTop = scroll;
 
-  const signed = state.profiles.filter((p) => p.info);
+  const signed = live.filter((p) => p.info);
   const stopped = signed.filter((p) => p.info.running === false && !p.info.stopping).length;
-  $("summary").textContent = `${state.profiles.length} profiles · ${signed.length} signed in · ${idling} idling`;
+  const off = state.profiles.length - live.length;
+  $("summary").textContent = `${state.profiles.length} profiles · ${signed.length} signed in · ${idling} idling${off ? ` · ${off} offline` : ""}`;
   const overall = $("overall");
   overall.hidden = signed.length === 0;
   overall.className = `pill ${stopped ? "warn" : "ok"}`;
@@ -479,13 +501,15 @@ list.addEventListener("dragend", () => {
 
 $("login").addEventListener("click", () => invoke("set_login"));
 $("pin").addEventListener("click", (e) => invoke("set_pinned", { pinned: e.currentTarget.getAttribute("aria-pressed") !== "true" }));
+$("panel-hide").addEventListener("click", () => invoke("hide_panel"));
 $("quit").addEventListener("click", () => invoke("quit"));
 $("add").addEventListener("click", () => invoke("add_account"));
 $("maps").addEventListener("click", () => invoke("open_atlas", { q: null }));
+$("classes").addEventListener("click", () => invoke("open_classes"));
 $("exports").addEventListener("click", () => invoke("open_export_folder"));
 $("update").addEventListener("click", () => invoke("update_app"));
-// AI provider settings. The key is write-only here: Rust keeps it in the Keychain
-// and only reports whether one is saved.
+// AI provider settings. The key is write-only here: Rust encrypts it in the
+// app config dir and only reports whether one is saved.
 function aiShow(open) {
   if (open) showPanel("ai"); else closeSettings();
   // Board view widens the panel; settings use the normal width.
@@ -494,10 +518,161 @@ function aiShow(open) {
 }
 function aiFill(s) {
   $("ai-url").value = s.baseUrl;
-  $("ai-model").value = s.model;
+  aiRevealModel(s.model);
+  $("ai-format").value = s.format ?? "auto";
   $("ai-key").value = "";
   $("ai-key").placeholder = s.hasKey ? "•••••••• (leave blank to keep)" : "Paste key";
   $("ai-keystate").hidden = !s.hasKey;
+  $("ai-tavily-key").value = "";
+  $("ai-tavily-key").placeholder = s.hasTavilyKey ? "•••••••• (leave blank to keep)" : "tvly-… (optional)";
+  $("ai-tavily-state").hidden = !s.hasTavilyKey;
+}
+// The model picker is a shadcn-style combobox: a trigger showing the current
+// model and a searchable list. `aiModelValue` is the source of truth; the
+// hidden input keeps the save/test calls unchanged.
+let aiModels = [];
+let aiModelValue = "";
+let aiModelActive = -1;
+let aiModelFiltered = [];
+
+function aiModelCandidates() {
+  // A saved name the provider no longer offers stays selectable.
+  return aiModelValue && !aiModels.includes(aiModelValue) ? [aiModelValue, ...aiModels] : aiModels;
+}
+function aiRevealModel(value) {
+  const v = String(value ?? "").trim();
+  aiModelValue = v;
+  $("ai-model").value = v;
+  const label = $("ai-model-value");
+  label.textContent = v || "Select a model…";
+  label.classList.toggle("placeholder", !v);
+  aiRenderModels();
+}
+function aiRenderModels() {
+  const query = $("ai-model-search").value.trim().toLowerCase();
+  const all = aiModelCandidates();
+  aiModelFiltered = query ? all.filter((m) => m.toLowerCase().includes(query)) : all;
+  const selected = aiModelValue;
+  const list = $("ai-model-list");
+  list.replaceChildren(...aiModelFiltered.map((m, i) => {
+    const item = document.createElement("li");
+    item.id = `ai-model-opt-${i}`;
+    item.className = "ai-combo-item";
+    item.setAttribute("role", "option");
+    item.setAttribute("aria-selected", String(m === selected));
+    item.dataset.value = m;
+    item.dataset.active = String(i === aiModelActive);
+    const text = document.createElement("span");
+    text.className = "ai-combo-item-text";
+    text.textContent = m;
+    const check = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    check.setAttribute("viewBox", "0 0 24 24");
+    check.setAttribute("aria-hidden", "true");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "m20 6-11 11-5-5");
+    check.append(path);
+    item.append(text, check);
+    item.addEventListener("click", () => aiChooseModel(m));
+    item.addEventListener("mousemove", () => aiHighlightModel(i));
+    return item;
+  }));
+  $("ai-model-empty").hidden = aiModelFiltered.length > 0;
+  $("ai-model-search").setAttribute(
+    "aria-activedescendant",
+    aiModelActive >= 0 && aiModelFiltered[aiModelActive] ? `ai-model-opt-${aiModelActive}` : ""
+  );
+}
+function aiHighlightModel(index) {
+  if (index === aiModelActive) return;
+  aiModelActive = index;
+  for (const [i, item] of [...$("ai-model-list").children].entries()) {
+    item.dataset.active = String(i === index);
+  }
+  const active = $("ai-model-list").children[index];
+  if (active) active.scrollIntoView({ block: "nearest" });
+  $("ai-model-search").setAttribute(
+    "aria-activedescendant",
+    active ? active.id : ""
+  );
+}
+function aiChooseModel(value) {
+  aiRevealModel(value);
+  aiOpenModels(false);
+  $("ai-model-trigger").focus();
+}
+function aiOpenModels(open) {
+  const trigger = $("ai-model-trigger");
+  $("ai-model-pop").hidden = !open;
+  trigger.setAttribute("aria-expanded", String(open));
+  if (!open) {
+    aiModelActive = -1;
+    $("ai-model-search").value = "";
+    aiRenderModels();
+    return;
+  }
+  const search = $("ai-model-search");
+  search.value = "";
+  aiModelActive = Math.max(0, aiModelCandidates().indexOf(aiModelValue));
+  aiRenderModels();
+  const active = $("ai-model-list").children[aiModelActive];
+  if (active) active.scrollIntoView({ block: "nearest" });
+  search.focus();
+}
+$("ai-model-trigger").addEventListener("click", () => aiOpenModels($("ai-model-pop").hidden));
+$("ai-model-search").addEventListener("input", () => {
+  aiModelActive = 0;
+  aiRenderModels();
+  if (aiModelFiltered.length === 1) aiHighlightModel(0);
+});
+$("ai-model-search").addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    if (aiModelFiltered.length === 0) return;
+    const step = e.key === "ArrowDown" ? 1 : -1;
+    const next = (aiModelActive + step + aiModelFiltered.length) % aiModelFiltered.length;
+    aiHighlightModel(next);
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    const value = aiModelFiltered[aiModelActive];
+    if (value) aiChooseModel(value);
+  } else if (e.key === "Escape") {
+    e.preventDefault();
+    aiOpenModels(false);
+    $("ai-model-trigger").focus();
+  } else if (e.key === "Tab") {
+    aiOpenModels(false);
+  }
+});
+document.addEventListener("pointerdown", (e) => {
+  if (!$("ai-model-pop").hidden && !$("ai-model-combo").contains(e.target)) aiOpenModels(false);
+});
+
+// Ask the provider for its valid models and show them in the picker,
+// preferring the saved model and otherwise picking the first valid one.
+let aiModelsRequest = 0;
+async function aiLoadModels() {
+  const token = ++aiModelsRequest;
+  const hint = $("ai-model-hint");
+  const saved = aiModelValue;
+  hint.textContent = "Loading models…";
+  try {
+    const models = await invoke("ai_list_models");
+    if (token !== aiModelsRequest) return;
+    aiModels = models;
+    if (models.includes(saved)) {
+      aiRevealModel(saved);
+      hint.textContent = `${models.length} model${models.length === 1 ? "" : "s"} available.`;
+    } else {
+      aiRevealModel(models[0]);
+      hint.textContent = saved
+        ? `“${saved}” is not offered; selected “${models[0]}”. Save to keep it.`
+        : `Selected “${models[0]}”.`;
+    }
+  } catch (e) {
+    if (token !== aiModelsRequest) return;
+    aiRevealModel(saved);
+    hint.textContent = `Could not list models: ${e} — keeping the saved name.`;
+  }
 }
 function aiResult(kind, text) {
   const r = $("ai-result");
@@ -507,10 +682,21 @@ function aiResult(kind, text) {
 }
 async function aiLoad() {
   $("ai-result").hidden = true;
-  try { aiFill(await invoke("ai_get_settings")); } catch (e) { aiResult("err", String(e)); }
+  try {
+    aiFill(await invoke("ai_get_settings"));
+    await aiLoadModels();
+  } catch (e) { aiResult("err", String(e)); }
 }
 async function aiSave() {
-  aiFill(await invoke("ai_save_settings", { baseUrl: $("ai-url").value, model: $("ai-model").value, apiKey: $("ai-key").value || null }));
+  const s = await invoke("ai_save_settings", {
+    baseUrl: $("ai-url").value,
+    model: $("ai-model").value,
+    apiKey: $("ai-key").value || null,
+    tavilyKey: $("ai-tavily-key").value || null,
+    format: $("ai-format").value,
+  });
+  aiFill(s);
+  return s;
 }
 async function aiBusy(btn, label, work) {
   const was = btn.textContent;
@@ -523,13 +709,29 @@ async function aiBusy(btn, label, work) {
 }
 $("ai-open").addEventListener("click", () => aiShow($("ai").hidden));
 $("ai-close").addEventListener("click", () => aiShow(false));
-$("ai-save").addEventListener("click", (e) => aiBusy(e.currentTarget, "Saving…", async () => { await aiSave(); aiResult("ok", "Saved"); }));
+$("ai-model-refresh").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  btn.setAttribute("aria-busy", "true");
+  try { await aiLoadModels(); } finally {
+    btn.disabled = false;
+    btn.removeAttribute("aria-busy");
+  }
+});
+$("ai-save").addEventListener("click", (e) => aiBusy(e.currentTarget, "Saving…", async () => {
+  const s = await aiSave();
+  aiResult("ok", s.hasTavilyKey ? "Saved · web search enabled" : "Saved");
+  // Refresh the valid list for the saved provider without holding up "Saved".
+  aiLoadModels().catch(() => {});
+}));
 $("ai-test").addEventListener("click", (e) => aiBusy(e.currentTarget, "Testing…", async () => {
   await aiSave();
   const r = await invoke("ai_test_connection");
   const cache = r.caching == null ? "unknown (proxy reports no cache usage)" : r.caching ? "works" : "not working";
   if (r.ok) aiResult("ok", `OK · ${r.model}\nPrompt caching: ${r.message === "OK" ? cache : r.message}`);
   else aiResult("err", r.message);
+  // The tested provider may be new; refresh its valid model list.
+  if (r.ok) aiLoadModels().catch(() => {});
 }));
 
 listen("state-changed", refresh);

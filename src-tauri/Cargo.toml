@@ -22,9 +22,11 @@ tauri = { version = "2", features = ["tray-icon", "macos-private-api", "image-pn
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Agent loop for the assistant (owner decision: rig-core). Pinned: rig's API moves between minors.
 rig-core = { version = "=0.46.0", default-features = false }
 rig-agent = { version = "=0.46.0", default-features = false }
 rig-reqwest = { version = "=0.46.0", features = ["rustls"] }
+# Already in the tree (reqwest/hyper/rig): stream handling, safe file names, chat lock + timeouts.
 futures-util = "0.3"
 sha2 = "0.10"
 tokio = { version = "1", features = ["sync", "time"] }
@@ -34,6 +36,13 @@ tauri-plugin-process = "2"
 # Already in the tree via the updater; used for the AI connection test.
 # https base URLs rely on the TLS backend the updater enables (rustls).
 reqwest = { version = "0.13", default-features = false }
+# Tavily's hosted MCP server, bridged into rig tools. `reqwest` here turns on
+# rustls for the shared reqwest, which HTTPS to mcp.tavily.com needs.
+rmcp = { version = "3.8", default-features = false, features = [
+    "client",
+    "transport-streamable-http-client-reqwest",
+    "reqwest",
+] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
@@ -48,6 +57,6 @@ strip = true
 objc2 = "0.6"
 block2 = "0.6"
 objc2-foundation = "0.3"
-# Already in the tree; Keychain storage for the AI API key.
+# Already in the tree (updater); Keychain storage for the API keys.
 security-framework = "3"
 mac-notification-sys = "0.6"
