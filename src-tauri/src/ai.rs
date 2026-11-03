@@ -251,14 +251,14 @@ fn save_config(app: &AppHandle, cfg: &AiConfig) -> Result<(), String> {
         .map_err(|e| format!("Cannot save settings: {e}"))
 }
 
-/// The saved API key, from the macOS Keychain.
+/// The saved API key, encrypted at rest in the app config dir.
 pub(crate) fn api_key(app: &AppHandle) -> Result<Option<String>, String> {
     crate::secret::load(app)
 }
 
 /// The saved Tavily key, used only for web search in chat.
 pub(crate) fn tavily_key(app: &AppHandle) -> Result<Option<String>, String> {
-    crate::secret::load_named(app, crate::secret::TAVILY)
+    crate::secret::load_named(app, crate::secret::TAVILY_FILE)
 }
 
 // ---- commands (panel window only) ----
@@ -310,7 +310,7 @@ pub fn ai_save_settings(
         if k.chars().any(char::is_control) {
             return Err("Tavily key has invalid characters".into());
         }
-        crate::secret::save_named(&app, crate::secret::TAVILY, k)?;
+        crate::secret::save_named(&app, crate::secret::TAVILY_FILE, k)?;
     }
     save_config(&app, &cfg)?;
     settings_view(&app, cfg)

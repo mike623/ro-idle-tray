@@ -30,16 +30,16 @@ test('a refresh button re-runs model discovery', () => {
   assert.match(main, /await aiLoadModels\(\)/);
 });
 
-test('the web search key has its own Keychain-backed field', () => {
+test('the web search key has its own encrypted field', () => {
   assert.match(html, /id="ai-tavily-key"[^>]*type="password"/);
-  assert.match(html, /id="ai-tavily-state"[^>]*>Saved in Keychain</);
+  assert.match(html, /id="ai-tavily-state"[^>]*>Encrypted locally</);
   assert.match(main, /tavilyKey: \$\("ai-tavily-key"\)\.value \|\| null/);
   assert.match(main, /\$\("ai-tavily-state"\)\.hidden = !s\.hasTavilyKey/);
 });
 
-test('keys are described as stored in the Keychain, never a local file', () => {
-  assert.doesNotMatch(html, /Encrypted locally/i);
-  assert.match(html, /id="ai-keystate"[^>]*>Saved in Keychain</);
+test('no settings text mentions the old Keychain storage', () => {
+  assert.doesNotMatch(html, /Keychain/i);
+  assert.match(html, /id="ai-keystate"[^>]*>Encrypted locally</);
 });
 
 test('the request format is a saved setting', () => {
