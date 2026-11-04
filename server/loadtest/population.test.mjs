@@ -36,12 +36,15 @@ test('generate: seeded, job mix by usage, parties of 1 / 2–4 / 8, levels fit t
 
 test('shared configs from capture lines: weighted by `using`, own job only, used when present', () => {
   const line = (id, job, using) => JSON.stringify({ kind: 'http', method: 'GET', status: 200, path: `/api/shared-configs/${id}`,
-    resp: { shared: { id, job, baseLv: 10, using, config: { config: { lockMap: 'x', sit: { enabled: true, hpBelow: 33 } } } } } });
+    resp: { shared: { id, job, baseLv: 10, using, config: { config: { lockMap: 'x', sit: { enabled: true, hpBelow: 33 },
+      statsAddAuto: { enabled: true, list: [{ stat: 'luk', target: 90 }, { stat: 'dex', target: 30 }] } } } } } });
   const cfgs = sharedConfigs([line(1, 'novice', 5), line(2, 'thief', 1), 'garbage']);
   assert.deepEqual(Object.keys(cfgs).sort(), ['novice', 'thief']);
   const p = generate({ bots: 60, seed: 2, configs: cfgs });
   const nov = p.chars.filter((c) => c.view.snapshot.character.job === 'novice');
   assert.ok(nov.length && nov.every((c) => c.view.snapshot.config.sit.hpBelow === 33 && c.configSource === 'shared'));
   assert.ok(nov.every((c) => c.view.snapshot.config.lockMap === c.view.snapshot.mapId));
+  // the config's statsAddAuto targets are the stat archetype (#24 "config statsAddAuto or job archetype")
+  assert.ok(nov.every(({ view: { snapshot: { character: { stats } } } }) => stats.luk >= stats.dex && stats.str === 1), JSON.stringify(nov[0].view.snapshot.character.stats));
   assert.ok(p.chars.some((c) => c.configSource === 'archetype'));
 });

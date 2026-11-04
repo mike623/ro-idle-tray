@@ -209,7 +209,10 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
     for (const v of viewers) if (game.idleViewer(v.account)) { v.write('idle', {}); v.res.end(); viewers.delete(v); }
   };
   const timers = [];
-  if (tickMs) timers.push(setInterval(() => { game.tick(); sweep(); }, tickMs));
+  if (tickMs) timers.push(setInterval(() => {
+    try { game.tick(); } catch (err) { console.error(err); } // same guard as brain actions: one bad fight must not stop the world
+    sweep();
+  }, tickMs));
   if (checkpointMs) timers.push(setInterval(checkpoint, checkpointMs));
   await new Promise((r) => server.listen(port, '127.0.0.1', r));
   return {

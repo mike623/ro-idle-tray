@@ -3,44 +3,44 @@
   "rows": [
    {
     "name": "aspd",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "attackIntervalMs",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "baseExpNext",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "castMs_DEX",
-    "ok": 6317,
+    "ok": 7482,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "crit",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "drops_4sigma",
-    "ok": 26,
+    "ok": 40,
     "miss": 0,
-    "skip": 31,
+    "skip": 37,
     "tag": ""
    },
    {
@@ -52,9 +52,9 @@
    },
    {
     "name": "element_table",
-    "ok": 40454,
+    "ok": 49297,
     "miss": 0,
-    "skip": 4608,
+    "skip": 5792,
     "tag": ""
    },
    {
@@ -66,134 +66,134 @@
    },
    {
     "name": "flee",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "hardDef",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "hardMdef",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "hit",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "hpRegen",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "interval_from_aspd",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "jobExpNext",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "magic_bolt_damage",
-    "ok": 1220,
+    "ok": 1522,
     "miss": 0,
-    "skip": 236,
+    "skip": 321,
     "tag": ""
    },
    {
     "name": "magic_bolt_hits",
-    "ok": 1220,
+    "ok": 1522,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "matkMax",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "matkMin",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "maxHp",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "maxSp",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "monster_angelus_alternative",
-    "ok": 1673,
-    "miss": 477,
+    "ok": 2680,
+    "miss": 1165,
     "skip": 0,
     "tag": "(informational)"
    },
    {
     "name": "monster_damage_candidate",
-    "ok": 2105,
-    "miss": 45,
-    "skip": 306,
+    "ok": 3680,
+    "miss": 165,
+    "skip": 522,
     "tag": "(informational)"
    },
    {
     "name": "monster_def2_softdef",
-    "ok": 1404,
-    "miss": 746,
+    "ok": 2519,
+    "miss": 1326,
     "skip": 0,
     "tag": "(informational)"
    },
    {
     "name": "monster_def2_softdef_angelus",
-    "ok": 2132,
-    "miss": 18,
+    "ok": 3825,
+    "miss": 20,
     "skip": 0,
     "tag": "(fitted)"
    },
    {
     "name": "monster_wiki_softdef",
-    "ok": 1911,
-    "miss": 239,
+    "ok": 3452,
+    "miss": 393,
     "skip": 0,
     "tag": "(informational)"
    },
    {
     "name": "monster_wiki_softdef_angelus",
-    "ok": 1671,
-    "miss": 479,
+    "ok": 2676,
+    "miss": 1169,
     "skip": 0,
     "tag": "(informational)"
    },
@@ -201,33 +201,33 @@
     "name": "party_exp_base",
     "ok": 28232,
     "miss": 0,
-    "skip": 4368,
+    "skip": 12641,
     "tag": ""
    },
    {
     "name": "party_exp_job",
     "ok": 28232,
     "miss": 0,
-    "skip": 4368,
+    "skip": 12641,
     "tag": ""
    },
    {
     "name": "perfectDodge",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "player_damage_candidate",
-    "ok": 37150,
-    "miss": 250,
-    "skip": 4155,
+    "ok": 45310,
+    "miss": 239,
+    "skip": 5190,
     "tag": "(fitted)"
    },
    {
     "name": "refineAtk",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
@@ -241,35 +241,35 @@
    },
    {
     "name": "skill_delayMs",
-    "ok": 6317,
+    "ok": 7482,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "softMdef",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "spRegen",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "statusAtk",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "total_stats",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
@@ -278,19 +278,19 @@
     "name": "unsupported_snapshot",
     "ok": 0,
     "miss": 0,
-    "skip": 20,
+    "skip": 21,
     "tag": ""
    },
    {
     "name": "vitDef",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
    },
    {
     "name": "weightMax",
-    "ok": 1322,
+    "ok": 1332,
     "miss": 0,
     "skip": 0,
     "tag": ""
@@ -719,14 +719,14 @@
    "job": "thief",
    "baseLv": 50,
    "mapId": "mjolnir_09",
-   "activeMs": 22587928,
+   "activeMs": 25165928,
    "counts": {
-    "kills": 1307,
-    "baseExp": 177671,
-    "zeny": -46936,
+    "kills": 1866,
+    "baseExp": 222796,
+    "zeny": -36013,
     "deaths": 0,
     "potions": 1,
-    "drops": 785
+    "drops": 979
    }
   },
   {
@@ -734,14 +734,14 @@
    "job": "acolyte",
    "baseLv": 48,
    "mapId": "mjolnir_09",
-   "activeMs": 17783175,
+   "activeMs": 20360041,
    "counts": {
     "kills": 0,
-    "baseExp": 141751,
-    "zeny": 16396,
+    "baseExp": 186832,
+    "zeny": 23474,
     "deaths": 0,
     "potions": 0,
-    "drops": 620
+    "drops": 794
    }
   },
   {
@@ -749,14 +749,14 @@
    "job": "mage",
    "baseLv": 49,
    "mapId": "mjolnir_09",
-   "activeMs": 17908052,
+   "activeMs": 20519895,
    "counts": {
-    "kills": 1120,
-    "baseExp": 143281,
-    "zeny": 23542,
+    "kills": 1327,
+    "baseExp": 188406,
+    "zeny": 31788,
     "deaths": 0,
     "potions": 0,
-    "drops": 633
+    "drops": 834
    }
   },
   {
@@ -764,14 +764,14 @@
    "job": "merchant",
    "baseLv": 48,
    "mapId": "mjolnir_09",
-   "activeMs": 17648312,
+   "activeMs": 20268005,
    "counts": {
-    "kills": 284,
-    "baseExp": 140150,
+    "kills": 438,
+    "baseExp": 185411,
     "zeny": 0,
     "deaths": 0,
-    "potions": 0,
-    "drops": 654
+    "potions": 1,
+    "drops": 839
    }
   },
   {
@@ -779,14 +779,14 @@
    "job": "swordman",
    "baseLv": 48,
    "mapId": "mjolnir_09",
-   "activeMs": 19154686,
+   "activeMs": 21732163,
    "counts": {
-    "kills": 346,
-    "baseExp": 158049,
+    "kills": 390,
+    "baseExp": 203174,
     "zeny": 24320,
     "deaths": 0,
     "potions": 1,
-    "drops": 679
+    "drops": 871
    }
   },
   {
@@ -794,14 +794,14 @@
    "job": "merchant",
    "baseLv": 48,
    "mapId": "mjolnir_09",
-   "activeMs": 17835354,
+   "activeMs": 20412057,
    "counts": {
-    "kills": 294,
-    "baseExp": 139104,
+    "kills": 373,
+    "baseExp": 184229,
     "zeny": 0,
     "deaths": 0,
     "potions": 0,
-    "drops": 613
+    "drops": 814
    }
   },
   {
@@ -824,26 +824,27 @@
    "job": "acolyte",
    "baseLv": 47,
    "mapId": "mjolnir_09",
-   "activeMs": 17638884,
+   "activeMs": 20251356,
    "counts": {
-    "kills": 8,
-    "baseExp": 140878,
+    "kills": 19,
+    "baseExp": 186003,
     "zeny": 0,
     "deaths": 0,
     "potions": 0,
-    "drops": 637
+    "drops": 830
    }
   }
  ],
  "run": {
-  "simMs": 17890554,
-  "wallMs": 298272.666417,
+  "simMs": 25225287,
+  "wallMs": 420543.79779100005,
   "twins": [
    {
     "id": 72397,
+    "simMs": 25165928,
     "counts": {
      "kills": 0,
-     "baseExp": 14642,
+     "baseExp": 18475,
      "zeny": 0,
      "deaths": 0,
      "potions": 0,
@@ -852,64 +853,70 @@
    },
    {
     "id": 72444,
+    "simMs": 20360041,
     "counts": {
      "kills": 0,
-     "baseExp": 14642,
+     "baseExp": 15194,
      "zeny": 0,
-     "deaths": 0,
-     "potions": 0,
+     "deaths": 2,
+     "potions": 3,
      "drops": 0
     }
    },
    {
     "id": 72468,
+    "simMs": 20519895,
     "counts": {
      "kills": 0,
-     "baseExp": 14642,
+     "baseExp": 15276,
      "zeny": 0,
-     "deaths": 0,
+     "deaths": 4,
      "potions": 0,
      "drops": 0
     }
    },
    {
     "id": 72472,
+    "simMs": 20268005,
     "counts": {
      "kills": 0,
-     "baseExp": 14642,
+     "baseExp": 15194,
      "zeny": 0,
-     "deaths": 0,
+     "deaths": 4,
      "potions": 0,
      "drops": 0
     }
    },
    {
     "id": 72688,
+    "simMs": 21732163,
     "counts": {
-     "kills": 368,
-     "baseExp": 14642,
-     "zeny": 11616,
+     "kills": 428,
+     "baseExp": 15520,
+     "zeny": 12502,
      "deaths": 0,
-     "potions": 70,
-     "drops": 471
+     "potions": 80,
+     "drops": 539
     }
    },
    {
     "id": 74435,
+    "simMs": 20412057,
     "counts": {
-     "kills": 0,
-     "baseExp": 14642,
+     "kills": 1,
+     "baseExp": 15276,
      "zeny": 0,
      "deaths": 0,
      "potions": 0,
-     "drops": 0
+     "drops": 1
     }
    },
    {
     "id": 74496,
+    "simMs": 17787330,
     "counts": {
      "kills": 0,
-     "baseExp": 14642,
+     "baseExp": 13531,
      "zeny": 0,
      "deaths": 0,
      "potions": 0,
@@ -918,11 +925,12 @@
    },
    {
     "id": 74917,
+    "simMs": 20251356,
     "counts": {
      "kills": 0,
-     "baseExp": 14642,
+     "baseExp": 15194,
      "zeny": 0,
-     "deaths": 0,
+     "deaths": 4,
      "potions": 0,
      "drops": 0
     }

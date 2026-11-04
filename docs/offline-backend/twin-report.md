@@ -9,48 +9,48 @@ Failing adopted formulas: **none** (exit 0).
 
 | Formula | OK | MISS | SKIP | |
 |---|---|---|---|---|
-| aspd | 1322 | 0 | 0 |  |
-| attackIntervalMs | 1322 | 0 | 0 |  |
-| baseExpNext | 1322 | 0 | 0 |  |
-| castMs_DEX | 6317 | 0 | 0 |  |
-| crit | 1322 | 0 | 0 |  |
-| drops_4sigma | 26 | 0 | 31 |  |
+| aspd | 1332 | 0 | 0 |  |
+| attackIntervalMs | 1332 | 0 | 0 |  |
+| baseExpNext | 1332 | 0 | 0 |  |
+| castMs_DEX | 7482 | 0 | 0 |  |
+| crit | 1332 | 0 | 0 |  |
+| drops_4sigma | 40 | 0 | 37 |  |
 | drops_known_outlier | 1 | 0 | 0 | (informational) |
-| element_table | 40454 | 0 | 4608 |  |
+| element_table | 49297 | 0 | 5792 |  |
 | event_without_snapshot | 0 | 0 | 24182 |  |
-| flee | 1322 | 0 | 0 |  |
-| hardDef | 1322 | 0 | 0 |  |
-| hardMdef | 1322 | 0 | 0 |  |
-| hit | 1322 | 0 | 0 |  |
-| hpRegen | 1322 | 0 | 0 |  |
-| interval_from_aspd | 1322 | 0 | 0 |  |
-| jobExpNext | 1322 | 0 | 0 |  |
-| magic_bolt_damage | 1220 | 0 | 236 |  |
-| magic_bolt_hits | 1220 | 0 | 0 |  |
-| matkMax | 1322 | 0 | 0 |  |
-| matkMin | 1322 | 0 | 0 |  |
-| maxHp | 1322 | 0 | 0 |  |
-| maxSp | 1322 | 0 | 0 |  |
-| monster_angelus_alternative | 1673 | 477 | 0 | (informational) |
-| monster_damage_candidate | 2105 | 45 | 306 | (informational) |
-| monster_def2_softdef | 1404 | 746 | 0 | (informational) |
-| monster_def2_softdef_angelus | 2132 | 18 | 0 | (fitted) |
-| monster_wiki_softdef | 1911 | 239 | 0 | (informational) |
-| monster_wiki_softdef_angelus | 1671 | 479 | 0 | (informational) |
-| party_exp_base | 28232 | 0 | 4368 |  |
-| party_exp_job | 28232 | 0 | 4368 |  |
-| perfectDodge | 1322 | 0 | 0 |  |
-| player_damage_candidate | 37150 | 250 | 4155 | (fitted) |
-| refineAtk | 1322 | 0 | 0 |  |
+| flee | 1332 | 0 | 0 |  |
+| hardDef | 1332 | 0 | 0 |  |
+| hardMdef | 1332 | 0 | 0 |  |
+| hit | 1332 | 0 | 0 |  |
+| hpRegen | 1332 | 0 | 0 |  |
+| interval_from_aspd | 1332 | 0 | 0 |  |
+| jobExpNext | 1332 | 0 | 0 |  |
+| magic_bolt_damage | 1522 | 0 | 321 |  |
+| magic_bolt_hits | 1522 | 0 | 0 |  |
+| matkMax | 1332 | 0 | 0 |  |
+| matkMin | 1332 | 0 | 0 |  |
+| maxHp | 1332 | 0 | 0 |  |
+| maxSp | 1332 | 0 | 0 |  |
+| monster_angelus_alternative | 2680 | 1165 | 0 | (informational) |
+| monster_damage_candidate | 3680 | 165 | 522 | (informational) |
+| monster_def2_softdef | 2519 | 1326 | 0 | (informational) |
+| monster_def2_softdef_angelus | 3825 | 20 | 0 | (fitted) |
+| monster_wiki_softdef | 3452 | 393 | 0 | (informational) |
+| monster_wiki_softdef_angelus | 2676 | 1169 | 0 | (informational) |
+| party_exp_base | 28232 | 0 | 12641 |  |
+| party_exp_job | 28232 | 0 | 12641 |  |
+| perfectDodge | 1332 | 0 | 0 |  |
+| player_damage_candidate | 45310 | 239 | 5190 | (fitted) |
+| refineAtk | 1332 | 0 | 0 |  |
 | refine_before_def_alternative | 2070 | 3965 | 0 | (informational) |
-| skill_delayMs | 6317 | 0 | 0 |  |
-| softMdef | 1322 | 0 | 0 |  |
-| spRegen | 1322 | 0 | 0 |  |
-| statusAtk | 1322 | 0 | 0 |  |
-| total_stats | 1322 | 0 | 0 |  |
-| unsupported_snapshot | 0 | 0 | 20 |  |
-| vitDef | 1322 | 0 | 0 |  |
-| weightMax | 1322 | 0 | 0 |  |
+| skill_delayMs | 7482 | 0 | 0 |  |
+| softMdef | 1332 | 0 | 0 |  |
+| spRegen | 1332 | 0 | 0 |  |
+| statusAtk | 1332 | 0 | 0 |  |
+| total_stats | 1332 | 0 | 0 |  |
+| unsupported_snapshot | 0 | 0 | 21 |  |
+| vitDef | 1332 | 0 | 0 |  |
+| weightMax | 1332 | 0 | 0 |  |
 
 ## L2 fight replay (engine, 1000 seeds per fight, real within simulated p5–p95 on duration, damage taken, hits)
 
@@ -66,23 +66,24 @@ Worst own-finish fights: `72468:52844` mage vs 1104 (durationMs real 1978 vs p5�
 ## L3 session rates (twins: our brain + server)
 
 8 twins seeded from their first captured view (T0), one party, driven by `brain/client.js` over WebSocket
-for 4.97 simulated hours (median real farming time; clock ×60, 5.0 min wall).
+each for its own real farming time (column Real h; all keep playing until the longest is done, for party shares)
+(clock ×60, 7.0 min wall).
 Real farming time = sum of gaps < 60 s between the character's events after T0. Each cell: real/h → twin/h
 (deaths, potions, drops are per hour too). ✅ = inside the two-sample Poisson 95% CI or within ±10%; EXP and zeny use
-the relative error of the exp / zeny event counts behind them. 25/48 cells pass.
+the relative error of the exp / zeny event counts behind them. 20/48 cells pass.
 
-| Char | Job Lv | Map | Real h | Kills/h | Base EXP/h | Zeny/h | Deaths/h | Potions/h | Drops/h |
+| Char | Job / base Lv | Map | Real h | Kills/h | Base EXP/h | Zeny/h | Deaths/h | Potions/h | Drops/h |
 |---|---|---|---|---|---|---|---|---|---|
-| 72397 | thief 50 | mjolnir_09 | 6.27 | ❌ 208 → 0.0 | ❌ 28,317 → 2,946 | ✅ -7,481 → 0.0 | ✅ 0.0 → 0.0 | ✅ 0.2 → 0.0 | ❌ 125 → 0.0 |
-| 72444 | acolyte 48 | mjolnir_09 | 4.94 | ✅ 0.0 → 0.0 | ❌ 28,696 → 2,946 | ✅ 3,319 → 0.0 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.0 | ❌ 126 → 0.0 |
-| 72468 | mage 49 | mjolnir_09 | 4.97 | ❌ 225 → 0.0 | ❌ 28,803 → 2,946 | ✅ 4,733 → 0.0 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.0 | ❌ 127 → 0.0 |
-| 72472 | merchant 48 | mjolnir_09 | 4.90 | ❌ 57.9 → 0.0 | ❌ 28,589 → 2,946 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.0 | ❌ 133 → 0.0 |
-| 72688 | swordman 48 | mjolnir_09 | 5.32 | ✅ 65.0 → 74.1 | ❌ 29,704 → 2,946 | ✅ 4,571 → 2,337 | ✅ 0.0 → 0.0 | ❌ 0.2 → 14.1 | ❌ 128 → 94.8 |
-| 74435 | merchant 48 | mjolnir_09 | 4.95 | ❌ 59.3 → 0.0 | ❌ 28,078 → 2,946 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.0 | ❌ 124 → 0.0 |
-| 74496 | archer 48 | mjolnir_09 | 4.94 | ❌ 162 → 0.0 | ❌ 28,472 → 2,946 | ✅ -68.2 → 0.0 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.0 | ❌ 122 → 0.0 |
-| 74917 | acolyte 47 | mjolnir_09 | 4.90 | ❌ 1.6 → 0.0 | ❌ 28,752 → 2,946 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.0 | ❌ 130 → 0.0 |
+| 72397 | thief 50 | mjolnir_09 | 6.99 | ❌ 267 → 0.0 | ❌ 31,871 → 2,643 | ❌ -5,152 → 0.0 | ✅ 0.0 → 0.0 | ✅ 0.1 → 0.0 | ❌ 140 → 0.0 |
+| 72444 | acolyte 48 | mjolnir_09 | 5.66 | ✅ 0.0 → 0.0 | ❌ 33,035 → 2,687 | ❌ 4,151 → 0.0 | ✅ 0.0 → 0.4 | ✅ 0.0 → 0.5 | ❌ 140 → 0.0 |
+| 72468 | mage 49 | mjolnir_09 | 5.70 | ❌ 233 → 0.0 | ❌ 33,054 → 2,680 | ❌ 5,577 → 0.0 | ✅ 0.0 → 0.7 | ✅ 0.0 → 0.0 | ❌ 146 → 0.0 |
+| 72472 | merchant 48 | mjolnir_09 | 5.63 | ❌ 77.8 → 0.0 | ❌ 32,933 → 2,699 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.7 | ✅ 0.2 → 0.0 | ❌ 149 → 0.0 |
+| 72688 | swordman 48 | mjolnir_09 | 6.04 | ✅ 64.6 → 70.9 | ❌ 33,656 → 2,571 | ❌ 4,029 → 2,071 | ✅ 0.0 → 0.0 | ❌ 0.2 → 13.3 | ❌ 144 → 89.3 |
+| 74435 | merchant 48 | mjolnir_09 | 5.67 | ❌ 65.8 → 0.2 | ❌ 32,492 → 2,694 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.0 | ❌ 144 → 0.2 |
+| 74496 | archer 48 | mjolnir_09 | 4.94 | ❌ 162 → 0.0 | ❌ 28,472 → 2,739 | ❌ -68.2 → 0.0 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.0 | ❌ 122 → 0.0 |
+| 74917 | acolyte 47 | mjolnir_09 | 5.63 | ❌ 3.4 → 0.0 | ❌ 33,065 → 2,701 | ✅ 0.0 → 0.0 | ✅ 0.0 → 0.7 | ✅ 0.0 → 0.0 | ❌ 148 → 0.0 |
 
-Worst outliers: 72397 thief kills 208 → 0.0 (×0.00) · 72397 thief drops 125 → 0.0 (×0.00) · 72444 acolyte drops 126 → 0.0 (×0.00) · 72468 mage kills 225 → 0.0 (×0.00) · 72468 mage drops 127 → 0.0 (×0.00) · 72472 merchant kills 57.9 → 0.0 (×0.00) · 72472 merchant drops 133 → 0.0 (×0.00) · 74435 merchant kills 59.3 → 0.0 (×0.00)
+Worst outliers: 72397 thief kills 267 → 0.0 (×0.00) · 72397 thief zeny -5,152 → 0.0 (×0.00) · 72397 thief drops 140 → 0.0 (×0.00) · 72444 acolyte zeny 4,151 → 0.0 (×0.00) · 72444 acolyte drops 140 → 0.0 (×0.00) · 72468 mage kills 233 → 0.0 (×0.00) · 72468 mage zeny 5,577 → 0.0 (×0.00) · 72468 mage drops 146 → 0.0 (×0.00)
 
 ## L4 offline checkout
 
@@ -121,10 +122,10 @@ Party-helped fights (247) are reported only.
   mjolnir_09 plus `partyAssist: true`; the swordman (`lure` rules) pulls and the others switch to its target
   (`targetSwitch`, 3,175 events for one merchant). Our brain has no `partyAssist`, and the server lets only the
   encounter's owner hit a monster, so those 7 twins skip every monster: 0 kills, 0 drops.
-- The one twin that plays like its real character, the swordman, matches: **65 → 74 kills/h ✅**, zeny ✅. It drinks 14
+- The one twin that plays like its real character, the swordman, matches on kills: **64.6 → 70.9 kills/h ✅**. Zeny/h is about half (2,071 vs 4,029 ❌), with fewer items to sell (89 vs 144 drops/h, killer-only drops). It drinks 13
   potions/h against 0.2 real, because in the real party the priests heal and buff it (`partySupport`, `allyLacks`
   buffs: no ally data on the WS yet).
-- EXP/h is a party share of the swordman's kills only (2,946/h each vs ~28,500/h real), so it is ❌ everywhere.
+- EXP/h is a party share of the swordman's kills only (~2,700/h each vs ~28,500–33,600/h real), so it is ❌ everywhere.
 - Drops/h: real members pick up ~125 items/h each because the real party uses `itemShare` (other members' kills drop
   to them); our server drops to the killer only.
 - Fixed on the way: the run crashed the whole server once (acolyte twin cast AL_INCAGI, a `support` skill with no

@@ -31,6 +31,12 @@ commands. The characters come from [population.md](population.md):
 
 ## S1 ramp: 100 → 250 → 500 → 1,000 driven characters, 2.5 min steady each (20 s warm-up excluded)
 
+`WS B/s per char` is both directions. Server → client alone is 99% of it.
+
+These runs counted WebSocket traffic as string length (UTF-16 code units). Chinese text, such as item names in
+events, is 3 bytes per character in UTF-8, so the byte figures here are a lower bound. `run.mjs` now counts real
+bytes (`Buffer.byteLength`).
+
 | Bots | Fights | Fight p50 / p99 ms | Action RTT p50 / p99 ms | REST cmd p99 ms | Server CPU % (1 core) | RSS MB | RSS / char KB | Events/s | WS B/s per char | Checkpoint max ms (DB MB) | Tick p99 ms | INVARIANT |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 100 | 8,857 | 0.047 / 1.09 | 0.64 / 10.6 | 21.7 | 3.6 | 83 | 364 | 200 | 3,789 | 146 (16) | 14 | 0 |
@@ -43,6 +49,7 @@ commands. The characters come from [population.md](population.md):
   vCPUs it is about 20% of the box.
 - **Memory:** RSS 187 MB at 1,000 (baseline 45 MB with 1,000 seeded characters and nobody driving), so about 143 KB
   per driven character. ✅
+- **DB writes:** 0.033/s at every step. That is one whole-state row per 30 s; its size is in the checkpoint column.
 - **Events:** 1.66 events/s per driven character, close to the captured 2.15/s (population.md).
 - **Command round-trip:** ❌ above 250 bots. p99 is 72 ms at 250, 67 ms at 500 and 755 ms at 1,000, against a target
   of < 100 ms. The cause is the SQLite checkpoint (next section), not the rules.
@@ -87,7 +94,7 @@ sampling, 30 simulated minutes of fights, cached per character, map and level. E
 - The `stillFrozen: 199` field in the raw JSON is a measurement artefact. The view is computed a millisecond after the
   checkout, so `backlogMs` is a few ms and `clockFrozen` reads true. The checkout did run: 670 checkouts in the window.
 
-## S6 cheating bots: 500 honest + 25 cheaters (5%) + one account boxing 12 characters
+## S6 cheating bots: 500 bots (475 honest + 25 cheaters, 5%) + one account boxing 12 characters
 
 The cheaters are raw WebSocket clients:
 - **`speed`:** spams search/attack every 50 ms, ignoring ASPD.
@@ -107,8 +114,8 @@ The cheaters are raw WebSocket clients:
 |---|---|---|
 | CPU | 20.6% of one M4 core | about 0.3–0.4 vCPU. A 2 vCPU box has room |
 | RAM | 187 MB RSS | well inside 4 GB |
-| WebSocket out | 3.78 KB/s per character | 3.8 MB/s ≈ 30 Mbit/s ≈ **9.9 TB/month** |
-| DB writes | 0.033 checkpoints/s × 158 MB | 5.2 MB/s of disk writes (≈ 13.6 TB/month), until checkpoints are incremental |
+| WebSocket out (server → client) | 3.74 KB/s per character | 3.7 MB/s ≈ 30 Mbit/s ≈ **9.8 TB/month** |
+| DB writes | 0.033 checkpoints/s × up to 158 MB. The dump grows with the event logs: 16 MB at the 100-bot step | up to 5.2 MB/s of disk writes (≈ 13.6 TB/month), until checkpoints are incremental |
 
 Bandwidth decides the bill, not CPU. The server pushes the full ~3.6 KB snapshot to the driver on every state change
 (about once a second while fighting).
@@ -119,7 +126,7 @@ Approximate 2026 list prices from memory, not checked today:
 |---|---|
 | Hetzner CX22 (2 vCPU / 4 GB, 20 TB traffic included) | ≈ €5/month |
 | DigitalOcean 2 vCPU / 4 GB ($24, 4 TB included, ≈ $0.01/GB over) | ≈ $85/month |
-| AWS t3.medium (≈ $30) + 9.9 TB egress at ≈ $0.09/GB | ≈ $900/month |
+| AWS t3.medium (≈ $30) + 9.8 TB egress at ≈ $0.09/GB | ≈ $910/month |
 
 Sending snapshot deltas, or only the fields the brain reads (HP/SP, buffs, target, inventory counts), should cut
 traffic by about 10×. That would put every provider near the box price.

@@ -18,6 +18,7 @@ import { attachOffline } from '../offline.js';
 import { openStore } from '../index.js';
 import { drive } from '../../brain/client.js';
 import { createBrain } from '../../brain/brain.js';
+import { mulberry32 } from '../rules/engine.js';
 
 const { values: o } = parseArgs({ options: { scenario: { type: 'string', default: 's1' }, bots: { type: 'string' },
   minutes: { type: 'string' }, speed: { type: 'string', default: '1' }, seed: { type: 'string', default: '1' }, out: { type: 'string' },
@@ -73,14 +74,14 @@ class MeteredWS extends WebSocket {
   constructor(u) {
     super(u);
     this.addEventListener('message', (ev) => {
-      cl.bytesIn += ev.data.length;
+      cl.bytesIn += Buffer.byteLength(ev.data);
       const id = /^\{"type":"result","id":(\d+)/.exec(ev.data)?.[1];
       if (id && this.sent.has(+id)) { cl.rtt.push(performance.now() - this.sent.get(+id)); this.sent.delete(+id); }
     });
     this.addEventListener('close', (ev) => { cl.closes[ev.code] = (cl.closes[ev.code] ?? 0) + 1; });
     this.addEventListener('error', () => { cl.wsErrors++; });
   }
-  send(s) { cl.bytesOut += s.length; const id = /"id":(\d+)/.exec(s)?.[1]; if (id) this.sent.set(+id, performance.now()); super.send(s); }
+  send(s) { cl.bytesOut += Buffer.byteLength(s); const id = /"id":(\d+)/.exec(s)?.[1]; if (id) this.sent.set(+id, performance.now()); super.send(s); }
 }
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (u, init) => { const t = performance.now(); const r = await realFetch(u, init); if (/\/commands$/.test(String(u))) cl.cmdRtt.push(performance.now() - t); return r; };
@@ -94,6 +95,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // S6 cheaters: raw WebSocket clients breaking the rules; every reply is tallied by error code.
 const cheats = {};
 let cheatN = 0;
+const cheatRng = mulberry32(+o.seed + 7); // forged uids are seeded like the population
 function cheater(c) {
   const kind = ['speed', 'forge'][cheatN++ % 2], id = c.view.characterId, map = c.view.snapshot.mapId;
   const ws = new WebSocket(`${url.replace('http', 'ws')}/ws?character=${id}&token=${tokenOf(c)}`);
@@ -115,7 +117,7 @@ function cheater(c) {
       headers: { 'content-type': 'application/json', authorization: `Bearer ${tokenOf(c)}` }, body: JSON.stringify({ command: { type: 'selectMap', mapId: map } }) });
   };
   ws.onopen = () => { timer = setInterval(() => {
-    if (kind === 'forge') return ws.send(JSON.stringify({ id: ++n, type: 'attack', uid: 1 + Math.floor(Math.random() * 1e5) }));
+    if (kind === 'forge') return ws.send(JSON.stringify({ id: ++n, type: 'attack', uid: 1 + Math.floor(cheatRng() * 1e5) }));
     ws.send(JSON.stringify(uid ? { id: ++n, type: 'attack', uid } : { id: ++n, type: 'search' })); // spam faster than ASPD
   }, 50 / Math.min(speed, 10)); };
   return { stop() { clearInterval(timer); ws.close(); } };
@@ -123,8 +125,9 @@ function cheater(c) {
 
 // ---------- measurement windows ----------
 const pct = (xs, p) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); return +s[Math.min(s.length - 1, Math.floor(p * s.length))].toFixed(3); };
-function window(fromAt, toAt, bots) {
+function measure(fromAt, toAt, bots) {
   const ss = stats.filter((s) => s.at > fromAt && s.at <= toAt);
+  if (!ss.length) return { bots, wallS: 0, missingServerReports: true, invariants: 0, acts: {} };
   const wall = ss.reduce((n, s) => n + s.wallMs, 0) / 1000;
   const all = (k) => ss.flatMap((s) => s[k]);
   const sum = (k) => ss.reduce((n, s) => n + s[k], 0);
@@ -133,7 +136,7 @@ function window(fromAt, toAt, bots) {
   return { bots, wallS: +wall.toFixed(1), fightP50: pct(all('fight'), 0.5), fightP99: pct(all('fight'), 0.99), fights: all('fight').length,
     actP99: pct(all('act'), 0.99), tickP99: pct(all('tick'), 0.99), checkoutP50: pct(all('checkout'), 0.5), checkoutP99: pct(all('checkout'), 0.99),
     checkouts: all('checkout').length, cpuPct: +(100 * sum('cpuMs') / 1000 / wall).toFixed(1), rssMB: +(ss.at(-1)?.rss / 2 ** 20).toFixed(1),
-    heapMB: +(ss.at(-1)?.heap / 2 ** 20).toFixed(1), loopP99Ms: Math.max(...ss.map((s) => s.loopP99)), eventsPerS: +(sum('events') / wall).toFixed(1),
+    heapMB: +(ss.at(-1)?.heap / 2 ** 20).toFixed(1), loopP99Ms: Math.max(0, ...ss.map((s) => s.loopP99)), eventsPerS: +(sum('events') / wall).toFixed(1),
     dbWritesPerS: +(sum('dbWrites') / wall).toFixed(3), checkpointMsMax: Math.max(0, ...all('checkpointMs')), dbBytes: ss.at(-1)?.dbBytes, invariants: sum('invariants'), acts };
 }
 function clientWindow(c0, bots, wallS) {
@@ -149,7 +152,7 @@ const genCpu = () => process.cpuUsage();
 const result = { scenario, steps: [], machine: { cpus: cpus().length, model: cpus()[0].model, memGB: +(totalmem() / 2 ** 30).toFixed(0), node: process.version },
   speed, seed: +o.seed, population: { chars: pop.chars.length, configSources: sources }, startedAt: new Date().toISOString() };
 const honest = pop.chars.filter((c) => !c.multibox);
-const idle = await sleep(6000).then(() => window(Date.now() - 6000, Date.now(), 0)); // baseline: seeded, nobody driving
+const idle = await sleep(6000).then(() => measure(Date.now() - 6000, Date.now(), 0)); // baseline: seeded, nobody driving
 result.idle = idle;
 
 async function steady(bots, ms, extra = {}) {
@@ -158,7 +161,7 @@ async function steady(bots, ms, extra = {}) {
   await sleep(ms);
   const t1 = Date.now() + 100;
   await sleep(2200); // last server report lands
-  const w = window(t0, t1, bots), g = process.cpuUsage(g0);
+  const w = measure(t0, t1, bots), g = process.cpuUsage(g0);
   const step = { ...w, ...clientWindow(c0, bots, (t1 - t0) / 1000), loadGenCpuPct: +(100 * (g.user + g.system) / 1000 / (t1 - t0)).toFixed(1), ...extra };
   step.rssPerCharKB = +((step.rssMB - idle.rssMB) * 1024 / bots).toFixed(1);
   result.steps.push(step);
@@ -192,7 +195,7 @@ if (scenario === 's2') {
   const storm = { returns: views.length, stormS: (Date.now() - t0) / 1000, viewP50: pct(views.map((x) => x.ms), 0.5), viewP99: pct(views.map((x) => x.ms), 0.99),
     errors: views.filter((x) => x.status !== 200).length, stillFrozen: views.filter((x) => x.frozen).length };
   await sleep(2500);
-  Object.assign(storm, window(t0, Date.now(), driven.length + back.length), { rttP99: pct(cl.rtt.slice(c0.rtt), 0.99) });
+  Object.assign(storm, measure(t0, Date.now(), driven.length + back.length), { rttP99: pct(cl.rtt.slice(c0.rtt), 0.99) });
   result.storm = storm;
   console.log(JSON.stringify({ storm }));
   await steady(driven.length + back.length, 60e3, { phase: 'after storm' });
@@ -207,8 +210,8 @@ if (o.out) writeFileSync(o.out, JSON.stringify(result, null, 1));
 
 if (scenario === 'smoke') { // pass limits for the PR smoke (generous: laptop, shared CI)
   const s = result.steps[0];
-  const fails = [s.invariants && `INVARIANT ${s.invariants}`, s.fightP99 > 50 && `fight p99 ${s.fightP99} ms`, s.rttP99 > 100 && `RTT p99 ${s.rttP99} ms`,
-    !(s.fights > 0) && 'no fights resolved'].filter(Boolean);
+  const fails = [s.invariants && `server errors ${s.invariants}`, !(s.fightP99 <= 50) && `fight p99 ${s.fightP99} ms`,
+    !(s.rttP99 <= 100) && `RTT p99 ${s.rttP99} ms`, !(s.fights > 0) && 'no fights resolved'].filter(Boolean); // null (no samples) fails
   console.log(fails.length ? `SMOKE FAIL: ${fails.join(', ')}` : 'SMOKE OK');
   process.exit(fails.length ? 1 : 0);
 }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { realSessions, compareRate, tally } from '../scripts/twin-diff.mjs';
+import { realSessions, compareRate, tally, l3Table } from '../scripts/twin-diff.mjs';
 
 const view = (id, lastSeq, time) => JSON.stringify({ kind: 'http', method: 'GET', status: 200, path: `/api/characters/${id}`,
   resp: { characterId: id, name: 'x', lastSeq, running: true, snapshot: { time, mapId: 'prt_fild08', character: { job: 'thief' } } } });
@@ -38,4 +38,17 @@ test('compareRate: same rate passes; Poisson-significant gap beyond ±10% fails;
   // non-count metric (EXP) judged with the relative error of the exp events behind it
   assert.equal(compareRate({ real: 1000, realH: 1, twin: 1300, twinH: 1, relErrFrom: { real: 4, twin: 4 } }).ok, true);
   assert.equal(compareRate({ real: 1000, realH: 1, twin: 1300, twinH: 1, relErrFrom: { real: 4000, twin: 4000 } }).ok, false);
+  // a twin that earned nothing fails against a real rate built from many events (review: twin 0 used to pass)
+  assert.equal(compareRate({ real: 4733, realH: 1, twin: 0, twinH: 1, relErrFrom: { real: 120, twin: 0 } }).ok, false);
+  assert.equal(compareRate({ real: 0, realH: 1, twin: 0, twinH: 1, relErrFrom: { real: 0, twin: 0 } }).ok, true);
+});
+
+test('l3Table: each twin is judged over its own real farming time; one ✅/❌ per metric', () => {
+  const counts = (o) => Object.defineProperty({ kills: 0, baseExp: 0, zeny: 0, deaths: 0, potions: 0, drops: 0, ...o }, 'n', { value: { baseExp: o.kills ?? 0, zeny: 0 } });
+  const sessions = [{ id: 1, job: 'thief', baseLv: 50, mapId: 'm', activeMs: 2 * 3600e3, counts: counts({ kills: 200, baseExp: 2000 }) }];
+  const run = { simMs: 3 * 3600e3, twins: [{ id: 1, simMs: 2 * 3600e3, counts: counts({ kills: 202, baseExp: 2020 }) }] };
+  const t = l3Table(sessions, run);
+  assert.equal(t.total, 6);
+  assert.equal(t.pass, 6);
+  assert.match(t.rows[0], /✅ 100 → 101/);
 });

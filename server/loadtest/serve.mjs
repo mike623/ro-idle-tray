@@ -14,6 +14,7 @@ const now = () => Math.floor(base + (Date.now() - start) * speed);
 
 const m = { fight: [], act: [], tick: [], checkout: [], checkpointMs: [], events: 0, dbWrites: 0, dbBytes: 0, invariants: 0, acts: {} };
 const errorLog = console.error;
+// every console.error of the server: INVARIANT 500s, guarded brain-action / tick errors (an over-count, never an under-count)
 console.error = (...x) => { m.invariants++; if (m.invariants <= 5) errorLog(...x); };
 
 const srv = await startServer({ port: 0, db: o.db, now, seed: 1, tickMs: Math.max(1, 250 / speed), checkpointMs: +o.checkpoint, maxDrivers: 8 });
@@ -32,6 +33,7 @@ g.act = (id, a) => {
 const tick = g.tick;
 g.tick = () => { const t0 = process.hrtime.bigint(); tick(); m.tick.push(ms(t0)); };
 const checkout = g.checkout;
+// ponytail: ≤ 2 µs = nothing to settle (live character), not counted as a checkout
 g.checkout = (C) => { const t0 = process.hrtime.bigint(); const r = checkout(C); const d = ms(t0); if (d > 0.002) m.checkout.push(d); return r; };
 const onEmit = g.onEmit;
 g.onEmit = (C, out) => { m.events += out.length; onEmit?.(C, out); };

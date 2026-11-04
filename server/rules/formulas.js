@@ -180,7 +180,7 @@ function physicalRolls({ dex, weapon = {}, arrowAtk = 0, monster, crit = false }
 const physicalArgs = (o, r, weaponRoll, arrowRoll, monsterSoftDef) => ({ ...o, wt: r.wt, size: o.monster.size,
   monsterDef: o.monster.def, weaponRoll, arrowRoll, monsterSoftDef });
 
-/** opts: { statAtk, dex, weapon, arrowAtk?, atkBonus?, refineAtk?, monster, elementMod?, hits?, crit? } → { min, max } */
+/** opts: { statAtk, dex, weapon, arrowAtk?, atkBonus?, refineAtk?, monster, elementMod?, hits?, crit?, doubleLv? (katar) } → { min, max } */
 export function playerDamageRange(o) {
   const r = physicalRolls(o);
   return { min: playerDamage(physicalArgs(o, r, r.weapon[0], r.arrow[0], r.soft[1])),

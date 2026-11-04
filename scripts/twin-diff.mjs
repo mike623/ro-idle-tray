@@ -7,6 +7,7 @@
 // capture that does not exist yet. Read-only towards the capture files and ro-idle.app.
 import { readFileSync, writeFileSync, readdirSync, statSync, mkdtempSync, cpSync, rmSync, existsSync } from 'node:fs';
 import { join, basename, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
@@ -66,9 +67,8 @@ export function compareRate({ real, realH, twin, twinH, relErrFrom }) {
   const r = real / realH, w = twin / twinH;
   const within10 = Math.abs(w - r) <= 0.1 * Math.abs(r) || (r === 0 && w === 0);
   let se;
-  if (relErrFrom) {
-    const rel = Math.sqrt(1 / Math.max(1, relErrFrom.real) + 1 / Math.max(1, relErrFrom.twin));
-    se = rel * Math.max(Math.abs(r), Math.abs(w));
+  if (relErrFrom) { // each rate's own relative error 1/√n (n events behind it); a zero rate has no spread of its own
+    se = Math.sqrt(r ** 2 / Math.max(1, relErrFrom.real) + w ** 2 / Math.max(1, relErrFrom.twin));
   } else se = Math.sqrt(Math.max(real, 1) / realH ** 2 + Math.max(twin, 1) / twinH ** 2); // ≥1 event: CI of an empty count
   const z = se ? (w - r) / se : 0;
   return { real: r, twin: w, z, ok: within10 || Math.abs(z) <= 1.96 };
@@ -89,28 +89,30 @@ export async function runTwins(sessions, { hours, speed = 60, seed = 1, log = ()
   // T0 views as one synthetic capture: party/kill-event from the same capture are not needed for the twins' rates.
   seedCapture(g, sessions.map((s) => JSON.stringify({ kind: 'http', method: 'GET', status: 200, path: `/api/characters/${s.id}`, resp: s.t0 })),
     { account: 'twin', token });
-  // the captured party: every twin in one party (the real 8 farmed as one party on one map)
+  // ponytail: one party of all twins, as the captured 8 farmed; read the capture's party record if a capture has several
   g.parties.set(1, { id: 1, name: 'twins', leaderId: sessions[0].id, expShare: 'even', itemShare: 'each' });
   const got = new Map(sessions.map((s) => [s.id, []]));
+  let t0 = Infinity; // each twin counts only its own real farming time; all keep playing (party shares) until the longest
+  const cutoff = (s) => t0 + (hours ?? s.activeMs / 3600e3) * 3600e3;
   for (const s of sessions) {
     const C = g.chars.get(s.id);
     C.partyId = 1;
     if (!C.running) g.command(s.id, { command: { type: 'start' } });
-    g.subscribe(s.id, (type, evs) => { if (type === 'events') for (const e of evs) got.get(s.id).push(e.body); });
+    g.subscribe(s.id, (type, evs) => { if (type === 'events') for (const e of evs) if (e.wallMs <= cutoff(s)) got.get(s.id).push(e.body); });
   }
-  const t0 = now();
+  t0 = now();
   const drivers = sessions.map((s) => drive({ base: `http://127.0.0.1:${srv.port}`, characterId: s.id, token, now,
     intervalMs: Math.max(1, 250 / speed), brain: createBrain({ monsters: data.monsters }) }));
-  const endAt = t0 + hours * 3600e3;
+  const endAt = Math.max(...sessions.map(cutoff));
   while (now() < endAt) {
     await new Promise((r) => setTimeout(r, 1000));
-    log(`  twins: ${((now() - t0) / 3600e3).toFixed(2)} / ${hours.toFixed(2)} sim h`);
+    log(`  twins: ${((now() - t0) / 3600e3).toFixed(2)} / ${((endAt - t0) / 3600e3).toFixed(2)} sim h`);
   }
   const simMs = now() - t0;
   drivers.forEach((d) => d.stop());
   await srv.close();
   rmSync(dir, { recursive: true, force: true });
-  return { simMs, wallMs: performance.now() - start, twins: sessions.map((s) => ({ id: s.id, counts: tally(got.get(s.id)) })) };
+  return { simMs, wallMs: performance.now() - start, twins: sessions.map((s) => ({ id: s.id, simMs: cutoff(s) - t0, counts: tally(got.get(s.id)) })) };
 }
 
 // ---------- report ----------
@@ -140,7 +142,7 @@ export function l3Table(sessions, run) {
   const rows = [], outliers = [];
   for (const s of sessions) {
     const w = run.twins.find((x) => x.id === s.id).counts;
-    const realH = s.activeMs / 3600e3, twinH = run.simMs / 3600e3;
+    const realH = s.activeMs / 3600e3, twinH = (run.twins.find((x) => x.id === s.id).simMs ?? run.simMs) / 3600e3;
     const cells = METRICS.map((k) => {
       const c = compareRate({ real: s.counts[k], realH, twin: w[k], twinH, relErrFrom: COUNTS.has(k) ? null : { real: s.counts.n[k], twin: w.n[k] } });
       const ratio = c.real ? c.twin / c.real : c.twin ? Infinity : 1;
@@ -160,7 +162,7 @@ function listCaptures(args) {
   return { dir, files: files.map((f) => join(dir, basename(f))) };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: { speed: { type: 'string', default: '60' },
     hours: { type: 'string' }, out: { type: 'string', default: 'docs/offline-backend/twin-report.md' }, 'l2-seeds': { type: 'string', default: '1000' },
     'min-hours': { type: 'string', default: '1' }, json: { type: 'string' } } });
@@ -174,9 +176,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   log('L3 reading captures…');
   const sessions = realSessions(cap.files.flatMap((f) => readFileSync(f, 'utf8').split('\n')))
     .filter((s) => s.activeMs >= +values['min-hours'] * 3600e3).sort((a, b) => a.id - b.id);
-  const median = [...sessions.map((s) => s.activeMs)].sort((a, b) => a - b)[Math.floor(sessions.length / 2)] / 3600e3;
-  const hours = values.hours ? +values.hours : median;
-  log(`L3 ${sessions.length} twins for ${hours.toFixed(2)} sim h at ×${values.speed}…`);
+  if (!sessions.length) { console.error(`no captured character farmed ≥ ${values['min-hours']} h`); process.exit(2); }
+  const hours = values.hours ? +values.hours : undefined; // default: each twin its own real farming time
+  log(`L3 ${sessions.length} twins at ×${values.speed}…`);
   const run = await runTwins(sessions, { hours, speed: +values.speed, log });
   const L3 = l3Table(sessions, run);
   rmSync(cap.dir, { recursive: true, force: true });
@@ -189,7 +191,7 @@ Generated ${new Date().toISOString().slice(0, 10)} by \`node scripts/twin-diff.m
 
 ## L1 formulas (\`scripts/formula-check.py\`)
 
-Failing adopted formulas: **${L1.failing ?? 'n/a'}** (exit ${L1.code ?? '—'}).
+${L1.text ?? `Failing adopted formulas: **${L1.failing}** (exit ${L1.code}).`}
 
 | Formula | OK | MISS | SKIP | |
 |---|---|---|---|---|
@@ -209,12 +211,13 @@ Worst own-finish fights: ${L2.worst.map((r) => `\`${r.id}\` ${r.job} vs ${r.mobI
 ## L3 session rates (twins: our brain + server)
 
 ${sessions.length} twins seeded from their first captured view (T0), one party, driven by \`brain/client.js\` over WebSocket
-for ${(run.simMs / 3600e3).toFixed(2)} simulated hours (median real farming time; clock ×${values.speed}, ${(run.wallMs / 60e3).toFixed(1)} min wall).
+${hours ? `for ${hours.toFixed(2)} simulated hours each` : 'each for its own real farming time (column Real h; all keep playing until the longest is done, for party shares)'}
+(clock ×${values.speed}, ${(run.wallMs / 60e3).toFixed(1)} min wall).
 Real farming time = sum of gaps < 60 s between the character's events after T0. Each cell: real/h → twin/h
 (deaths, potions, drops are per hour too). ✅ = inside the two-sample Poisson 95% CI or within ±10%; EXP and zeny use
 the relative error of the exp / zeny event counts behind them. ${L3.pass}/${L3.total} cells pass.
 
-| Char | Job Lv | Map | Real h | Kills/h | Base EXP/h | Zeny/h | Deaths/h | Potions/h | Drops/h |
+| Char | Job / base Lv | Map | Real h | Kills/h | Base EXP/h | Zeny/h | Deaths/h | Potions/h | Drops/h |
 |---|---|---|---|---|---|---|---|---|---|
 ${L3.rows.join('\n')}
 

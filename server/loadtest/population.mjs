@@ -155,7 +155,9 @@ function character(rng, { id, job, map, configs }) {
   const maxJob = data.jobs[job].maxJobLv ?? 50;
   const jobLv = Math.max(1, Math.min(maxJob, Math.round(maxJob * Math.min(1, (baseLv - lo + 5) / (hi - lo + 5)))));
   const points = [0, 9, 58, 58 + 10][tier] + jobLv - 1; // novice basic 9, first job 49 more; rebirth bonus ~10
-  const weights = FAMILY.find(([re]) => re.test(job))[1];
+  const shared = configs?.[job]?.length ? structuredClone(pick(rng, configs[job])) : null;
+  const auto = (shared?.statsAddAuto?.list ?? []).filter((x) => x.target > 1);
+  const weights = auto.length ? Object.fromEntries(auto.map((x) => [x.stat, x.target])) : FAMILY.find(([re]) => re.test(job))[1];
   const stats = allocate(weights, statPointsAt(baseLv) + (tier === 3 ? 52 : 0));
   const skills = learnSkills(job, points);
   const g = gear(rng, job, baseLv);
@@ -168,7 +170,6 @@ function character(rng, { id, job, map, configs }) {
     jobExpNext: j.jobExpTable[jobLv - 1] ?? 0, stats: { kills: {}, itemsLooted: {}, deaths: 0, deathLog: [] } });
   s.character = { ...s.character, job, name: `bot${id}`, baseLv, jobLv, baseExp: 0, jobExp: 0, statPoints: 0, skillPoints: 0, stats, skills,
     zeny: 1000 * baseLv };
-  let shared = configs?.[job]?.length ? structuredClone(pick(rng, configs[job])) : null;
   s.config = shared ? { ...shared, lockMap: map.m.id } : archetypeConfig(s, potion, map.m);
   const d = f.derive(s, { job: j, items: data.items, refine: data.refine });
   s.derived = { ...s.derived, ...d, vitDefShown: d.vitDef };

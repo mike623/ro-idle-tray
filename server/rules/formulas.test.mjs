@@ -138,9 +138,10 @@ function captureRecords() {
   const out = [];
   for (const file of readdirSync(CAPTURE).filter((n) => n.endsWith('.jsonl')).sort()) {
     const seen = new Set();
-    for (const line of readFileSync(join(CAPTURE, file), 'utf8').split('\n')) {
-      let r;
-      try { r = JSON.parse(line); } catch { continue; } // empty or half-written last line (oracle skips it too)
+    const lines = readFileSync(join(CAPTURE, file), 'utf8').split('\n');
+    lines.pop(); // text after the last newline: empty, or a half-written record (the oracle skips it too)
+    for (const line of lines) {
+      const r = JSON.parse(line);
       if (r.kind !== 'sse' || (r.name !== 'snapshot' && r.name !== 'events')) continue;
       const data = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
       if (r.name === 'snapshot') out.push([file, 'snapshot', data.snapshot]);

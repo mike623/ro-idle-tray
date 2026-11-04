@@ -347,3 +347,14 @@ test('an engine bug in a brain action answers INVARIANT and the server keeps ser
   assert.equal(errors.length, 1);
   c.ws.close();
 });
+
+test('an engine bug in the server tick is logged and the server keeps ticking and serving', async (t) => {
+  const { srv, get } = await boot({ tickMs: 5 });
+  t.after(() => srv.close());
+  const errors = [];
+  t.mock.method(console, 'error', (...x) => errors.push(x));
+  srv.game.tick = () => { throw new Error('boom'); };
+  await new Promise((r) => setTimeout(r, 40));
+  assert.ok(errors.length >= 2, `tick errors logged: ${errors.length}`);
+  assert.equal((await get(`/api/characters/${ID}?deferCatchup=1`)).status, 200);
+});
