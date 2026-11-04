@@ -442,3 +442,5 @@ button.dot:hover { outline: 2px solid var(--select); }
 .assistant.char { padding: 0; overflow: hidden; }
 .char-chat { flex: 1; min-height: 0; }
 .list.ledger .add-group { align-self: flex-start; font-size: 11px; padding: 3px 10px; }
+#summary .offt { cursor: pointer; border-radius: 4px; padding: 0 3px; }
+#summary .offt:hover { background: rgba(127,127,127,.15); color: var(--text); }

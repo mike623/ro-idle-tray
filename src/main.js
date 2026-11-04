@@ -493,13 +493,22 @@ async function refresh() {
   // Every live character shares the same auto-offline countdown, so it shows once here.
   const timer = el("span", "offt");
   const asleep = !live.length;
-  timer.dataset.until = Date.now() + (asleep ? state.wakeIn : state.autoOffIn) * 1000;
-  timer.dataset.off = asleep ? "1" : "";
-  timer.title = asleep ? "自動上線倒數（每小時喚醒一次）" : "自動離線倒數（開啟遊戲視窗會重新計時）";
-  setOfft(timer);
+  timer.setAttribute("role", "button");
+  timer.tabIndex = 0;
+  if (state.keepAwake) {
+    timer.textContent = "☀ 保持上線";
+    timer.title = "保持上線：不自動離線。點一下恢復自動離線";
+  } else {
+    timer.dataset.until = Date.now() + (asleep ? state.wakeIn : state.autoOffIn) * 1000;
+    timer.dataset.off = asleep ? "1" : "";
+    timer.title = `${asleep ? "自動上線倒數（每小時喚醒一次）" : "自動離線倒數（開啟遊戲視窗會重新計時）"}。點一下改為保持上線`;
+    setOfft(timer);
+  }
+  timer.addEventListener("click", () => invoke("toggle_keep_awake"));
+  timer.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); invoke("toggle_keep_awake"); } });
   $("summary").replaceChildren(o.map ? `全部在 ${o.map} · ` : `${counts} · `, timer);
   // Rows hide their own timers in the compact list; offline ones still wake on the hour.
-  if (off && !asleep) {
+  if (off && !asleep && !state.keepAwake) {
     const wake = Object.assign(el("span", "offt"), { title: "離線角色自動上線倒數（每小時喚醒一次）" });
     wake.dataset.until = Date.now() + state.wakeIn * 1000;
     wake.dataset.off = "1";

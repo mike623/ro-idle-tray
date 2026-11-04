@@ -251,6 +251,8 @@ struct Profiles {
     active_at: Mutex<std::time::Instant>,
     /// Last hourly wake of offline profiles.
     woke_at: Mutex<std::time::Instant>,
+    /// Header timer toggled to keep-awake: auto offline paused (session only).
+    keep_awake: std::sync::atomic::AtomicBool,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
@@ -598,6 +600,7 @@ pub fn run() {
             hide_panel,
             profile_menu,
             toggle_online,
+            toggle_keep_awake,
             ai::ai_get_settings,
             ai::ai_save_settings,
             ai::ai_list_models,
@@ -648,6 +651,7 @@ pub fn run() {
                 offline: Mutex::new(Vec::new()),
                 active_at: Mutex::new(std::time::Instant::now()),
                 woke_at: Mutex::new(std::time::Instant::now()),
+                keep_awake: Default::default(),
             });
             *handle.state::<PanelLayout>().0.lock().unwrap() = load_panel_geometry(&handle);
 
@@ -1258,6 +1262,7 @@ struct PanelState {
     auto_off_in: u64,
     /// Seconds until the hourly wake brings offline profiles back.
     wake_in: u64,
+    keep_awake: bool,
 }
 
 #[tauri::command]
@@ -1293,7 +1298,22 @@ fn get_state(app: AppHandle) -> PanelState {
         // Read only: the hidden panel still polls get_state, so touching active_at here would block auto offline.
         auto_off_in: AUTO_OFFLINE_AFTER.saturating_sub(profiles.active_at.lock().unwrap().elapsed()).as_secs(),
         wake_in: WAKE_EVERY.saturating_sub(profiles.woke_at.lock().unwrap().elapsed()).as_secs(),
+        keep_awake: profiles.keep_awake.load(std::sync::atomic::Ordering::Relaxed),
     }
+}
+
+/// Header timer click: pause auto offline (keep-awake), or resume it with a full countdown.
+#[tauri::command]
+fn toggle_keep_awake(app: AppHandle) {
+    let profiles = app.state::<Profiles>();
+    let was = profiles.keep_awake.fetch_xor(true, std::sync::atomic::Ordering::Relaxed);
+    if was {
+        *profiles.active_at.lock().unwrap() = std::time::Instant::now();
+    } else {
+        // Keep-awake means online: bring every offline profile back now.
+        set_all_offline(app.clone(), false);
+    }
+    notify(&app);
 }
 
 /// Status dot on a card: flip that profile between online and offline.
@@ -1627,7 +1647,7 @@ fn auto_offline_tick(app: &AppHandle) {
         .any(|(label, w)| (label.starts_with("game-") || label == "items") && w.is_visible().unwrap_or(false));
     {
         let mut at = profiles.active_at.lock().unwrap();
-        if seen {
+        if seen || profiles.keep_awake.load(std::sync::atomic::Ordering::Relaxed) {
             *at = std::time::Instant::now();
             return;
         }

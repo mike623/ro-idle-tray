@@ -22,7 +22,7 @@
   "20": "atlas.rs",
   "21": "Domain Docs",
   "22": "Agent skills",
-  "23": "knowledge.rs",
+  "23": "memory.rs",
   "24": "triage-labels.md",
   "25": "secret.rs",
   "26": "chat.js",
@@ -37,7 +37,6 @@
   "35": "run",
   "36": "character_report",
   "37": "run",
-  "38": "toggle_autostart",
-  "39": "Value",
-  "40": "profile_menu"
+  "38": "open_profile",
+  "39": "Value"
 }
