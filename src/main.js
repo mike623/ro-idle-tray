@@ -459,6 +459,7 @@ async function refresh() {
   const list = $("list");
   const live = state.profiles.filter((p) => !p.offline);
   const idling = live.filter((p) => p.info?.running).length;
+  syncIdleAll(live);
   const scroll = list.scrollTop;
   // Popups belong to the rows being replaced; the expanded row puts its own back.
   $("popover").replaceChildren();
@@ -614,6 +615,23 @@ $("recall").addEventListener("click", (e) => {
   }
   b.dataset.armed = "1"; b.textContent = "確定回城？";
   setTimeout(() => { if (b.dataset.armed) { delete b.dataset.armed; b.textContent = "Recall"; } }, 3000);
+});
+// Idle All toggle: start every stopped in-play character; if none are stopped, stop them all.
+let idleAllTargets = [];
+function syncIdleAll(live) {
+  const ready = live.filter((p) => p.info && p.info.running != null && !p.info.stopping && !((pending.get(p.n) ?? 0) > Date.now()));
+  const stopped = ready.filter((p) => !p.info.running);
+  const stop = !stopped.length && ready.length > 0;
+  idleAllTargets = (stop ? ready : stopped).map((p) => p.n);
+  const b = $("idle-all");
+  b.textContent = stop ? "Stop All" : "Idle All";
+  b.setAttribute("aria-pressed", String(stop));
+  b.disabled = !idleAllTargets.length;
+}
+$("idle-all").addEventListener("click", (e) => {
+  e.currentTarget.disabled = true;
+  for (const n of idleAllTargets) { pending.set(n, Date.now() + 4000); invoke("toggle_idle", { n }); }
+  setTimeout(refresh, 4100);
 });
 $("items").addEventListener("click", () => invoke("open_items"));
 $("maps").addEventListener("click", () => invoke("open_atlas", { q: null }));

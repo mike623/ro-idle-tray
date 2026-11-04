@@ -1,17 +1,17 @@
 # Graph Report - ro-idle-tray  (2026-11-04)
 
 ## Corpus Check
-- 52 files · ~76,557 words
+- 52 files · ~76,682 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 5 file(s) not represented in the graph (top: (none) 2, .icns 1, .ico 1)
 
 ## Summary
-- 759 nodes · 1505 edges · 38 communities (28 shown, 10 thin omitted)
+- 761 nodes · 1508 edges · 38 communities (28 shown, 10 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `141e349d`
+- Built from commit: `3dba3f53`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -57,7 +57,7 @@
 4. `chat_send()` - 15 edges
 5. `notify()` - 15 edges
 6. `card()` - 15 edges
-7. `refresh()` - 13 edges
+7. `refresh()` - 14 edges
 8. `ai_test_connection()` - 12 edges
 9. `open_profile()` - 12 edges
 10. `row()` - 11 edges
@@ -85,7 +85,7 @@ Nodes (19): AUTO_OFFLINE_AFTER, CHARACTER_HOOK, CharacterLabel, get_state(), JOB
 
 ### Community 1 - "main.js"
 Cohesion: 0.07
-Nodes (54): attention(), overview(), shown(), after(), ago(), aiBusy(), aiChooseModel(), aiFill() (+46 more)
+Nodes (56): attention(), overview(), shown(), after(), ago(), aiBusy(), aiChooseModel(), aiFill() (+48 more)
 
 ### Community 2 - "tauri.conf.json"
 Cohesion: 0.09
@@ -108,7 +108,7 @@ Cohesion: 0.06
 Nodes (48): ApiConfig, authorized(), BEARER, bind(), binds_loopback_and_serves_http(), character_events(), dedupes_replayed_events_by_seq(), DEFAULT_LIMIT (+40 more)
 
 ### Community 7 - "ai.rs"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (31): ai_get_settings(), ai_list_models(), ai_save_settings(), ai_test_connection(), AiConfig, ANTHROPIC_VERSION, api_key(), caching_verdict() (+23 more)
 
 ### Community 8 - "package.json"
@@ -140,8 +140,8 @@ Cohesion: 0.09
 Nodes (14): ALLOWED, CALL_TIMEOUT, CONNECT_TIMEOUT, ENDPOINT, failure(), MAX_RESULT_BYTES, raw_text(), reaches_the_hosted_server() (+6 more)
 
 ### Community 19 - "guide.rs"
-Cohesion: 0.07
-Nodes (31): article_text(), BASE, BUDGET, cached(), decode(), excerpt(), fetch(), live_guide_fetches_index_and_a_page() (+23 more)
+Cohesion: 0.13
+Nodes (15): article_text(), BASE, BUDGET, cached(), decode(), excerpt(), fetch(), live_guide_fetches_index_and_a_page() (+7 more)
 
 ### Community 20 - "atlas.rs"
 Cohesion: 0.15
@@ -164,8 +164,8 @@ Cohesion: 0.25
 Nodes (12): card(), characters, error(), memory(), mentions, node(), render(), roster() (+4 more)
 
 ### Community 27 - "alerts.rs"
-Cohesion: 0.14
-Nodes (24): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+16 more)
+Cohesion: 0.08
+Nodes (40): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+32 more)
 
 ### Community 33 - "items.js"
 Cohesion: 0.26
@@ -193,7 +193,7 @@ Nodes (8): get_groups(), goals_path(), items_characters(), load_map(), save_map(
 
 ## Knowledge Gaps
 - **4 isolated node(s):** `@tauri-apps/cli`, `ro-idle-tray`, `Text`, `Tool`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 277 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 278 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
@@ -206,7 +206,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `lib.rs` be split into smaller, more focused modules?**
   _Cohesion score 0.07179487179487179 - nodes in this community are weakly interconnected._
 - **Should `main.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.07380520266182698 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07062146892655367 - nodes in this community are weakly interconnected._
 - **Should `tauri.conf.json` be split into smaller, more focused modules?**
   _Cohesion score 0.09090909090909091 - nodes in this community are weakly interconnected._
 - **Should `extract-maps.mjs` be split into smaller, more focused modules?**
