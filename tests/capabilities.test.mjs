@@ -14,7 +14,7 @@ test('game origin can report characters and open the assistant window, without c
 
 test('every registered application command has an explicit capability', () => {
   const permissions = JSON.parse(read('permissions/app.json')).permission;
-  const capabilities = ['default', 'remote', 'atlas', 'items', 'assistant'].map(name => JSON.parse(read(`capabilities/${name}.json`)));
+  const capabilities = ['default', 'remote', 'atlas', 'items', 'assistant', 'battle'].map(name => JSON.parse(read(`capabilities/${name}.json`)));
   const granted = new Set(capabilities.flatMap(c => c.permissions));
   const allowed = new Set(permissions.filter(p => granted.has(p.identifier)).flatMap(p => p.commands.allow));
   const handlers = read('src/lib.rs').match(/generate_handler!\[([\s\S]*?)\]/)[1]
@@ -31,5 +31,7 @@ test('every registered application command has an explicit capability', () => {
   const bubble = readFileSync(new URL('../src/bubble.js', import.meta.url), 'utf8');
   const embedded = bubble.slice(0, bubble.indexOf('if (!embed) {')) + bubble.slice(bubble.indexOf("$('close')"));
   for (const [, cmd] of embedded.matchAll(/invoke\('([a-z_]+)'/g)) assert.ok(assistantAllow.includes(cmd), `assistant window lacks ${cmd}`);
+  assert.deepEqual(JSON.parse(read('capabilities/battle.json')).windows, ['battle']);
+  assert.deepEqual(permissions.find(p => p.identifier === 'battle-commands').commands.allow, ['battle_party', 'battle_backfill']);
   assert.deepEqual(permissions.find(p => p.identifier === 'atlas-commands').commands.allow, ['atlas_characters', 'move_all', 'move_selected']);
 });

@@ -8,7 +8,7 @@
           "get_state", "open_account", "toggle_idle", "enter_character",
           "add_account", "remove_account", "set_login", "update_app",
           "open_export_folder", "open_atlas", "open_classes", "set_nickname", "set_goal", "get_groups", "set_groups",
-          "reorder_profiles", "set_panel_width", "set_pinned", "hide_panel", "profile_menu", "toggle_online", "refresh_all", "recall_all", "apply_stats", "open_guide", "open_items",
+          "reorder_profiles", "set_panel_width", "set_pinned", "hide_panel", "profile_menu", "toggle_online", "refresh_all", "recall_all", "apply_stats", "open_guide", "open_items", "open_battle",
           "ai_get_settings", "ai_save_settings", "ai_list_models", "ai_test_connection",
           "open_assistant", "quit"
         ]
@@ -35,6 +35,11 @@
       "identifier": "atlas-commands",
       "description": "Map explorer character list and movement.",
       "commands": {"allow": ["atlas_characters", "move_all", "move_selected"]}
+    },
+    {
+      "identifier": "battle-commands",
+      "description": "Battle view: party roster and recent battle log of characters loaded in the tray.",
+      "commands": {"allow": ["battle_party", "battle_backfill"]}
     },
     {
       "identifier": "items-commands",

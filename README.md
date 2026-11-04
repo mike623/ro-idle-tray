@@ -7,6 +7,7 @@ Small macOS menu-bar wrapper for https://ro-idle.app/.
 - Each profile uses a separate WebView data directory, keeping Google cookies isolated.
 - Menu label switches from `Account N` to `Name — Base Lv / Job Lv` once that profile's character loads (hooks the page's fetch + EventSource; emit-only IPC via `capabilities/remote.json`).
 - Game remains hosted remotely; authentication stays with the site.
+- Battle view (character detail › 行動): side-view replay of the party's live battle log in the RO client's own art and window chrome. Sprites, effects and UI textures are fetched from public mirrors (latam-tools zrenderer, ro-idle.app, ro-survivors, rangarok-js) through `roasset://` and cached in the app cache dir, so watched maps work offline; nothing from Gravity is bundled. The pixel font is Fusion Pixel 12px (OFL, `src/fonts/`). See #21.
 - Tray shows the running version (`RO Idle Tray vX.Y.Z`). It checks GitHub Releases on launch and every 6h; when a newer build exists an `Update to vX.Y.Z…` item appears. Nothing installs or restarts until you click it.
 
 ## References

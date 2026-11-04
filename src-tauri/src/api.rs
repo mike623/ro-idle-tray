@@ -67,7 +67,7 @@ struct ApiConfig {
 
 /// Log file stem for a character name. Must match the `stem` rule in lib.rs's
 /// `ro-idle-log` mirror (kept there inline so this module stays self-contained).
-fn log_stem(name: &str) -> String {
+pub(crate) fn log_stem(name: &str) -> String {
     name.chars().map(|c| if c.is_control() || "/\\:".contains(c) { '_' } else { c }).collect()
 }
 
