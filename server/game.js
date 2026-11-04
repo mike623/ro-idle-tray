@@ -156,11 +156,12 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     const mob = F.mob, members = party(C).filter((x) => x.snapshot.mapId === C.snapshot.mapId);
     const dropMult = e.killEventDropMult(g.killEvent, mob.id, now());
     if (g.killEvent.monsterId === mob.id) g.killEvent.progress++;
+    const at = C.log.findLast((x) => x.body.type === 'kill' && x.body.uid === F.uid)?.wallMs ?? now(); // rewards land with the kill
     let out = [];
     for (const M of members) {
       const got = progress(M, M === C ? mob : { ...mob, drops: [], card: null }, members.length, dropMult);
       if (M === C) F.loot = got.events.filter((x) => x.body.type === 'drop').map((x) => x.body);
-      const evs = got.events.map((x) => (M === C ? x : { ...x, body: { ...x.body, by: C.name } }));
+      const evs = got.events.map((x) => ({ t: at, body: M === C ? x.body : { ...x.body, by: C.name } }));
       const pushed = emit(M, evs);
       if (M === C) out = pushed;
       if (M !== C) touch(M);

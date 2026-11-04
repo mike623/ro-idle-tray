@@ -201,6 +201,9 @@ test('scripted session: connect → search → fight → kill → loot; SSE and 
   const seqs = log.events.map((e) => e.seq);
   assert.deepEqual(seqs, seqs.map((_, i) => captured.lastSeq + 1 + i));
   for (const e of log.events) assert.deepEqual(Object.keys(e).sort(), ['body', 'seq', 'simTime', 'wallMs']);
+  const kill = log.events.find((e) => e.body.type === 'kill');
+  for (const e of log.events) assert.ok(e.wallMs >= 1_800_000_000_000 && e.simTime >= captured.snapshot.time, JSON.stringify(e));
+  assert.equal(log.events.find((e) => e.body.type === 'exp').wallMs, kill.wallMs);
 
   const drops = log.events.filter((e) => e.body.type === 'drop');
   if (drops.length) {
