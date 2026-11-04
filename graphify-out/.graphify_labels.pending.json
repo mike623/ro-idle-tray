@@ -18,15 +18,14 @@
   "16": "build.rs",
   "17": "main.rs",
   "18": "ro-idle-tray",
-  "19": "alerts.rs",
+  "19": "guide.rs",
   "20": "atlas.rs",
   "21": "Domain Docs",
   "22": "Agent skills",
-  "23": "memory.rs",
   "24": "triage-labels.md",
   "25": "secret.rs",
   "26": "chat.js",
-  "27": "guide.rs",
+  "27": "alerts.rs",
   "28": "storage.rs",
   "29": "move.js",
   "30": "app.json",
@@ -35,8 +34,7 @@
   "33": "items.js",
   "34": "write_panel_geometry",
   "35": "run",
-  "36": "character_report",
   "37": "run",
   "38": "open_profile",
-  "39": "Value"
+  "39": "items_characters"
 }

@@ -271,6 +271,21 @@ pub async fn items_apply(app: AppHandle) -> Result<Vec<MoveResult>, String> {
     run_move(&app, &call, pending).await
 }
 
+/// Row menu's 輔助模式 toggle: on = current-map monsters all 被打才還手, re-applied on each map switch.
+/// Ok = how many monsters were set.
+pub async fn assist_mode(app: &AppHandle, n: u8, on: bool) -> Result<u64, String> {
+    let lock = app.state::<MoveLock>();
+    let _guard = lock.0.try_lock().map_err(|_| "A move is already in progress")?;
+    let pending = pending_profiles(app, Some(&BTreeSet::from([n])))?;
+    let by_map = if on { crate::knowledge::map_monsters() } else { serde_json::Value::Null };
+    let call = format!("window.__roIdleAssist({by_map})");
+    let result = run_move(app, &call, pending).await?.pop().ok_or("Character not in play")?;
+    match result.error {
+        Some(e) => Err(e),
+        None => Ok(result.data.and_then(|d| d.as_u64()).unwrap_or(0)),
+    }
+}
+
 /// Runs `call` (a JS promise expression) in each pending profile's game window.
 async fn run_move(
     app: &AppHandle,

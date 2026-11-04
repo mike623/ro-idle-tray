@@ -12,6 +12,20 @@ static DATA: LazyLock<Result<Value, String>> = LazyLock::new(|| {
     Ok(data)
 });
 
+/// {mapId: [monsterId]} of every map's regular and timed spawns (the game's own "這張地圖" list).
+pub fn map_monsters() -> Value {
+    let Ok(data) = &*DATA else { return json!({}) };
+    let maps = data["maps"].as_array().into_iter().flatten();
+    maps.map(|m| {
+        let mut ids: Vec<u64> = ["spawns", "timed"].iter()
+            .flat_map(|k| m[*k].as_array().into_iter().flatten())
+            .filter_map(|s| s["monsterId"].as_u64()).collect();
+        ids.sort();
+        ids.dedup();
+        (m["id"].as_str().unwrap_or_default().to_string(), json!(ids))
+    }).collect::<serde_json::Map<_, _>>().into()
+}
+
 pub fn lookup(kind: &str, query: &str) -> Value {
     let data = match &*DATA {
         Ok(d) => d,

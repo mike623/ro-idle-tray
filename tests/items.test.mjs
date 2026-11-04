@@ -46,3 +46,14 @@ test('merge input leaves out a character\'s overridden items', () => {
   assert.equal(row.restock || row.store, false);
   assert.equal(roIdleItemRow(roIdleSharedItems(mine, arrows, '牙暉'), 1750).store, true);
 });
+
+test('assist mode sets map monsters to defend and folds the old lists in like the game', () => {
+  const {roIdleAssistConfig} = vm.runInNewContext(`${source}; ({roIdleAssistConfig})`);
+  const config = {mode: 'x', monsterRules: [{monsterId: 1, action: 'priority', weight: 2}],
+    targets: {blacklist: [3], level: 1}, escape: {dangerMonsters: [4], danger: 'fly'}};
+  assert.deepEqual(plain(roIdleAssistConfig(config, [1, 2])), {mode: 'x',
+    monsterRules: [{monsterId: 1, action: 'defend', weight: 2}, {monsterId: 3, action: 'defend'},
+      {monsterId: 4, action: 'attack', escape: 'sight'}, {monsterId: 2, action: 'defend'}],
+    targets: {blacklist: [], level: 1}, escape: {dangerMonsters: [], danger: 'fly'}});
+  assert.equal(config.monsterRules[0].action, 'priority');
+});

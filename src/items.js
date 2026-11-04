@@ -68,7 +68,25 @@ function roIdleSharedItems(config, overrides, name) {
 // Same updateConfig command as the game's 套用設定: its current config with only the item keys replaced.
 async function roIdleApplyItems(characterId, snapshot, items, overrides = {}) {
   if (!characterId || !snapshot?.config) throw new Error('No character currently in play');
-  const config = {...snapshot.config, ...roIdleItemsFor(items, overrides, snapshot.character?.name)};
+  return roIdleUpdateConfig(characterId, {...snapshot.config, ...roIdleItemsFor(items, overrides, snapshot.character?.name)});
+}
+
+// "Assist mode" the game lacks: every given monster set to 被打才還手 (defend) in its 怪物控制 table.
+// Same merge the game's table does on save: the old blacklist / danger lists fold into monsterRules.
+function roIdleAssistConfig(config, monsterIds) {
+  const rules = (config.monsterRules ?? []).map(r => ({...r}));
+  const has = new Set(rules.map(r => r.monsterId));
+  for (const id of config.targets?.blacklist ?? []) if (!has.has(id)) { rules.push({monsterId: id, action: 'defend'}); has.add(id); }
+  for (const id of config.escape?.dangerMonsters ?? []) if (!has.has(id)) { rules.push({monsterId: id, action: 'attack', escape: 'sight'}); has.add(id); }
+  for (const id of monsterIds) {
+    const r = rules.find(x => x.monsterId === id);
+    if (r) r.action = 'defend'; else rules.push({monsterId: id, action: 'defend'});
+  }
+  return {...config, monsterRules: rules,
+    targets: {...config.targets, blacklist: []}, escape: {...config.escape, dangerMonsters: []}};
+}
+
+async function roIdleUpdateConfig(characterId, config) {
   const response = await fetch(`/api/characters/${characterId}/commands`, {
     method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(15000),
     headers: {'content-type': 'application/json', 'x-ro-client': '1'},

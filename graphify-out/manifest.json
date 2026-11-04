@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "src-tauri/src/lib.rs": {
-    "mtime": 1793756970.0722063,
-    "seen": 1793757023.3846478,
-    "ast_hash": "38de98bc7228bb706d9e38dec645260b",
+    "mtime": 1793758741.3251991,
+    "seen": 1793758790.888167,
+    "ast_hash": "4b129eea4b72fed8c2010b16e7cc1de0",
     "semantic_hash": ""
   },
   "src-tauri/src/main.rs": {
@@ -72,9 +72,9 @@
     "semantic_hash": ""
   },
   "src/main.js": {
-    "mtime": 1793756980.685173,
-    "seen": 1793757023.384871,
-    "ast_hash": "1403e03d7ec08138b7807a65ca770a34",
+    "mtime": 1793758596.4093168,
+    "seen": 1793758790.8883572,
+    "ast_hash": "d6117e79c11941b37f6a781e51904e06",
     "semantic_hash": ""
   },
   ".github/workflows/release.yml": {
@@ -252,21 +252,21 @@
     "semantic_hash": ""
   },
   "src-tauri/src/atlas.rs": {
-    "mtime": 1793705657.003999,
-    "seen": 1793750603.4564312,
-    "ast_hash": "b38d584ed72c18e9d9c7cc0b8c609d1d",
+    "mtime": 1793758214.3988369,
+    "seen": 1793758226.872683,
+    "ast_hash": "87e47005b31095df49167aa4fadbd8a7",
     "semantic_hash": ""
   },
   "src-tauri/src/chat.rs": {
-    "mtime": 1793754854.274695,
-    "seen": 1793757023.384597,
+    "mtime": 1793758762.594216,
+    "seen": 1793758790.888115,
     "ast_hash": "0158d760b54f3f864fc2f93f68de3cc4",
     "semantic_hash": ""
   },
   "src-tauri/src/knowledge.rs": {
-    "mtime": 1793731868.0408354,
-    "seen": 1793750603.456434,
-    "ast_hash": "a29d87973dad8f37b1f9f9cac09fb282",
+    "mtime": 1793758042.0225377,
+    "seen": 1793758201.197089,
+    "ast_hash": "79fd62f0e90ec50eba4c0697c843afe7",
     "semantic_hash": ""
   },
   "src-tauri/src/mcp.rs": {
@@ -390,15 +390,15 @@
     "semantic_hash": ""
   },
   "src/items.js": {
-    "mtime": 1793705155.1159065,
-    "seen": 1793750603.456465,
-    "ast_hash": "39ad2b86eb4be5df5c97131d299d4816",
+    "mtime": 1793758741.324623,
+    "seen": 1793758790.8883562,
+    "ast_hash": "76e3229d2430c1fe18a8daa1f3243d10",
     "semantic_hash": ""
   },
   "tests/items.test.mjs": {
-    "mtime": 1793705138.5458155,
-    "seen": 1793750603.456471,
-    "ast_hash": "b81988a1906b04b1ada3ab129f55be68",
+    "mtime": 1793758741.325605,
+    "seen": 1793758790.888479,
+    "ast_hash": "62adaddd1bd3b5c6ca8cffcb48e1fa78",
     "semantic_hash": ""
   },
   "src-tauri/capabilities/items.json": {

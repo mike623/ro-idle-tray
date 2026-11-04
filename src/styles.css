@@ -433,7 +433,10 @@ button.dot:hover { outline: 2px solid var(--select); }
 .list.ledger .prow:not(.roster):not(.empty) .why { order: 4; flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 10px; color: var(--accent); }
 .list.ledger .prow.attn .cls, .list.ledger .prow.attn .lvl { display: none; }
 .list.ledger .prow:not(.roster):not(.empty) .l2 { grid-column: 3; grid-row: 1; }
-.list.ledger .l2 .minibars, .list.ledger .l2 .map-link, .list.ledger .l2 .ago, .list.ledger .offt { display: none; }
+.list.ledger .l2 .minibars, .list.ledger .l2 .ago, .list.ledger .offt { display: none; }
+/* Current map, dim on the right before the flags; click opens the atlas. */
+.list.ledger .l2 .map-link { flex: 0 1 auto; max-width: 120px; font-size: 10px; color: var(--text-dim); text-align: right; }
+.list.ledger .prow .assist { order: 1; }
 .list.ledger .sum .ask { display: block; grid-column: 4; grid-row: 1; color: var(--ink-blue); }
 .list.ledger .sum .go { grid-column: 5; } .list.ledger .sum .idle { grid-column: 6; }
 .list.ledger .sum :is(.ask, .go, .idle) { width: 26px; height: 26px; padding: 0; font-size: 12px; }
@@ -444,3 +447,4 @@ button.dot:hover { outline: 2px solid var(--select); }
 .list.ledger .add-group { align-self: flex-start; font-size: 11px; padding: 3px 10px; }
 #summary .offt { cursor: pointer; border-radius: 4px; padding: 0 3px; }
 #summary .offt:hover { background: rgba(127,127,127,.15); color: var(--text); }
+.assist { flex: none; font-size: 11px; line-height: 1; margin-left: 3px; cursor: default; }

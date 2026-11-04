@@ -108,12 +108,11 @@ function byGroup(boxes) {
   return cols;
 }
 
-// List (compact) view: rows needing attention on top, then each group as a stacked section.
-function ledger(boxes) {
-  const attn = boxes.filter((b) => b.classList.contains("attn"));
-  // Attention rows are pulled out of their group, so they are not drag targets or sources.
+// List (compact) view: copies of rows needing attention on top, then each group as a stacked section.
+// The rows themselves stay in their groups; the copies are not drag targets or sources.
+function ledger(boxes, attn) {
   for (const b of attn) b.draggable = false;
-  const cols = byGroup(boxes.filter((b) => !attn.includes(b)));
+  const cols = byGroup(filter === "attention" ? [] : boxes);
   const parts = [];
   if (attn.length) {
     const sec = el("section", "attn-sec");
@@ -265,6 +264,7 @@ function card(n, info, othersIdling, why) {
   q(".name").title = `${info.name}${nick ? `「${nick}」` : ""} · ${info.class ?? ""} · Account ${n} — click to copy name`;
   const nameEl = q(".name");
   nameEl.addEventListener("click", (e) => { e.stopPropagation(); copyName(nameEl, info.name); });
+  if (info.assist) nameEl.after(Object.assign(el("span", "assist", "🛡"), { title: "輔助模式：本圖怪物被打才還手，換圖自動套用（右鍵選單可關閉）" }));
   const nickBtn = q(".nick");
   nickBtn.textContent = nick ?? "＋";
   nickBtn.classList.toggle("unset", !nick);
@@ -318,6 +318,7 @@ function card(n, info, othersIdling, why) {
   each(".map-link", (b) => {
     if (info.map) {
       b.addEventListener("click", () => invoke("open_atlas", { q: info.map }));
+      b.title = `${info.map} — show spawns in the map atlas`;
       b.setAttribute("aria-label", `地圖 ${info.map}: show spawns in the map atlas`);
     } else b.disabled = true;
   });
@@ -464,7 +465,7 @@ async function refresh() {
   const o = overview(state.profiles);
   lastOrder = state.profiles.map((p) => p.n);
   const listed = state.profiles.filter((p) => shown(p, filter, o.reasons));
-  const boxes = listed.map((p) => {
+  const build = (p) => {
     const frag = p.roster?.length ? rosterCard(p.n, p.roster)
       : !p.info ? emptyCard(p.n)
       : card(p.n, p.info, !p.offline && idling - (p.info.running ? 1 : 0) > 0, o.reasons.get(p.n));
@@ -482,8 +483,10 @@ async function refresh() {
     }
     box.draggable = true;
     return box;
-  });
-  list.replaceChildren(...ledger(boxes));
+  };
+  const boxes = listed.map(build);
+  const attn = listed.filter((p, i) => boxes[i].classList.contains("attn")).map(build);
+  list.replaceChildren(...ledger(boxes, attn));
   list.scrollTop = scroll;
 
   const signed = live.filter((p) => p.info);
@@ -574,7 +577,7 @@ list.addEventListener("dragover", (e) => {
   else box.classList.add(after(box, e) ? "drop-after" : "drop-before");
 });
 list.addEventListener("drop", (e) => {
-  const moved = list.querySelector(`[data-n="${dragging}"]`);
+  const moved = list.querySelector(`.col [data-n="${dragging}"]`);
   if (dragging == null || !moved) return;
   const box = e.target.closest?.("[data-n]");
   const col = !box && e.target.closest?.(".col");

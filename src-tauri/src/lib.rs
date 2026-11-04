@@ -71,10 +71,12 @@ const CHARACTER_HOOK: &str = r#"
       running, stopping: running === true && s.pendingStop != null,
       map: domText('地圖') ?? (typeof s.mapId === 'string' ? s.mapId : null),
       action: domText('行動'),
+      assist: !!assistMap(), assistNote,
       target: s.target && typeof s.target.name === 'string'
         ? { name: s.target.name, lv: num(s.target.lv), hp: num(s.target.hp), maxHp: num(s.target.maxHp) } : null,
     };
     window.dispatchEvent(new CustomEvent("ro-idle-chat-state", {detail: payload}));
+    autoAssist(s);
     const key = JSON.stringify(payload);
     // Remember the character in play (per-profile storage) so auto-enter picks it next launch.
     try { localStorage.setItem('roIdleTray.lastCharacter', c.name); } catch {}
@@ -166,6 +168,40 @@ const CHARACTER_HOOK: &str = r#"
     const id = streamId;
     const snapshot = await roIdleApplyItems(id, cache[id], items, overrides);
     if (snapshot && streamId === id) { cache[id] = snapshot; send(snapshot); }
+  };
+  // Row menu's 輔助模式 toggle: every monster on the current map → 被打才還手, re-applied after each
+  // map switch while on. byMap = {mapId: [monsterId]}, kept in this profile's storage; null = off.
+  const ASSIST = 'roIdleTray.assist';
+  let assistBusy = false, assistAt = 0, assistNote = null;
+  function assistMap() { try { return JSON.parse(localStorage.getItem(ASSIST)); } catch { return null; } }
+  function assistIds(s, byMap) {
+    const ids = byMap?.[s?.mapId];
+    const done = new Set((s?.config?.monsterRules ?? []).filter(r => r.action === 'defend').map(r => r.monsterId));
+    return ids?.some(id => !done.has(id)) ? ids : null;
+  }
+  async function assistApply(id, s, ids) {
+    try {
+      const snapshot = await roIdleUpdateConfig(id, roIdleAssistConfig(s.config, ids));
+      assistNote = `applied ${ids.length} on ${s.mapId}`;
+      if (snapshot && streamId === id) { cache[id] = snapshot; send(snapshot); }
+    } catch (e) { assistNote = `failed on ${s.mapId}: ${e.message || e}`; last = null; send(s); throw e; }
+  }
+  // Called on every snapshot. ponytail: one try per minute, so a refused update can't loop.
+  function autoAssist(s) {
+    const byMap = assistMap(), id = streamId, ids = s?.config && assistIds(s, byMap);
+    if (!ids || assistBusy || id === null || Date.now() - assistAt < 60000) return;
+    assistBusy = true; assistAt = Date.now();
+    assistApply(id, s, ids).catch(e => console.warn('[ro-idle-tray] assist failed', e)).finally(() => { assistBusy = false; });
+  }
+  window.__roIdleAssist = async byMap => {
+    const id = streamId, s = cache[id];
+    if (!byMap) { localStorage.removeItem(ASSIST); last = null; if (s) send(s); return 0; }
+    if (!s?.config) throw new Error('No character currently in play');
+    localStorage.setItem(ASSIST, JSON.stringify(byMap));
+    last = null;
+    const ids = assistIds(s, byMap);
+    if (ids) await assistApply(id, s, ids); else send(s);
+    return byMap[s.mapId]?.length ?? 0;
   };
   // Called by the tray panel: press the game's own 開始掛機 / 停止掛機 button.
   window.__roIdleToggle = () => {
@@ -296,6 +332,12 @@ struct CharacterLabel {
     running: Option<bool>,
     #[serde(default)]
     stopping: bool,
+    /// 輔助模式 on: current-map monsters kept at 被打才還手 across map switches.
+    #[serde(default)]
+    assist: bool,
+    /// Last 輔助模式 apply result, for the dev log only.
+    #[serde(default, skip_serializing)]
+    assist_note: Option<String>,
     /// Map name as the game shows it (地圖), e.g. 普隆德拉原野 09.
     map: Option<String>,
     /// Current action as the game shows it (行動), e.g. 戰鬥中.
@@ -628,6 +670,21 @@ pub fn run() {
                     "tray-show" => return toggle_panel(app),
                     "tray-quit" => return app.exit(0),
                     _ => {}
+                }
+                if let Some(n) = id.strip_prefix("assist-").and_then(|r| r.parse::<u8>().ok()) {
+                    let app = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let on = !app.state::<Profiles>().info.lock().unwrap().get(&n).is_some_and(|c| c.assist);
+                        let body = match atlas::assist_mode(&app, n, on).await {
+                            Ok(_) if !on => "已關閉（已設定的怪物保持不變）".to_string(),
+                            Ok(0) => "已開啟：目前地圖沒有怪物，換圖後自動套用".to_string(),
+                            Ok(k) => format!("已開啟：本圖 {k} 種怪物被打才還手，換圖自動套用"),
+                            Err(e) => format!("設定失敗：{e}"),
+                        };
+                        println!("[ro-idle-tray] profile-{n} assist: {body}");
+                        toast(&app, n, "輔助模式", &body);
+                    });
+                    return;
                 }
                 let (off, rest) = match id.split_once('-') {
                     Some(("online", r)) => (false, r),
@@ -1530,11 +1587,12 @@ fn character_report(window: tauri::WebviewWindow, app: AppHandle, mut data: Char
         .collect();
     let class = job_name(data.class.trim());
     eprintln!(
-        "[ro-idle-tray] {} => {name}（{class}） Base Lv{} / Job Lv{} @ {}",
+        "[ro-idle-tray] {} => {name}（{class}） Base Lv{} / Job Lv{} @ {}{}",
         data.profile,
         data.base,
         data.job,
-        data.map.as_deref().unwrap_or("?")
+        data.map.as_deref().unwrap_or("?"),
+        data.assist_note.as_deref().map(|n| format!(" · assist {n}")).unwrap_or_default()
     );
     let profiles = listen_handle.state::<Profiles>();
     if let Some(n) = profile_number(&listen_handle, &data.profile) {
@@ -1673,7 +1731,11 @@ fn profile_menu(window: tauri::Window, app: AppHandle, n: u8) -> Result<(), Stri
         .map_err(|e| e.to_string())?;
     let off_item = CheckMenuItem::with_id(&app, format!("offline-{n}"), "Offline（完全關閉背景網頁）", true, off, None::<&str>)
         .map_err(|e| e.to_string())?;
-    let menu = Menu::with_items(&app, &[&on_item, &off_item]).map_err(|e| e.to_string())?;
+    let on = app.state::<Profiles>().info.lock().unwrap().get(&n).is_some_and(|c| c.assist);
+    let assist = CheckMenuItem::with_id(&app, format!("assist-{n}"), "輔助模式（本圖怪物被打才還手，換圖自動套用）", !off, on, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let sep = tauri::menu::PredefinedMenuItem::separator(&app).map_err(|e| e.to_string())?;
+    let menu = Menu::with_items(&app, &[&on_item, &off_item, &sep, &assist]).map_err(|e| e.to_string())?;
     window.popup_menu(&menu).map_err(|e| e.to_string())
 }
 
