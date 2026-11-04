@@ -47,12 +47,17 @@ UI reads triggered by the session: `GET /api/storage`, `/api/maps/population`, `
 
 ## Missing
 
-**Commands:** `storageWithdraw` not captured (withdraw step did not send it). The other 50 kinds are outside phase 1.
+**Commands:** all phase-1 kinds captured. Late additions: `storageWithdraw` `{items:[{sid, qty}]}` (by storage `sid`,
+not inventory `uid`) and `storageZeny` `{action: "deposit"|"withdraw", amount}`. Each storage action costs a 40 Zeny fee
+and emits a `storage` event `{action, items, zeny?, fee}`. The other 49 kinds are outside phase 1.
 
-**Error reply** — not capturable (the client disables buttons first), taken from the bundle's request helper instead:
+**Error reply — captured once:** `storageWithdraw` with 0 Zeny (fee unpaid) → HTTP **422**
+`{error:{code:"GAME_RULE", message:"Zeny 不足（倉庫費 40 Zeny）"}, view, storage}`; the client then succeeded after
+`storageZeny withdraw`. Most rule failures can't be triggered by hand (the client disables buttons first), so the rest
+comes from the bundle's request helper:
 POSTs carry `content-type: application/json` and `x-ro-client: 1`; GET times out at 15 s, POST at 30 s. A non-2xx
 reply is `{error:{code, message}, view?, storage?}` (client applies `view`/`storage` even on error); the server
-also sends `x-request-id`. Codes seen in the bundle: `INVALID_REQUEST`, `CONFIG_INVALID`, `NOT_FOUND`,
+also sends `x-request-id`. Codes: `GAME_RULE` (captured, 422), `INVALID_REQUEST`, `CONFIG_INVALID`, `NOT_FOUND`,
 `UNAUTHENTICATED`, `ACCOUNT_NOT_FOUND`, `SERVER_BUSY`, `INVARIANT`, `NO_SUBSCRIPTION`, `SLOT_RENT`,
 `GOOGLE_LINK_REQUIRED`; stop reasons (`DEATH`, `DEATH_LIMIT`, `OVERWEIGHT`, `NO_AMMO`, `CRITICAL_SUPPLY`,
 `LEVEL_REACHED`, `RUN_LIMIT`, `RETURNED_TOWN`, `SWITCH_CHARACTER`, `MANUAL`, `ADMIN`) share the same table.
