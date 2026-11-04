@@ -63,9 +63,12 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     if (!out.length) return out;
     C.log.push(...out);
     if (C.log.length > LOG_KEEP) C.log.splice(0, C.log.length - LOG_KEEP);
+    g.onEmit?.(C, out);
     notify(C, 'events', out);
     return out;
   }
+  Object.assign(g, { emit, combatOf: (C) => combatOf(C), touch: (C) => touch(C), party: (C) => party(C), job: (C) => job(C),
+    addItem, takeItem, progress: (M, mob) => progress(M, mob, 1, 1) }); // hooks for server/offline.js
 
   // ---------- characters ----------
   g.addCharacter = (view, account) => {
@@ -187,6 +190,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
   function onDeath(C, F) {
     F.settled = true;
     const s = C.snapshot, c = s.character;
+    emit(C, [{ body: { type: 'death', monsterId: F.mob.id } }]); // ponytail: shape guessed (never captured); summary already reads it
     c.baseExp = e.applyDeath({ ...c }, job(C)).baseExp;
     // ponytail: instant respawn at the save map with 50% HP/SP (mechanics page); the 5 s respawn delay is not modelled
     c.hp = fl(s.derived.maxHp / 2); c.sp = fl(s.derived.maxSp / 2);

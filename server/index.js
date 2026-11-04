@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import { WebSocketServer } from 'ws';
 import { createGame } from './game.js';
+import { attachOffline } from './offline.js';
 import { mulberry32 } from './rules/engine.js';
 
 export function openStore(path) {
@@ -43,11 +44,12 @@ const CHAR_STUBS = {
 export async function startServer({ port = 8787, db = 'server/data.sqlite', now = Date.now, seed, tickMs = 250, checkpointMs = 30000,
   maxDrivers = 8 } = {}) {
   const store = openStore(db);
-  const game = createGame({ now, rng: seed == null ? Math.random : mulberry32(seed), maxDrivers });
+  const game = attachOffline(createGame({ now, rng: seed == null ? Math.random : mulberry32(seed), maxDrivers }));
   game.restore(store.load());
   let closed = false;
   const checkpoint = () => { if (!closed) store.save(game); };
   const drivers = new Map(); // charId → ws
+  const viewers = new Set(); // open SSE streams { account, res }
 
   const accountOf = (req, url) => {
     const auth = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
@@ -83,7 +85,7 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
       if (p === '/api/maps/population') return send(200, game.population());
       if (p === '/api/kill-event') return send(200, { event: game.killEvent, nowMs: now() });
       if (p === '/api/storage') return send(200, { storage: game.storageFor(account) });
-      if (p === '/api/presence') return send(200, { ok: true });
+      if (p === '/api/presence') { game.online(account); return send(200, { ok: true }); }
       if (p === '/api/rankings') return send(200, { rankings: { updatedAt: now(), cacheSeconds: 30, overall: [] } });
       if (STUBS[p]) return send(200, STUBS[p]);
 
@@ -92,6 +94,9 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
       const C = game.chars.get(+m[1]);
       if (!C || C.account !== account) return fail(404, 'NOT_FOUND', '角色不存在');
       const after = +(url.searchParams.get('after') ?? 0) || 0;
+      if ((req.method === 'GET' && m[2] === undefined) || m[2] === 'stream') game.online(account);
+      // deferCatchup=1 returns the pending backlog; the stream open (or a plain GET / summary / command) settles it
+      if ((m[2] === undefined && !url.searchParams.has('deferCatchup')) || m[2] === 'stream' || m[2] === 'summary') game.checkout(C);
       switch (m[2]) {
         case undefined: return send(200, game.view(C));
         case 'events': return send(200, game.events(C, after, Math.min(1000, +(url.searchParams.get('limit') ?? 1000) || 1000)));
@@ -127,7 +132,9 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
     if (back.gap) write('gap', {});
     if (back.events.length) write('events', back.events);
     const off = game.subscribe(C.id, write);
-    req.on('close', off);
+    const v = { account: C.account, write, res };
+    viewers.add(v);
+    req.on('close', () => { off(); viewers.delete(v); });
   }
 
   const wss = new WebSocketServer({ noServer: true });
@@ -147,6 +154,7 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
     if (driven.length >= game.maxDrivers) { out({ type: 'error', error: 'DRIVER_LIMIT', limit: game.maxDrivers }); return ws.close(4001, 'DRIVER_LIMIT'); }
     if (prev) { prev.send(JSON.stringify({ type: 'superseded' })); prev.close(4000, 'superseded'); }
     drivers.set(C.id, ws);
+    game.driverOn(C.id);
     const off = game.subscribe(C.id, (type, data) => out(type === 'events' ? { type, events: data } : { type, ...data }));
     out({ type: 'snapshot', ...game.streamHello(C) });
     ws.on('message', (raw) => {
@@ -157,17 +165,21 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
     });
     ws.on('close', () => {
       off();
-      if (drivers.get(C.id) === ws) drivers.delete(C.id);
+      if (drivers.get(C.id) === ws) { drivers.delete(C.id); game.driverOff(C.id); }
       checkpoint();
     });
   }
 
+  /** Closes streams of accounts with no input for 20 min (`idle`; the client reopens on activity). */
+  const sweep = () => {
+    for (const v of viewers) if (game.idleViewer(v.account)) { v.write('idle', {}); v.res.end(); viewers.delete(v); }
+  };
   const timers = [];
-  if (tickMs) timers.push(setInterval(game.tick, tickMs));
+  if (tickMs) timers.push(setInterval(() => { game.tick(); sweep(); }, tickMs));
   if (checkpointMs) timers.push(setInterval(checkpoint, checkpointMs));
   await new Promise((r) => server.listen(port, '127.0.0.1', r));
   return {
-    port: server.address().port, game, checkpoint,
+    port: server.address().port, game, checkpoint, sweep,
     close: async () => {
       timers.forEach(clearInterval);
       for (const ws of wss.clients) ws.terminate();
