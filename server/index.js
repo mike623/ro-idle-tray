@@ -94,11 +94,12 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
       const C = game.chars.get(+m[1]);
       if (!C || C.account !== account) return fail(404, 'NOT_FOUND', '角色不存在');
       const after = +(url.searchParams.get('after') ?? 0) || 0;
-      if ((req.method === 'GET' && m[2] === undefined) || m[2] === 'stream') game.online(account);
+      const seenSeq = C.lastSeq; // stream default `after`: before the checkout, so its gap is reported
       // deferCatchup=1 returns the pending backlog; the stream open (or a plain GET / summary / command) settles it
       if ((m[2] === undefined && !url.searchParams.has('deferCatchup')) || m[2] === 'stream' || m[2] === 'summary') game.checkout(C);
+      if (m[2] === 'stream') game.online(account);
       switch (m[2]) {
-        case undefined: return send(200, game.view(C));
+        case undefined: { const v = game.view(C); game.online(account); return send(200, v); }
         case 'events': return send(200, game.events(C, after, Math.min(1000, +(url.searchParams.get('limit') ?? 1000) || 1000)));
         case 'summary': return send(200, game.summary(C, after));
         case 'party': // the client applies a party write reply as the party view, so writes fail loudly instead
@@ -109,7 +110,7 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
           const r = game.command(C.id, body);
           return send(r.status, r.body);
         }
-        case 'stream': return stream(req, res, C, url);
+        case 'stream': return stream(req, res, C, url, seenSeq);
         default:
           if (CHAR_STUBS[m[2]]) return send(200, CHAR_STUBS[m[2]]);
           if (req.method === 'POST') return send(200, { ok: true }); // ponytail: social writes (lounge heartbeat…) accepted as no-ops
@@ -122,12 +123,12 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
     }
   });
 
-  function stream(req, res, C, url) {
+  function stream(req, res, C, url, seenSeq) {
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
     const write = (name, data) => res.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
     write('snapshot', game.streamHello(C));
     write('chatCursor', { cursor: 0 });
-    const after = +(url.searchParams.get('after') ?? C.lastSeq);
+    const after = +(url.searchParams.get('after') ?? seenSeq);
     const back = game.events(C, after, Infinity);
     if (back.gap) write('gap', {});
     if (back.events.length) write('events', back.events);

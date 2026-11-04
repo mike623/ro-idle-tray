@@ -3,8 +3,11 @@
 // rates (kills/h per monster, EXP/h, zeny/h, loot/h, potions/h, deaths/h) from its recent driven history on that map,
 // or from quick engine fights when there is none. Caps follow /info/mechanics 「離線會怎麼結算？」 and the 7-day rule:
 // - a driver with no action for 20 min counts as offline (the 20-min no-input pause);
-// - the party keeps advancing (no away time) while any member is live;
-// - 7 days after the account was last online the character stops (only natural regen after that).
+// - the party advances while any member is live: offline members still get the live kills' EXP share (game.js) and
+//   are paid their own farming by rates on return, so no stretch is lost (ponytail: the share can be paid twice when
+//   the member's history already contains party shares; small next to its own kills);
+// - 7 days after the account was last online (human signals: view, stream, presence, command — not brain traffic)
+//   the character stops (only natural regen after that).
 // Cost per checkout is O(monsters + item kinds in the rate table), independent of the away time.
 import * as e from './rules/engine.js';
 
@@ -29,7 +32,6 @@ export function attachOffline(g) {
   const { now, rng, data } = g;
   const drivers = new Set(); // charIds with a connected driver (not persisted: nobody drives after a restart)
   const samples = new Map(); // `${id}:${mapId}:${baseLv}` → sampled rates
-  g.drivers = drivers;
 
   const state = (C) => (C.off ??= { settledAtMs: now(), lastActAt: null, offAt: null, rates: {}, checkouts: [] });
   const account = (C) => g.accounts.get(C.account) ?? {};
@@ -39,13 +41,17 @@ export function attachOffline(g) {
     return Math.min(o.lastActAt + IDLE_MS, drivers.has(M.id) ? now() : o.offAt ?? -Infinity);
   };
   const isLive = (M) => liveUntil(M) >= now();
-  // ponytail: party() scans every character; index members by party id if the world grows past a few hundred
-  const partyLive = (C) => g.party(C).some(isLive);
-  const awayFrom = (C) => Math.max(state(C).settledAtMs, ...g.party(C).map(liveUntil));
+  const awayFrom = (C) => Math.max(state(C).settledAtMs, liveUntil(C));
   const addCharacter = g.addCharacter, restore = g.restore;
   g.addCharacter = (...a) => { const C = addCharacter(...a); state(C); return C; };
-  g.restore = (d) => { restore(d); for (const C of g.chars.values()) state(C); }; // pre-#18 dumps count as settled now
-  g.backlogMs = (C) => (partyLive(C) ? 0 : Math.max(0, now() - awayFrom(C)));
+  g.restore = (d) => {
+    restore(d);
+    for (const C of g.chars.values()) { // nobody drives after a restart: a driver lost with the process ended at its last action
+      const o = state(C); // pre-#18 dumps count as settled now
+      if (o.lastActAt != null) o.offAt = Math.max(o.offAt ?? -Infinity, o.lastActAt);
+    }
+  };
+  g.backlogMs = (C) => (isLive(C) ? 0 : Math.max(0, now() - awayFrom(C)));
 
   const view = g.view;
   g.view = (C) => {
@@ -98,15 +104,18 @@ export function attachOffline(g) {
   const ratesFor = (C) => {
     const r = state(C).rates[C.snapshot.mapId];
     const kills = r ? Object.values(r.kills).reduce((a, b) => a + b, 0) : 0;
-    return r && r.ms >= MIN_HISTORY_MS && kills >= MIN_HISTORY_KILLS ? { ...r, source: 'history' } : sample(C) && { ...sample(C), source: 'engine' };
+    if (r && r.ms >= MIN_HISTORY_MS && kills >= MIN_HISTORY_KILLS) return { ...r, source: 'history' };
+    const sampled = sample(C);
+    return sampled && { ...sampled, source: 'engine' };
   };
+  const stock = (C, id) => C.snapshot.inventory.reduce((q, x) => q + (x.itemId === +id ? x.qty : 0), 0);
 
   // ---------- checkout ----------
   const count = (x) => { const n = Math.floor(x); return n + (rng() < x - n ? 1 : 0); };
   /** Settles the away time; returns the settlement record (also kept for /summary), or null when nothing was due. */
   g.checkout = (C) => {
     const t = now(), o = state(C);
-    if (partyLive(C)) { o.settledAtMs = t; return null; }
+    if (isLive(C)) { o.settledAtMs = t; return null; }
     const from = awayFrom(C);
     if (t <= from) { o.settledAtMs = t; return null; }
     const limit = (account(C).lastOnlineMs ?? from) + WEEK_MS;
@@ -122,8 +131,7 @@ export function attachOffline(g) {
         const away = end - from, per = (x) => x / R.ms;
         let run = away, why = null;
         for (const [id, n] of Object.entries(R.used)) {
-          const stock = s.inventory.filter((x) => x.itemId === +id).reduce((q, x) => q + x.qty, 0);
-          const tOut = stock / per(n);
+          const tOut = stock(C, id) / per(n);
           if (tOut < run) { run = tOut; why = 'supply'; }
         }
         const tDeath = R.deaths ? -Math.log(1 - rng()) / per(R.deaths) : Infinity;
@@ -137,7 +145,7 @@ export function attachOffline(g) {
         rec.zeny = Math.max(-c.zeny, count(per(R.zeny) * run));
         c.zeny += rec.zeny;
         for (const [id, n] of Object.entries(R.used)) {
-          let q = Math.min(count(per(n) * run), s.inventory.filter((x) => x.itemId === +id).reduce((a, x) => a + x.qty, 0));
+          let q = Math.min(count(per(n) * run), stock(C, id));
           if (q) rec.used[id] = q;
           for (const x of s.inventory.filter((y) => y.itemId === +id)) { const take = Math.min(q, x.qty); if (take) g.takeItem(C, x.uid, take); q -= take; }
         }
@@ -150,21 +158,11 @@ export function attachOffline(g) {
         }
         const r = g.progress(C, { id: 0, baseExp: rec.baseExp, jobExp: rec.jobExp, drops: [], card: null });
         events.push(...r.events.filter((x) => x.body.type !== 'exp'));
-        if (why === 'death') {
-          const mobId = Object.keys(R.kills)[0] ?? null;
-          rec.deaths = 1;
-          c.baseExp = e.applyDeath({ ...c }, g.job(C)).baseExp;
-          c.hp = Math.floor(s.derived.maxHp / 2); c.sp = Math.floor(s.derived.maxSp / 2);
-          const fromMap = s.mapId;
-          s.mapId = s.saveMap;
-          if (s.stats) s.stats.deaths = (s.stats.deaths ?? 0) + 1;
-          events.push({ body: { type: 'death', monsterId: mobId && +mobId } }, { body: { type: 'mapChange', from: fromMap, to: s.mapId, cause: 'return' } });
-        }
+        if (why === 'death') rec.deaths = 1;
         if (why === 'supply') { rec.noPotion = 1; rec.stopped = 'CRITICAL_SUPPLY'; }
       }
     }
     if (!rec.stopped && end < t && C.running) rec.stopped = 'OFFLINE_7D'; // ponytail: code guessed; the log text is 「7 天沒上線自動停止」
-    if (rec.stopped) { C.running = false; C.fight = null; s.activity = 'stopped'; events.push({ body: { type: 'stop', reason: rec.stopped } }); }
     const ticks = Math.floor((t - from - rec.ms) / REGEN_MS); // natural regen while not farming
     c.hp = Math.min(s.derived.maxHp, c.hp + ticks * s.derived.hpRegen); c.sp = Math.min(s.derived.maxSp, c.sp + ticks * s.derived.spRegen);
     o.settledAtMs = t;
@@ -172,6 +170,12 @@ export function attachOffline(g) {
     const hours = (rec.ms / 3600e3).toFixed(1);
     const [head] = g.emit(C, [{ t: from, body: { type: 'system', level: 'info', message: `離線結算 ${hours} 小時` } },
       ...events.map((x) => ({ t, body: x.body }))]);
+    // ponytail: the killer is the most-killed monster of the rate table; weight by per-monster damage taken if it matters
+    if (rec.deaths) g.die(C, +Object.entries(rec.killsByMonster).sort((a, b) => b[1] - a[1])[0]?.[0] || null, t);
+    if (rec.stopped) {
+      C.running = false; C.fight = null; s.activity = 'stopped';
+      g.emit(C, [{ t, body: { type: 'stop', reason: rec.stopped } }]);
+    }
     rec.seq = head.seq; rec.fromWallMs = from; rec.toWallMs = t;
     o.checkouts.push(rec);
     if (o.checkouts.length > KEEP_CHECKOUTS) o.checkouts.shift();
@@ -189,9 +193,8 @@ export function attachOffline(g) {
   };
   g.idleViewer = (name) => now() - (g.accounts.get(name)?.lastOnlineMs ?? now()) > IDLE_MS;
   const goLive = (C) => {
-    if (!isLive(C)) for (const M of g.party(C)) g.checkout(M); // settle the party up to the moment it starts advancing again
+    if (!isLive(C)) g.checkout(C); // settle the away time up to the moment it is driven again
     state(C).lastActAt = now();
-    g.online(C.account);
   };
   g.driverOn = (id) => { const C = g.chars.get(id); goLive(C); drivers.add(id); };
   g.driverOff = (id) => { drivers.delete(id); const C = g.chars.get(id); if (C) state(C).offAt = now(); };
