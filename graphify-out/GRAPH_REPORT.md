@@ -1,4 +1,4 @@
-# Graph Report - ro-idle-tray  (2026-11-03)
+# Graph Report - ro-idle-tray  (2026-11-04)
 
 ## Corpus Check
 - 52 files · ~75,587 words
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2cc5aa56`
+- Built from commit: `4c5102f4`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -33,22 +33,22 @@
 - mcp.rs
 - atlas-data.js
 - ro-idle-tray
-- guide.rs
+- alerts.rs
 - atlas.rs
 - Domain Docs
 - Agent skills
+- memory.rs
 - triage-labels.md
 - secret.rs
 - chat.js
-- memory.rs
+- guide.rs
 - app.json
 - refresh
 - items.js
 - run
 - AppHandle
 - toggle_panel
-- guide.rs
-- character_report
+- set_nickname
 - items_characters
 
 ## God Nodes (most connected - your core abstractions)
@@ -140,7 +140,7 @@ Nodes (6): Conventions, Issue tracker: GitHub, Pull requests as a triage surface
 Cohesion: 0.09
 Nodes (14): ALLOWED, CALL_TIMEOUT, CONNECT_TIMEOUT, ENDPOINT, failure(), MAX_RESULT_BYTES, raw_text(), reaches_the_hosted_server() (+6 more)
 
-### Community 19 - "guide.rs"
+### Community 19 - "alerts.rs"
 Cohesion: 0.14
 Nodes (20): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+12 more)
 
@@ -156,6 +156,10 @@ Nodes (5): Before exploring, read these, Domain Docs, File structure, Flag ADR c
 Cohesion: 0.40
 Nodes (4): Agent skills, Domain docs, Issue tracker, Triage labels
 
+### Community 23 - "memory.rs"
+Cohesion: 0.34
+Nodes (12): context(), edit(), footer(), index(), known(), MAX_BYTES, names(), note() (+4 more)
+
 ### Community 25 - "secret.rs"
 Cohesion: 0.11
 Nodes (17): AI_FILE, file_path(), load(), load_named(), NONCE_LEN, rejects_tampered_or_unknown_blobs(), roundtrip_binds_to_the_machine(), SALT (+9 more)
@@ -164,9 +168,9 @@ Nodes (17): AI_FILE, file_path(), load(), load_named(), NONCE_LEN, rejects_tampe
 Cohesion: 0.25
 Nodes (12): card(), characters, error(), memory(), mentions, node(), render(), roster() (+4 more)
 
-### Community 27 - "memory.rs"
-Cohesion: 0.34
-Nodes (12): context(), edit(), footer(), index(), known(), MAX_BYTES, names(), note() (+4 more)
+### Community 27 - "guide.rs"
+Cohesion: 0.10
+Nodes (22): article_text(), BASE, BUDGET, cached(), decode(), excerpt(), fetch(), live_guide_fetches_index_and_a_page() (+14 more)
 
 ### Community 33 - "items.js"
 Cohesion: 0.31
@@ -184,11 +188,7 @@ Nodes (27): add_account(), add_profile(), auto_offline_tick(), confirm_remove(),
 Cohesion: 0.33
 Nodes (6): hide_panel(), hide_panel_window(), place_panel(), restore_panel(), set_panel_width(), toggle_panel()
 
-### Community 37 - "guide.rs"
-Cohesion: 0.10
-Nodes (22): article_text(), BASE, BUDGET, cached(), decode(), excerpt(), fetch(), live_guide_fetches_index_and_a_page() (+14 more)
-
-### Community 38 - "character_report"
+### Community 37 - "set_nickname"
 Cohesion: 0.29
 Nodes (7): character_report(), job_name(), load_profile_ids(), parse_ids(), set_nickname(), toast(), update_title()
 
