@@ -634,11 +634,12 @@ above and emits battle event bodies in the captured shapes ([api.md](api.md#batt
 |---|---|---|
 | Encounter | monster drawn by spawn `count` (mechanics page: no coordinates); search 300 ms + Exp(mean 500 ms) | captured searching→found: min 300, p50 ~500, mean ~800, p95 ~2.2 s (profiles 1, 5) |
 | Approach | melee: walk 10 cells × `moveSpeedMs` (1120 = 10×112, 1500 = 10×150); ranged opener (bow, Provoke, magic attack rule): `found` at 9 cells, 500 ms, then the mob closes `(9 − range) × walkSpeed` (2100 = 500 + 8×200; mushrooms 8500 = 500 + 8×1000) | 1,129 + 588 captured `found` |
-| Player hit / crit | hit% = clamp(5, 95, 80 + HIT − (mobLv + mobAGI)); crit% = panel crit − mobLUK/5, crit always hits; dagger double attack 5%×TF_DOUBLE Lv | mechanics page; distribution not verified per roll |
+| Player hit / crit | hit% = clamp(5, 95, 80 + HIT − (mobLv + mobAGI)); crit% = panel crit − mobLUK/5, crit always hits; dagger double attack 5%×TF_DOUBLE Lv on non-crit swings | mechanics page; distribution not verified per roll |
 | Monster swing | passive mobs start after the first hit (aggressive on arrival), first swing uniform in [0, attackDelay], then every attackDelay; hit% = clamp(5, 95, 80 + mobLv + mobDEX − FLEE) after perfect dodge | captured Spore 1872 ms, Horn 1528 ms cadence |
 | Mob skills | attack-state `NPC_*ATTACK` skills fire at `rate`/10000 per swing with `delayMs` cooldown; damage = normal swing × element | ailments/DEF bypass not modelled |
 | Casts | SP paid at cast start, DEX cast time, damage at completion, next action after max(delay, ASPD interval); self buffs recast when missing (`buffStart` with level duration) | castMs 1978 captured for LB Lv4 / DEX 44; Endure 37 s |
 | Timing | `resolveAction` rejects actions before the ASPD interval (`TOO_EARLY`), unlearned levels, short SP, cooldowns | |
+| Not modelled | buff stat effects other than Angelus soft DEF (panel values kept), arrow/weapon/armor elements (attacks neutral), weight ≥50% regen stop and ≥90% attack stop (events only), `applyDeath` is the caller's job after `death` | |
 | Rewards | solo EXP or `partyExpShare`; `basePct` = gain / level requirement; base level-up stat points floor((Lv−1)/5)+3 (fits captured 48/49/51 → 12/12/13); drops roll each slot per 10000 × kill-event `dropMult` (event monster, inside its window); weight warnings at 50/90% | |
 
 ### L2 replay (`node tests/l2-fights.mjs 1000`, test `tests/engine-l2.test.mjs`)
@@ -653,19 +654,20 @@ a fight passes when the real duration, damage taken and hits landed all lie in t
 | Party-helped (allies hit the mob after we engaged) | 2/247 = 0.8% | 5 | 99 | 5 |
 | All | 143/400 = 35.8% | 149 | 252 | 150 |
 
-Party-helped fights cannot be replayed solo (the stream only has our own hits), so they are reported, not judged.
+The #23 bar (≥90%) is met on own-finish fights; the 25 solo `found` fights alone are at 84% (all 4 misses are the
+swordman/Red Mushroom case below). Party-helped fights cannot be replayed solo (the stream only has our own hits), so they are reported, not judged.
 Most "solo found" fights in the corpus (42/67) also took party damage; `ownDamage ≥ mobHpStart` is the solo filter.
 
 The 12 own-finish failures:
 
-- **Merchant one-hit kills of assist targets (6)**: real damage is 3 above our max (63 vs 52–63 borderline, 44 vs 31–41,
-  35 vs 32, 42 vs 39 twice). Every case fits the open player-damage outlier: monster soft DEF = floor(0.9 × VIT)
+- **Merchant one-hit kills of assist targets (5)**: real damage at or above our max (63 vs 52–63, 44 vs 31–41,
+  35 vs 32, 42 vs 39 twice; two of these also start late, see next item). Every case fits the open player-damage outlier: monster soft DEF = floor(0.9 × VIT)
   (see the investigation above). Applying that cut whenever the mob has not swung yet lifts own-finish only to 142/153,
   so it is not adopted; the trigger condition is still unknown.
-- **Melee assist delay (3)**: the first own hit after a `targetSwitch` comes 1.4–2.6 s late in ~15% of melee assist
+- **Melee assist delay (2 more)**: the first own hit after a `targetSwitch` comes 1.4–2.6 s late in ~15% of melee assist
   switches (0 ms in the rest; never for mage/archer). Probably walking to the ally's target; no distance is captured.
-- **Swordman vs Red Mushroom (DEF 100) (3)**: 3 of 10 fights deal 6 per hit instead of 1 (unrefined axe), killing in 3
-  hits. Suspect stale snapshot gear or a flat ATK outside the DEF step; needs a capture with a fresh snapshot.
+- **Swordman vs Red Mushroom (DEF 100) (4)**: 3 fights deal 6 per hit instead of 1 (unrefined axe), killing in 3
+  hits; one ran 32 s against our 29 s p95 (an extra Endure/idle gap). Suspect stale snapshot gear or a flat ATK outside the DEF step; needs a capture with a fresh snapshot.
 - **Mage bolt max roll (1)**: one Lightning Bolt killed 392 HP = exactly the max MATK roll ×4; a real <2% event.
 
 ### Kill / EXP per hour (`node tests/l2-rates.mjs`)
@@ -675,17 +677,18 @@ fight). Captured 2026-11-04 rates (8 own characters, one party, 2.9–4.1 active
 
 | Char (capture) | Job | Sim kills/h (solo) | Real own kills/h | Real `found`/h | Real base EXP/h (party share) |
 |---|---|---|---|---|---|
-| 72397 (profile-1) | thief | 327 | 84 | 91 | 20,844 |
+| 72397 (profile-1) | thief | 319 | 84 | 91 | 20,844 |
 | 72444 (profile-2) | not in fixtures | – | 0 | 0 | 18,842 |
 | 72468 (profile-3) | mage | 318 | 203 | 0 | 18,762 |
 | 72472 (profile-4) | merchant | 162 | 38 | 0 | 18,706 |
 | 72688 (profile-5) | swordman | 158 | 67 | 488 | 18,742 |
-| 74435 (profile-6) | merchant | 168 | 41 | 0 | 18,689 |
+| 74435 (profile-6) | merchant | 163 | 41 | 0 | 18,689 |
 | 74496 (profile-7) | archer | 425 | 108 | 0 | 18,793 |
 | 74917 (profile-8) | acolyte | 20 (209 deaths/h) | 1 | 0 | 18,640 |
-| **Party** | | **1,577** (65,904 base EXP/h each) | **541** | | **~18,700 each** |
+| **Party** | | **1,565** (66,278 base EXP/h each) | **541** | | **~18,700 each** |
 
-Profile ↔ character from the request paths in each capture file. Per-character rates are not comparable
+Profile ↔ character from the request paths in each capture file. The acolyte is a support build (fists,
+no attack rules, 398/767 HP at its last snapshot) and never fights alone in the captures, so its solo deaths are expected. Per-character rates are not comparable
 one-to-one: only the thief and swordman search (the swordman pulls 488 mobs/h for the party), the others assist. At party level the
 solo sum is ~2.9× the real kill rate, while each fight's duration matches (L2 above). The gap is session time the engine does not
 model: party assist overlap (several members on one mob), looting, sitting/regen, buff upkeep by the acolyte, town trips.

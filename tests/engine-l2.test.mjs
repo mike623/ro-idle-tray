@@ -12,3 +12,11 @@ test('L2: own-finish fixture fights pass p5–p95 on duration, damage taken and 
   assert.ok(own.length >= 150, `own-finish fights ${own.length}`);
   assert.ok(rate >= 0.9, `own-finish pass rate ${(100 * rate).toFixed(1)}%`);
 });
+
+test('rates: a fixture thief farming its map kills steadily and never dies (smoke check for l2-rates.mjs)', async () => {
+  const { farm } = await import('./l2-rates.mjs');
+  const thief = fights.find((f) => f.charId === 72397 && f.mapId === 'mjolnir_09');
+  const r = farm(thief, 0.25);
+  assert.ok(r.kills > 100 && r.kills < 1000, `kills/h ${r.kills}`);
+  assert.equal(r.deaths, 0);
+});

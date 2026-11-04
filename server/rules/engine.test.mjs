@@ -231,3 +231,16 @@ test('kill-event drop multiplier only for its monster inside its window; death p
   assert.equal(e.killEventDropMult(null, 1002, 150), 1);
   assert.deepEqual(e.applyDeath({ ...lowChar, baseLv: 2, baseExp: 50 }, tables).baseExp, 48);
 });
+
+test('a crit never double-attacks; Angelus recast restores the soft-DEF bonus its expiry removed', () => {
+  const s = newFight();
+  e.resolveAction(s, { type: 'attack', at: 0 }, fixed(0)); // rng 0: crit, and would also roll double attack
+  assert.equal(s.events[0].body.result, 'crit');
+  assert.equal(s.events[0].body.hits, undefined);
+  const angelus = { id: 'AL_ANGELUS', kind: 'self', sp: [50], castMs: [], delayMs: [], cooldownMs: [], durationMs: [1000] };
+  const r = e.simulateFight({ char: { ...thief, vitDefRate: 50, skills: { AL_ANGELUS: 10 }, sp: 1000 }, mob: spore,
+    rng: e.mulberry32(1), skills: { AL_ANGELUS: { ...angelus, durationMs: Array(10).fill(1000) } },
+    buffs: [{ id: 'AL_ANGELUS', lv: 10, remainingMs: 500 }], brainChoices: { selfBuffs: [{ skill: 'AL_ANGELUS', lv: 10 }] } });
+  assert.ok(r.events.filter((x) => x.body.type === 'buffEnd').length >= 2);
+  assert.ok(r.char.vitDefRate === 0 || r.char.vitDefRate === 50, `vitDefRate ${r.char.vitDefRate}`);
+});

@@ -1,6 +1,7 @@
 // Rules engine for the owned server: pure and deterministic. The caller injects the clock (`now`/`t`)
 // and a seeded RNG (`mulberry32`). Combat math lives in formulas.js; this module sequences it and emits
-// battle event bodies in the captured shapes (docs/offline-backend/api.md "Battle event").
+// battle event bodies in the captured shapes (docs/offline-backend/api.md "Battle event") as `{t, body}`; the server
+// wraps them into `{seq, body, wallMs, simTime}`. Attacks are neutral element (arrow/weapon elements not modelled).
 //
 // `char` (combat view of a character): { job, baseLv, jobLv, hp, sp, maxHp, maxSp, statusAtk, weapon: {weaponType,
 // weaponLevel, atk}, arrowAtk?, refineAtk, atkBonus, dex, int, vit, vitDefRate, matkMin, matkMax, hit, flee, crit,
@@ -75,7 +76,7 @@ export function resolveAction(s, a, rng) {
   if (a.type === 'attack') {
     const crit = pct(c.crit - m.stats.luk / 5, rng);
     const hit = crit || pct(playerHit(c, m), rng);
-    const dbl = c.weapon.weaponType === 'dagger' && pct(5 * (c.skills?.TF_DOUBLE ?? 0), rng);
+    const dbl = !crit && c.weapon.weaponType === 'dagger' && pct(5 * (c.skills?.TF_DOUBLE ?? 0), rng);
     const hits = dbl ? 2 : 1;
     const elementMod = f.elementMod('neutral', m.element, m.elementLv);
     const damage = hit ? physical(c, m, { elementMod, hits, crit }, rng) : 0;
@@ -116,7 +117,8 @@ export function finishCast(s, rng) {
     const durationMs = lookup(sk.durationMs, lv);
     s.buffs = s.buffs.filter((b) => b.id !== sk.id || !b.ended);
     s.buffs.push({ id: sk.id, lv, endsAt: t + durationMs });
-    emit(s, t, { type: 'buffStart', buffId: sk.id, durationMs }); // ponytail: buff stat effects not re-applied (see expireBuffs)
+    if (sk.id === 'AL_ANGELUS') c.vitDefRate += 5 * lv; // mirrors expireBuffs; other buff stats come from the snapshot panel
+    emit(s, t, { type: 'buffStart', buffId: sk.id, durationMs });
     return;
   }
   const hits = lookup(sk.hits, lv) || 1;
@@ -192,7 +194,9 @@ function expireBuffs(s, upTo) {
   for (const b of s.buffs) {
     if (b.ended || b.endsAt > upTo) continue;
     b.ended = true;
-    if (b.id === 'AL_ANGELUS') s.char.vitDefRate -= 5 * (b.lv ?? 0); // ponytail: other buff stats stay as in the snapshot panel
+    // ponytail: only Angelus (soft DEF) is tracked; Inc AGI/Blessing/etc. stay at the snapshot panel values.
+    // Add the buff table from formulas.js `bonuses` + `derive` when a fight outlives its buffs often enough to matter.
+    if (b.id === 'AL_ANGELUS') s.char.vitDefRate -= 5 * (b.lv ?? 0);
     emit(s, b.endsAt, { type: 'buffEnd', buffId: b.id });
   }
 }
@@ -241,7 +245,7 @@ export function simulateFight({ char, mob, buffs = [], brainChoices = {}, rng, s
   const own = s.events.filter((x) => (x.body.type === 'playerAttack' || x.body.type === 'skillHit'));
   const taken = s.events.filter((x) => x.body.type === 'monsterAttack' || x.body.type === 'mobSkill');
   return { outcome: s.over ?? 'timeout', durationMs: s.events.at(-1)?.t ?? 0, events: s.events,
-    char: { hp: s.char.hp, sp: s.char.sp, inventory: s.char.inventory },
+    char: { hp: s.char.hp, sp: s.char.sp, vitDefRate: s.char.vitDefRate, inventory: s.char.inventory },
     attacksMade: own.length, hitsLanded: own.filter((x) => x.body.damage > 0).length,
     attacksReceived: taken.length, hitsReceived: taken.filter((x) => x.body.damage > 0).length,
     damageTaken: taken.reduce((n, x) => n + x.body.damage, 0) };
@@ -270,7 +274,8 @@ export const killEventDropMult = (ev, monsterId, now) =>
 
 /**
  * EXP (even party share when members > 1), level-ups, drops (per-10000 slot rolls × dropMult) and auto-loot
- * with weight warnings. tables: { baseExpTable, jobExpTable } (bundle job rows). Returns { char, events } (t = 0).
+ * with weight warnings. tables: { baseExpTable, jobExpTable } (bundle job rows). Needs the progress fields on `char`
+ * too: baseExp, jobExp, statPoints, skillPoints, weight, weightMax. Returns { char, events } (t = 0).
  */
 export function grantKill({ char, mob, members = 1, dropMult = 1, rng, tables, itemWeights = {}, autoLoot = true }) {
   const c = { ...char }, events = [];
