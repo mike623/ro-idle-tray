@@ -190,7 +190,11 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
     ws.on('message', (raw) => {
       let a;
       try { a = JSON.parse(raw); } catch { return out({ type: 'result', ok: false, error: 'INVALID_REQUEST' }); }
-      const r = game.act(C.id, a);
+      let r;
+      try { r = game.act(C.id, a); } catch (err) { // an engine bug must not take every other character down with it
+        console.error(err);
+        r = { ok: false, error: 'INVARIANT' };
+      }
       out({ type: 'result', id: a.id, ...r });
     });
     ws.on('close', () => {

@@ -244,3 +244,19 @@ test('a crit never double-attacks; Angelus recast restores the soft-DEF bonus it
   assert.ok(r.events.filter((x) => x.body.type === 'buffEnd').length >= 2);
   assert.ok(r.char.vitDefRate === 0 || r.char.vitDefRate === 50, `vitDefRate ${r.char.vitDefRate}`);
 });
+
+test('a support skill cast in a fight buffs the caster; an attack skill with no element is neutral (twin run crash)', () => {
+  const incagi = { id: 'AL_INCAGI', kind: 'support', attackType: 'magic', sp: [18, 21], castMs: [1000, 1000], delayMs: [1000, 1000],
+    cooldownMs: [], durationMs: [60000, 80000] };
+  const s = e.startFight({ char: { ...thief, skills: { AL_INCAGI: 2 } }, mob: { ...spore }, uid: 7, skills: { AL_INCAGI: incagi } });
+  assert.equal(e.resolveAction(s, { type: 'skill', skill: 'AL_INCAGI', lv: 2, at: 0 }, fixed(0.5)).ok, true);
+  e.finishCast(s, fixed(0.5));
+  assert.deepEqual(s.events.at(-1).body, { type: 'buffStart', buffId: 'AL_INCAGI', durationMs: 80000 });
+  assert.equal(s.mob.hpLeft, spore.hp);
+
+  const steal = { id: 'TF_STEAL', kind: 'attack', attackType: 'weapon', sp: [10], castMs: [], delayMs: [], cooldownMs: [], hits: [1] };
+  const t = e.startFight({ char: { ...thief, skills: { TF_STEAL: 1 } }, mob: { ...spore }, uid: 8, skills: { TF_STEAL: steal } });
+  assert.equal(e.resolveAction(t, { type: 'skill', skill: 'TF_STEAL', lv: 1, at: 0 }, fixed(0.5)).ok, true);
+  if (t.char.casting) e.finishCast(t, fixed(0.5));
+  assert.equal(t.events.find((x) => x.body.type === 'skillHit').body.elementMod, 100);
+});

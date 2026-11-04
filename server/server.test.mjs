@@ -333,3 +333,17 @@ test('checkpoint: state survives a restart from the same SQLite file', async () 
   assert.equal((await second.get(`/api/characters/${ID}/events?after=${captured.lastSeq}`)).body.events[0].body.type, 'searching');
   await second.srv.close();
 });
+
+test('an engine bug in a brain action answers INVARIANT and the server keeps serving', async (t) => {
+  const { srv, base, get } = await boot();
+  t.after(() => srv.close());
+  const errors = [];
+  t.mock.method(console, 'error', (...x) => errors.push(x));
+  srv.game.act = () => { throw new Error('boom'); };
+  const c = connect(base);
+  await c.open;
+  assert.deepEqual(await c.send({ type: 'search' }), { type: 'result', id: 1, ok: false, error: 'INVARIANT' });
+  assert.equal((await get(`/api/characters/${ID}?deferCatchup=1`)).status, 200);
+  assert.equal(errors.length, 1);
+  c.ws.close();
+});

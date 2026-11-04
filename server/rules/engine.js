@@ -113,7 +113,7 @@ export function finishCast(s, rng) {
   c.nextActAt = t + Math.max(delayMs, c.attackIntervalMs);
   const cd = lookup(sk.cooldownMs, lv);
   if (cd) c.cooldowns[sk.id] = t + cd;
-  if (sk.kind === 'self') {
+  if (sk.kind === 'self' || sk.kind === 'support') { // ponytail: support cast in a fight lands on the caster (no ally targets yet)
     const durationMs = lookup(sk.durationMs, lv);
     s.buffs = s.buffs.filter((b) => b.id !== sk.id || !b.ended);
     s.buffs.push({ id: sk.id, lv, endsAt: t + durationMs });
@@ -122,7 +122,7 @@ export function finishCast(s, rng) {
     return;
   }
   const hits = lookup(sk.hits, lv) || 1;
-  const element = sk.element === 'weapon' ? 'neutral' : sk.element;
+  const element = !sk.element || sk.element === 'weapon' ? 'neutral' : sk.element;
   const elementMod = f.elementMod(element, m.element, m.elementLv);
   let damage, hit = true;
   if (sk.attackType === 'magic') {
