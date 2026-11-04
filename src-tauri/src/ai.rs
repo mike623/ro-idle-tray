@@ -316,18 +316,37 @@ pub fn ai_save_settings(
     settings_view(&app, cfg)
 }
 
-/// Valid model ids from the saved provider, for the settings picker. Bearer
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelCatalogView {
+    models: Vec<String>,
+    context_tokens: std::collections::BTreeMap<String, usize>,
+    fallback_request_bytes: usize,
+}
+
+fn model_catalog_view(text: &str) -> Result<ModelCatalogView, String> {
+    let mut models = parse_models(text)?;
+    models.sort_unstable();
+    let context_tokens = models.iter().filter_map(|id| {
+        model_context_tokens(text, id).map(|tokens| (id.clone(), tokens))
+    }).collect();
+    Ok(ModelCatalogView {
+        models,
+        context_tokens,
+        fallback_request_bytes: crate::chat::FALLBACK_REQUEST_BYTES,
+    })
+}
+
+/// Valid model ids and context limits from the saved provider, for the settings picker. Bearer
 /// auth returns the OpenAI-compatible catalog, which covers Claude, Gemini and
 /// GPT models, so a single request is enough.
 #[tauri::command]
-pub async fn ai_list_models(window: WebviewWindow, app: AppHandle) -> Result<Vec<String>, String> {
+pub async fn ai_list_models(window: WebviewWindow, app: AppHandle) -> Result<ModelCatalogView, String> {
     panel_only(&window)?;
     let cfg = load_config(&app);
     let key = crate::secret::load(&app)?;
     let text = model_catalog(&cfg, key.as_deref()).await?;
-    let mut models = parse_models(&text)?;
-    models.sort_unstable();
-    Ok(models)
+    model_catalog_view(&text)
 }
 
 async fn model_catalog(cfg: &AiConfig, key: Option<&str>) -> Result<String, String> {
@@ -480,6 +499,15 @@ mod tests {
         assert_eq!(parse_reply(401, r#"{"error":"Missing API key"}"#).unwrap_err(), "HTTP 401: Missing API key");
         assert!(parse_reply(200, "not json").is_err());
         assert!(parse_reply(200, r#"{"error":{"message":"model not found"}}"#).unwrap_err().contains("model not found"));
+    }
+
+    #[test]
+    fn model_picker_shares_chat_context_detection_and_fallback() {
+        let catalog = model_catalog_view(r#"{"data":[{"id":"unknown"},{"id":"large","context_length":200000,"top_provider":{"context_length":128000}}]}"#).unwrap();
+        let view = serde_json::to_value(catalog).unwrap();
+        assert_eq!(view["models"], json!(["large", "unknown"]));
+        assert_eq!(view["contextTokens"], json!({"large": 128000}));
+        assert_eq!(view["fallbackRequestBytes"], crate::chat::FALLBACK_REQUEST_BYTES);
     }
 
     #[test]

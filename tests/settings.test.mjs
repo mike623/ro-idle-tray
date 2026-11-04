@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs/promises';
+import vm from 'node:vm';
 
 const read = (path) => fs.readFile(new URL(`../src/${path}`, import.meta.url), 'utf8');
 const html = await read('index.html');
@@ -56,4 +57,24 @@ test('the picker keeps the saved name when the list cannot load and prefers it w
   assert.match(main, /if \(models\.includes\(saved\)\)/);
   assert.match(main, /aiRevealModel\(models\[0\]\)/);
   assert.match(main, /Could not list models:/);
+});
+
+
+test('context label follows the selected model and distinguishes unknown capacity from bytes', () => {
+  const label = { textContent: '' };
+  const context = vm.createContext({
+    $: () => label,
+    aiModelValue: 'large',
+    aiModelCatalog: { contextTokens: { large: 128000 }, fallbackRequestBytes: 39808 },
+  });
+  const render = main.slice(main.indexOf('function aiShowModelContext()'), main.indexOf('function aiRenderModels()'));
+  vm.runInContext(render + 'aiShowModelContext();', context);
+  assert.equal(label.textContent, 'Context: 128,000 tokens');
+  context.aiModelValue = 'unknown';
+  vm.runInContext('aiShowModelContext();', context);
+  assert.equal(label.textContent, 'Context: unknown · 39,808-byte fallback');
+  context.aiModelCatalog = null;
+  vm.runInContext('aiShowModelContext();', context);
+  assert.equal(label.textContent, 'Context: unavailable');
+  assert.match(html, /id="ai-model-context"[^>]*aria-live="polite"/);
 });

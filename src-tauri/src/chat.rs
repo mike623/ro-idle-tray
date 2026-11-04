@@ -151,6 +151,7 @@ fn archive(file_path: &Path) -> Result<(), String> {
 // Budget in UTF-8 bytes is conservative for token counts, including non-Latin text.
 const HISTORY_BYTES: usize = 16_000;
 const REQUEST_BYTES: usize = 48_000;
+pub(crate) const FALLBACK_REQUEST_BYTES: usize = REQUEST_BYTES - 8_192;
 const SUMMARY_BYTES: usize = 4_000;
 
 /// Keep whole completed user turns, including every tool call/result pair.
@@ -1097,7 +1098,7 @@ struct ContextBudget {
 }
 impl Default for ContextBudget {
     fn default() -> Self {
-        Self { request_bytes: REQUEST_BYTES - 8_192, history_bytes: HISTORY_BYTES }
+        Self { request_bytes: FALLBACK_REQUEST_BYTES, history_bytes: HISTORY_BYTES }
     }
 }
 impl ContextBudget {

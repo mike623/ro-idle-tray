@@ -646,6 +646,7 @@ function aiFill(s) {
 // model and a searchable list. `aiModelValue` is the source of truth; the
 // hidden input keeps the save/test calls unchanged.
 let aiModels = [];
+let aiModelCatalog = null;
 let aiModelValue = "";
 let aiModelActive = -1;
 let aiModelFiltered = [];
@@ -661,7 +662,17 @@ function aiRevealModel(value) {
   const label = $("ai-model-value");
   label.textContent = v || "Select a model…";
   label.classList.toggle("placeholder", !v);
+  aiShowModelContext();
   aiRenderModels();
+}
+function aiShowModelContext() {
+  const context = $("ai-model-context");
+  const tokens = aiModelCatalog?.contextTokens[aiModelValue];
+  context.textContent = tokens != null
+    ? `Context: ${tokens.toLocaleString("en-US")} tokens`
+    : aiModelCatalog
+      ? `Context: unknown · ${aiModelCatalog.fallbackRequestBytes.toLocaleString("en-US")}-byte fallback`
+      : "Context: unavailable";
 }
 function aiRenderModels() {
   const query = $("ai-model-search").value.trim().toLowerCase();
@@ -770,9 +781,13 @@ async function aiLoadModels() {
   const hint = $("ai-model-hint");
   const saved = aiModelValue;
   hint.textContent = "Loading models…";
+  aiModelCatalog = null;
+  $("ai-model-context").textContent = "Context: loading…";
   try {
-    const models = await invoke("ai_list_models");
+    const catalog = await invoke("ai_list_models");
     if (token !== aiModelsRequest) return;
+    aiModelCatalog = catalog;
+    const models = catalog.models;
     aiModels = models;
     if (models.includes(saved)) {
       aiRevealModel(saved);
