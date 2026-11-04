@@ -369,24 +369,8 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 /* The assistant's button sits at the footer's right end. */
 .fab { margin-left: auto; padding: 3px 12px; border: 1px solid var(--select); border-radius: 14px; color: var(--ink-blue); background: var(--face); font-weight: 600; font-size: 11px; white-space: nowrap; }
 .fab:hover, .fab[aria-expanded="true"] { background: var(--face-2); }
-.assistant { position: absolute; right: 10px; bottom: 10px; z-index: 6; width: min(400px, calc(100% - 20px)); height: min(600px, calc(100% - 20px)); display: flex; flex-direction: column; padding: 10px; gap: 10px; background: var(--face-2); border: 1px solid var(--edge-mid); border-radius: 10px; box-shadow: 0 12px 36px #000a; user-select: text; -webkit-user-select: text; }
+.assistant { position: absolute; right: 10px; bottom: 10px; z-index: 6; width: min(400px, calc(100% - 20px)); height: min(600px, calc(100% - 20px)); display: flex; flex-direction: column; padding: 0; overflow: hidden; background: var(--face-2); border: 1px solid var(--edge-mid); border-radius: 10px; box-shadow: 0 12px 36px #000a; user-select: text; -webkit-user-select: text; }
 .assistant[hidden] { display: none; }
-.chat-head { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
-.chat-roster summary { cursor: pointer; }
-.chat-roster[open] summary { margin-bottom: 4px; }
-.chat-status { display: flex; flex-wrap: wrap; gap: 4px; max-height: 62px; overflow: auto; }
-.chat-messages { flex: 1; min-height: 120px; overflow: auto; }
-.chat-card { border: 1px solid var(--edge-mid); border-radius: 8px; padding: 10px; margin-bottom: 8px; background: var(--face); }
-.chat-user { margin-left: 24px; }
-.chat-body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; margin-top: 6px; }
-.chat-chip { display: inline-block; font-size: 10px; border: 1px solid var(--edge-mid); border-radius: 5px; padding: 2px 5px; overflow-wrap: anywhere; }
-.chat-tools { margin-top: 6px; }
-.chat-tools summary { cursor: pointer; list-style-position: inside; }
-.chat-tools .row { margin-top: 4px; }
-#chat-form { display: flex; flex-wrap: wrap; gap: 6px; }
-#chat-form label { width: 100%; }
-#chat-input { flex: 1; min-width: 100px; font: inherit; padding: 8px; color: var(--text); background: var(--face); border: 1px solid var(--edge-mid); border-radius: 6px; }
-#chat-error { color: var(--danger); white-space: pre-wrap; margin: 0; }
 
 /* Offline profile: game page closed, last data kept. */
 .prow.offline { opacity: 0.55; }
@@ -438,8 +422,5 @@ button.dot:hover { outline: 2px solid var(--select); }
 .list.ledger .sum .go { grid-column: 5; } .list.ledger .sum .idle { grid-column: 6; }
 .list.ledger .sum :is(.ask, .go, .idle) { width: 26px; height: 26px; padding: 0; font-size: 12px; }
 .list.ledger .none { margin: 12px; text-align: center; }
-.global-chat { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
-.assistant.char { padding: 0; overflow: hidden; }
-.char-chat { flex: 1; min-height: 0; }
 .list.ledger .add-group { align-self: flex-start; font-size: 11px; padding: 3px 10px; }
 .assist { flex: none; font-size: 11px; line-height: 1; margin-left: 3px; cursor: default; }

@@ -1,11 +1,12 @@
-// Injected into each game window as a floating bubble; the panel mounts the same chat
-// for one character (window.roIdleCharacterChat). Secrets and model calls belong to Rust.
+// One assistant. The panel mounts the chat (window.roIdleAssistant); "@角色" scopes a question
+// to that character. Each game window gets only a launcher (badge, nudge, tutorial) that
+// opens the panel with "@角色" filled in. Secrets and model calls belong to Rust.
 (() => {
   if (window !== window.top) return;
   // The panel loads this file with data-embed and mounts it itself.
   const embedOnly = document.currentScript?.hasAttribute('data-embed');
   const TOOL_LABELS = {list_characters:'角色列表',get_character:'角色狀態',get_log_summary:'讀取紀錄',game_lookup:'查詢資料',rank_maps:'地圖排名',guide_lookup:'查詢攻略',remember:'記住',update_memory:'更新記憶',forget:'忘記',recall:'回想'};
-  const STARTERS = ['為什麼剛才死亡？','最近效率如何？','下一步怎麼升級？'];
+  const STARTERS = ['誰的狀況最差？','今晚怎麼排？','最近為什麼死亡？'];
   const boot = (opts = {}) => {
     const embed = !!opts.mount;
     if (!embed && document.getElementById('ro-idle-assistant')) return;
@@ -13,8 +14,10 @@
     if (embed) { host.className = 'embed'; host.style.cssText = 'all:initial;display:block;height:100%;'; }
     else { host.id = 'ro-idle-assistant'; host.style.cssText = 'all:initial;position:fixed;right:14px;bottom:14px;z-index:2147483647;'; }
     const root = host.attachShadow({mode:'closed'});
-    // Embedded: the panel names the character; a game window's own character comes from Rust.
-    const who = embed ? {character: opts.character} : {};
+    // Panel: opts.roster() → known names; opts.groups() → group context; opts.summary() → header line.
+    const roster = () => opts.roster?.() ?? [];
+    // The last "@name" in a message names the character it is about (嘈嘈嘈2 beats 嘈嘈嘈).
+    const mention = (t='') => roster().map((n) => [t.lastIndexOf(`@${n}`), n]).filter(([i]) => i >= 0).sort((a,b) => b[0] - a[0] || b[1].length - a[1].length)[0]?.[1] ?? null;
     root.innerHTML = `<style>
       :host{all:initial;--bg:#fff;--fg:#09090b;--muted:#f4f4f5;--mf:#71717a;--line:#e4e4e7;--pri:#18181b;--prf:#fafafa;--warn:#b45309}
       #box,.dock{font:13px/1.5 -apple-system,BlinkMacSystemFont,"PingFang TC",sans-serif;color:var(--fg);text-align:left}
@@ -68,25 +71,28 @@
       #plan-note{resize:none;font:inherit;font-size:12px;height:76px}
       .pa{display:flex;align-items:center;gap:8px} #plan-count{flex:1;font-size:11px;color:var(--mf)}
       .pa button{border:1px solid var(--line);border-radius:6px;padding:4px 12px;font-size:12px} .pa .primary{background:var(--pri);color:var(--prf);border-color:var(--pri)}
-      :host(.embed) #box{width:100%;height:100%;border:0;border-radius:0;box-shadow:none} :host(.embed) .dock,:host(.embed) #tutorial{display:none!important}
+      :host(.embed) #box{width:100%;height:100%;border:0;border-radius:0;box-shadow:none} :host(.embed) .dock{display:none!important}
+      #mentions{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 6px} #mentions:empty{display:none}
+      #mentions button{border:1px solid var(--line);border-radius:12px;padding:1px 8px;font-size:11px} #mentions button:hover{background:var(--muted)}
+      .dock #tutorial{background:var(--bg);border-radius:8px!important;border:1px solid var(--line)!important;max-width:230px}
       #memory{margin-top:6px;padding:0 4px;font-size:10px;color:var(--mf);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} #memory:empty{display:none}
-    </style><section id="box" hidden aria-label="角色助理"><header><div class="av" aria-hidden="true">✦</div><div class="who"><div><span id="title">助理</span> <span id="sub"></span></div><div id="state"></div></div><span id="model" class="chip" hidden></span><button id="new" class="icon" type="button" title="新對話" aria-label="新對話">↺</button><button id="close" class="icon" type="button" title="收起" aria-label="收起助理">—</button></header><div id="plan" hidden><p class="hint">勾選的攻略與指示會帶進這隻角色的每次對話。</p><input id="plan-q" type="search" placeholder="搜尋攻略…" aria-label="搜尋攻略"/><div id="plan-list" role="group" aria-label="攻略清單"></div><label class="lbl" for="plan-note">我的指示</label><textarea id="plan-note" maxlength="1000" placeholder="例：走 AGI 爆擊路線；不買超過 5 萬 zeny 的裝備"></textarea><div class="pa"><span id="plan-count"></span><button id="plan-cancel" type="button">取消</button><button id="plan-save" class="primary" type="button">儲存</button></div></div><div id="tutorial"></div><div id="messages" role="log" aria-label="角色對話"></div><div id="error" role="alert" hidden></div><form><button id="plan-btn" type="button" aria-expanded="false"></button><div class="field"><input aria-label="詢問角色" placeholder="問這隻角色的事…" maxlength="2000" required/><button id="send" type="submit" aria-label="送出">↑</button></div><div id="memory" aria-live="polite"></div></form></section><div class="dock"><button id="nudge" type="button" hidden></button><button id="pill" type="button" aria-expanded="false"><span class="av" aria-hidden="true">✦</span><span id="pill-label">助理</span><span id="badge" hidden></span></button></div>`;
+    </style><section id="box" hidden aria-label="助理"><header><div class="av" aria-hidden="true">✦</div><div class="who"><div><span id="title">助理</span> <span id="sub"></span></div><div id="state"></div></div><span id="model" class="chip" hidden></span><button id="new" class="icon" type="button" title="新對話" aria-label="新對話">↺</button><button id="close" class="icon" type="button" title="收起" aria-label="收起助理">—</button></header><div id="plan" hidden><p class="hint">勾選的攻略與指示會帶進這隻角色的每次對話。</p><input id="plan-q" type="search" placeholder="搜尋攻略…" aria-label="搜尋攻略"/><div id="plan-list" role="group" aria-label="攻略清單"></div><label class="lbl" for="plan-note">我的指示</label><textarea id="plan-note" maxlength="1000" placeholder="例：走 AGI 爆擊路線；不買超過 5 萬 zeny 的裝備"></textarea><div class="pa"><span id="plan-count"></span><button id="plan-cancel" type="button">取消</button><button id="plan-save" class="primary" type="button">儲存</button></div></div><div id="messages" role="log" aria-label="角色對話"></div><div id="error" role="alert" hidden></div><form><button id="plan-btn" type="button" aria-expanded="false" hidden></button><div id="mentions" aria-label="角色名稱建議"></div><div class="field"><input aria-label="詢問助理" placeholder="問全隊，或 @角色 …" maxlength="2000" required/><button id="send" type="submit" aria-label="送出">↑</button></div><div id="memory" aria-live="polite"></div></form></section><div class="dock"><div id="tutorial"></div><button id="nudge" type="button" hidden></button><button id="pill" type="button" aria-expanded="false"><span class="av" aria-hidden="true">✦</span><span id="pill-label">助理</span><span id="badge" hidden></span></button></div>`;
     if (embed) opts.mount.replaceChildren(host); else document.body.append(host);
     const $ = (id) => root.getElementById(id);
     const invoke = (cmd,args={}) => window.__TAURI__.core.invoke(cmd,args);
     const el = (tag,cls='',text='') => { const n = document.createElement(tag); if(cls) n.className = cls; if(text) n.textContent = text; return n; };
+    // Game window: name = its own character. Panel: name = the character the chat is focused on.
     let name = null, busy = false, generation = 0, restored = false;
-    const tutorial = embed ? {refresh: async () => {}} : window.roIdleTutorial($('tutorial'),invoke,()=>name);
+    const tutorial = embed ? null : window.roIdleTutorial($('tutorial'),invoke,()=>name);
     let unread = 0, nudge = '', alertAt = 0;
     const pill = () => {
       $('pill-label').textContent = `問 ${name}`;
       $('badge').textContent = String(unread); $('badge').hidden = !unread;
       $('pill').setAttribute('aria-label',`問 ${name}${unread ? ` · ${unread} 則未讀` : ''}`);
-      $('nudge').textContent = nudge; $('nudge').hidden = !unread || !nudge || !$('box').hidden;
+      $('nudge').textContent = nudge; $('nudge').hidden = !unread || !nudge;
     };
     const alerts = async () => {
-      const current = generation;
-      try { const info = await invoke('chat_alerts',{character:name}); if(current === generation) {unread = info.unread; nudge = info.nudge; pill();} } catch {}
+      try { const info = await invoke('chat_alerts',{character:name}); unread = info.unread; nudge = info.nudge; pill(); } catch {}
     };
     const showError = (e='') => { $('error').textContent = String(e); $('error').hidden = !e; };
     const scroll = () => { $('messages').scrollTop = $('messages').scrollHeight; };
@@ -107,10 +113,10 @@
     // "> DEX 40" / "> DEX +10" tip lines → one button that writes them into the game's 自動配點.
     // Two clicks: stat points can't be taken back in game.
     const STAT = /^\s*(STR|AGI|VIT|INT|DEX|LUK)\s*[:：]?\s*([+＋])?\s*(\d{1,2})\b/i;
-    const statButton = (tip,rows) => {
-      if (!rows.length) return;
+    const statButton = (tip,rows,character) => {
+      if (!rows.length || !character) return;
       // Game window: its own hook. Panel: Rust runs the same hook in that character's window.
-      const apply = typeof window.__roIdleStatsAuto === 'function' ? window.__roIdleStatsAuto : (r) => invoke('apply_stats',{character:name,rows:r});
+      const apply = typeof window.__roIdleStatsAuto === 'function' ? window.__roIdleStatsAuto : (r) => invoke('apply_stats',{character,rows:r});
       const b = el('button','','套用到自動配點'); b.type = 'button'; let armed = false;
       b.onclick = async () => {
         if (!armed) { armed = true; b.className = 'warn'; b.textContent = '確定？加下去不能退回'; setTimeout(() => { if (armed && !b.disabled) { armed = false; b.className = ''; b.textContent = '套用到自動配點'; } },4000); return; }
@@ -135,10 +141,10 @@
         else parent.append(el('span','',part));
       }
     };
-    const format = (body,text) => {
+    const format = (body,text,character) => {
       body.replaceChildren();
       const lines = text.split('\n'); let follow = [], tip = null, stats = [];
-      const close = () => { if (tip) statButton(tip,stats); tip = null; stats = []; };
+      const close = () => { if (tip) statButton(tip,stats,character); tip = null; stats = []; };
       if (FOLLOW.test((lines[lines.length - 1] ?? '').trim())) follow = lines.pop().trim().replace(FOLLOW,'').split(/[｜|]/).map((q)=>q.trim()).filter(Boolean).slice(0,2);
       while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
       for (const line of lines) {
@@ -153,89 +159,66 @@
       close();
       return follow;
     };
-    const card = (role,text,tools=[]) => {
+    const card = (role,text,tools=[],character=null) => {
       if (role === 'user') { const body = el('div','me',text); $('messages').append(body); scroll(); return {body}; }
       const row = el('div','ai'), col = el('div','col'), chips = toolBox(), body = el('div','text');
       for (const t of tools) addTool(chips,t);
-      const follow = format(body,text);
+      const follow = format(body,text,character);
       col.append(chips,body); row.append(el('div','av','✦'),col); $('messages').append(row); scroll(); return {body,chips,follow};
     };
     // Alert rows hold a headline, a one-line summary and the raw log lines before the event; fold the raw lines.
+    // The panel's rows start with "@name · " so the card says whose event it is.
     const alertCard = (text) => {
       const [head, rest=''] = text.split('\n\n');
-      const lines = head.split('\n'), ms = /(\d{12,})/.exec(lines[0]);
+      const lines = head.split('\n'), ms = /(\d{12,})/.exec(lines[0]), who = /^@(\S+) · /.exec(lines[0])?.[1];
       const box = el('div','alert');
-      box.append(el('b','',ms ? `⚠ 紀錄事件 · ${new Date(Number(ms[1])).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false})}` : lines[0]));
+      const at = ms ? `紀錄事件 · ${new Date(Number(ms[1])).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false})}` : lines[0];
+      box.append(el('b','',`⚠ ${who ? `${who} · ` : ''}${at}`));
       if (lines.length > 1) box.append(el('div','at',lines.slice(1).join(' ')));
       const [summary='', ...context] = rest.split('\n');
       if (summary) box.append(el('div','as',summary));
       if (context.length) { const d = el('details'); d.append(el('summary','',`最近 ${context.length} 筆紀錄`),el('pre','',context.join('\n'))); box.append(d); }
       const row = el('div','ai'), col = el('div','col'); col.append(box); row.append(el('div','av','✦'),col); $('messages').append(row);
     };
+    const input = root.querySelector('form input');
     const starters = (questions) => {
       const wrap = el('div','starters');
-      for (const q of questions) { const b = el('button','',q); b.type = 'button'; b.addEventListener('click',()=>{ root.querySelector('form input').value = q; root.querySelector('form').requestSubmit(); }); wrap.append(b); }
+      for (const q of questions) { const b = el('button','',q); b.type = 'button'; b.addEventListener('click',()=>{ input.value = `${name ? `@${name} ` : ''}${q}`; root.querySelector('form').requestSubmit(); }); wrap.append(b); }
       $('messages').append(wrap);
     };
+    // A reply's stat button applies to the character its question named.
     const render = (rows) => {
       $('messages').replaceChildren();
-      let last = null;
+      let last = null, about = null;
       for (const r of rows) if (!r.message && r.role !== 'summary' && r.text) {
-        if (r.event_id) { alertCard(r.text); last = null; } else { const c = card(r.role,r.text,r.tools); last = r.role === 'user' ? null : c; }
+        if (r.event_id) { alertCard(r.text); last = null; }
+        else { if (r.role === 'user') about = mention(r.text); const c = card(r.role,r.text,r.tools,about); last = r.role === 'user' ? null : c; }
       }
-      if (!$('messages').childElementCount) { card('assistant',`想了解 ${name} 的狀態或戰鬥紀錄嗎？`); starters(STARTERS); }
+      if (!$('messages').childElementCount) { card('assistant','我可以讀取全隊的狀態與戰鬥紀錄。用 @角色 問單一角色。'); starters(STARTERS); }
       else if (last?.follow?.length) starters(last.follow);
       scroll();
     };
     const memory = async () => {
-      const current = generation;
-      const info = await invoke('chat_memory',{character:name});
-      if(current === generation) $('memory').textContent = info.fact ? `記得：${info.fact} · 記憶 ${info.count} 則` : `記憶 ${info.count} 則`;
+      const info = await invoke('chat_memory');
+      $('memory').textContent = info.fact ? `記得：${info.fact} · 記憶 ${info.count} 則` : `記憶 ${info.count} 則`;
     };
     const restore = async () => {
-      if (!name) return;
-      const current = generation;
-      try { const rows = await invoke('chat_history',{character:name}); if (current === generation) { render(rows); restored = true; await memory(); const saved = await invoke('chat_plan',{character:name}); if (current === generation) { plan = {...plan, ...saved}; followLine(); } } }
-      catch(e) { if (current === generation) showError(e); }
+      try { render(await invoke('chat_history')); restored = true; await memory(); } catch(e) { showError(e); }
     };
-    const state = (info) => {
-      if (typeof info?.name !== 'string') return;
-      if (name !== info.name) {
-        name = info.name; generation++; restored = false; busy = false; unread = 0; nudge = ''; alertAt = 0;
-        $('send').disabled = false; $('new').disabled = false; $('messages').replaceChildren(); $('memory').textContent = ''; showError(); tutorial.refresh();
-        plan = {pages:[],suggested:[],selected:[],note:''}; followLine(); if (!$('plan').hidden) showPlan(false);
-      }
-      pill();
-      if(Date.now() - alertAt > 3000) {alertAt = Date.now(); alerts();}
-      $('title').textContent = name;
-      $('sub').textContent = `· ${info.class ?? ''} Lv${info.base ?? '?'}`;
-      if (typeof info.model === 'string') { $('model').textContent = info.model; $('model').hidden = !info.model; }
-      if (!$('box').hidden && !restored && !busy) restore();
-      $('state').textContent = `${info.map ?? '?'} · ${info.running ? '掛機中' : '已停止'} · HP ${info.hp ?? '?'}/${info.maxHp ?? '?'}`;
-    };
-    const open = async (value) => {
-      $('box').hidden = !value; $('pill').hidden = value; $('pill').setAttribute('aria-expanded',String(value)); pill();
-      if (value) {
-        try { state(await invoke('chat_character',who)); } catch(e) { showError(e); }
-        if (!restored) await restore();
-        await tutorial.refresh();
-        root.querySelector('form input').focus();
-      } else $('pill').focus();
-    };
-    const onPill = async()=>{
-      if(unread && !busy) {
-        const current = generation, character = name;
-        await open(true);
-        if(current !== generation) return;
-        try {const view = await invoke('chat_alert_open',{character});if(current === generation && !$('box').hidden) {render(view.rows); for(let start = 0; start < view.ids.length; start += 1000) {if(current !== generation) break; const info = await invoke('chat_alert_ack',{character,ids:view.ids.slice(start,start+1000)}); if(current === generation){unread = info.unread; nudge = info.nudge; pill();}}}}
-        catch(e){if(current === generation) showError(e);}
-      } else await open($('box').hidden);
-    };
-    // Guides and a free-text note the player pins to this character's chat context.
+    const header = () => { $('title').textContent = '助理'; $('sub').textContent = ''; $('state').textContent = opts.summary?.() ?? ''; };
+    // Guides and a free-text note the player pins to the focused character's context.
     const MAX_PAGES = 3; let plan = {pages:[],suggested:[],selected:[],note:''};
     const followLine = () => {
+      $('plan-btn').hidden = !name;
       const parts = [...plan.selected, plan.note ? '我的指示' : ''].filter(Boolean);
-      $('plan-btn').textContent = parts.length ? `📖 跟隨：${parts.join('、')}` : '📖 選擇要跟隨的攻略…';
+      $('plan-btn').textContent = parts.length ? `📖 ${name} 跟隨：${parts.join('、')}` : `📖 替 ${name} 選擇要跟隨的攻略…`;
+    };
+    const focus = async (who) => {
+      if (who === name) return;
+      name = who; generation++; plan = {pages:[],suggested:[],selected:[],note:''}; followLine();
+      if (!name) return;
+      const current = generation;
+      try { const saved = await invoke('chat_plan',{character:name}); if (current === generation) { plan = {...plan, ...saved}; followLine(); } } catch {}
     };
     let chosen = new Set(), boxes = [];
     const planList = () => {
@@ -254,7 +237,7 @@
       for (const c of boxes) c.disabled = !c.checked && chosen.size >= MAX_PAGES;
     };
     const showPlan = async (value) => {
-      for (const id of ['messages','tutorial','error']) $(id).hidden = value || (id === 'error' && !$('error').textContent);
+      for (const id of ['messages','error']) $(id).hidden = value || (id === 'error' && !$('error').textContent);
       root.querySelector('form').hidden = value; $('plan').hidden = !value;
       $('plan-btn').setAttribute('aria-expanded',String(value));
       if (!value) { $('plan-btn').focus(); return; }
@@ -271,44 +254,74 @@
       try { const saved = await invoke('chat_plan_set',{character:name,pages,note}); if (current === generation) { plan = {...plan, ...saved}; followLine(); showPlan(false); } }
       catch(e) { if (current === generation) showError(e); }
     });
-    followLine();
-    $('pill').addEventListener('click',onPill);
-    $('nudge').addEventListener('click',onPill);
-    const close = () => embed ? opts.onClose?.() : open(false);
-    $('close').addEventListener('click',close);
-    root.addEventListener('keydown',(e)=>{if(e.key === 'Escape') close();});
-    if (!embed) window.addEventListener('ro-idle-chat-state',(e)=>state(e.detail));
+    // Complete the @ fragment at the caret; the named character becomes the focus.
+    input.addEventListener('input',()=>{
+      $('mentions').replaceChildren();
+      const m = /@([^@\s]*)$/.exec(input.value.slice(0, input.selectionStart ?? input.value.length));
+      if (m) for (const n of roster().filter((n) => n.includes(m[1]) && n !== m[1])) {
+        const b = el('button','',`@${n}`); b.type = 'button';
+        b.addEventListener('click',()=>{ const end = input.selectionStart ?? input.value.length; input.setRangeText(`@${n} `, end - m[0].length, end, 'end'); $('mentions').replaceChildren(); focus(n); input.focus(); });
+        $('mentions').append(b);
+      }
+      const who = mention(input.value); if (who) focus(who);
+    });
+    if (!embed) {
+      // Game window: launcher only. The chat itself lives in the panel.
+      const ask = () => invoke('chat_open_panel').catch(()=>{});
+      $('pill').addEventListener('click',ask);
+      $('nudge').addEventListener('click',ask);
+      window.addEventListener('ro-idle-chat-state',(e)=>{
+        if (typeof e.detail?.name !== 'string') return;
+        if (name !== e.detail.name) { name = e.detail.name; unread = 0; nudge = ''; alertAt = 0; tutorial.refresh(); }
+        pill();
+        if (Date.now() - alertAt > 3000) { alertAt = Date.now(); alerts(); }
+      });
+      return;
+    }
+    $('close').addEventListener('click',()=>opts.onClose?.());
+    root.addEventListener('keydown',(e)=>{if(e.key === 'Escape') opts.onClose?.();});
     $('new').addEventListener('click',async()=>{
-      if (busy || !name) return;
-      const current = generation;
-      try { await invoke('chat_new',{character:name}); if(current === generation) {render([]);showError();} }
-      catch(e) { if(current === generation) showError(e); }
+      if (busy) return;
+      try { await invoke('chat_new'); render([]); showError(); } catch(e) { showError(e); }
     });
     root.querySelector('form').addEventListener('submit',async(e)=>{
-      e.preventDefault(); const input = root.querySelector('form input'); const text = input.value.trim();
-      if (busy || !name || !text) return;
-      const current = generation; const character = name;
-      busy = true; $('send').disabled = true; $('new').disabled = true; showError();
+      e.preventDefault(); const text = input.value.trim();
+      if (busy || !text) return;
+      const about = mention(text);
+      busy = true; $('send').disabled = true; $('new').disabled = true; showError(); $('mentions').replaceChildren();
       card('user',text); const answer = card('assistant','讀取中…'); let content = '';
       const onEvent = new window.__TAURI__.core.Channel();
       onEvent.onmessage = (event) => {
-        if (current !== generation) return;
-        if (event.kind === 'text') {content += event.text; format(answer.body,content);}
+        if (event.kind === 'text') {content += event.text; format(answer.body,content,about);}
         if (event.kind === 'tool') addTool(answer.chips,event.name);
         scroll();
       };
-      try { const rows = await invoke('chat_send',{character,text,onEvent}); if(current === generation) {render(rows); input.value = ''; await memory();} }
-      catch(e) { if(current === generation) {showError(e); await restore();} }
-      finally { if(current === generation) {busy = false; $('send').disabled = false; $('new').disabled = false;} }
+      try { render(await invoke('chat_send',{text,groups:opts.groups?.() ?? '',onEvent})); input.value = ''; await memory(); }
+      catch(e) { showError(e); await restore(); }
+      finally { busy = false; $('send').disabled = false; $('new').disabled = false; input.focus(); }
     });
-    if (!embed) { invoke('chat_character').then(state).catch(()=>{}); return; }
-    // Embedded opens straight away, on its unread log events when there are any.
-    (async () => {
-      try { state(await invoke('chat_character',who)); await alerts(); await onPill(); }
-      catch(e) { $('box').hidden = false; showError(e); }
-    })();
+    $('box').hidden = false; header(); followLine();
+    // ask(name): focus that character, prefill "@name ", and post its unread log events into the chat.
+    return {
+      header,
+      async ask(who) {
+        if (!restored) await restore();
+        header();
+        if (!who) { input.focus(); return; }
+        await focus(who);
+        if (mention(input.value) !== who) input.value = `@${who} `;
+        input.focus();
+        try {
+          if (!(await invoke('chat_alerts',{character:who})).unread || busy) return;
+          const view = await invoke('chat_alert_open',{character:who,global:true});
+          render(view.rows);
+          for (let start = 0; start < view.ids.length; start += 1000) await invoke('chat_alert_ack',{character:who,ids:view.ids.slice(start,start+1000)});
+          opts.onAlerts?.();
+        } catch(e) { showError(e); }
+      },
+    };
   };
-  window.roIdleCharacterChat = (mount, character, onClose) => boot({mount, character, onClose});
+  window.roIdleAssistant = (mount, opts = {}) => boot({...opts, mount});
   if (embedOnly) return;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',()=>boot(),{once:true}); else boot();
 })();

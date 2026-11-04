@@ -684,6 +684,7 @@ pub fn run() {
             chat::chat_alert_open,
             chat::chat_alert_ack,
             chat::chat_tutorial,
+            chat::chat_open_panel,
             chat::chat_plan,
             chat::chat_plan_set,
             quit
@@ -1183,14 +1184,23 @@ fn toggle_panel(app: &AppHandle) {
     if w.is_visible().unwrap_or(false) {
         hide_panel_window(app);
     } else {
+        show_panel(app);
+    }
+}
+
+pub(crate) fn show_panel(app: &AppHandle) {
+    let Some(w) = app.get_webview_window("panel") else {
+        return;
+    };
+    if !w.is_visible().unwrap_or(false) {
         if !restore_panel(&w) {
             place_panel(&w, *app.state::<PanelWidth>().0.lock().unwrap());
         }
         let _ = w.show();
-        let _ = w.set_focus();
         notify(app);
         poll_profiles(app);
     }
+    let _ = w.set_focus();
 }
 
 /// Panel width in logical px: 360 for list/grid, wider for the board view.

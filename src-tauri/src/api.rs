@@ -274,7 +274,7 @@ pub(crate) fn respond(method: &str, target: &str, auth: Option<&str>, token: &st
 }
 
 /// characters.json is `{ "<profile>": snapshot }`; flatten to a list sorted by profile.
-fn load_characters(dir: &Path) -> Vec<Value> {
+pub(crate) fn load_characters(dir: &Path) -> Vec<Value> {
     let Some(Value::Object(all)) =
         std::fs::read_to_string(dir.join("characters.json")).ok().and_then(|s| serde_json::from_str(&s).ok())
     else {

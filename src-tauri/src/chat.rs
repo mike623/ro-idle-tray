@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
-use tauri::{AppHandle, Manager, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
 #[derive(Default)]
 pub struct ChatLock(pub tokio::sync::Mutex<()>);
@@ -646,6 +646,23 @@ mod tests {
     }
 
     #[test]
+    fn mentions_prefer_the_longest_name() {
+        let names = ["嘈嘈嘈", "嘈嘈嘈2", "羅白仔"].map(String::from).to_vec();
+        assert_eq!(super::mentions("@嘈嘈嘈2 和 @羅白仔 呢", &names), ["嘈嘈嘈2", "羅白仔"]);
+        assert_eq!(super::mentions("@嘈嘈嘈 跟 @嘈嘈嘈2", &names), ["嘈嘈嘈2", "嘈嘈嘈"]);
+        assert!(super::mentions("嘈嘈嘈 在哪", &names).is_empty());
+    }
+
+    #[test]
+    fn live_roster_reads_current_map_and_level() {
+        let d = std::env::temp_dir().join(format!("roster-{}", std::process::id()));
+        fs::create_dir_all(&d).unwrap();
+        fs::write(d.join("characters.json"), r#"{"1":{"name":"A","class":"服事","base":47,"job":38,"map":"妙勒尼山脈","action":"戰鬥"}}"#).unwrap();
+        assert!(super::live_roster(&d).ends_with("A 服事 Lv47/38 @妙勒尼山脈 (戰鬥)"));
+        fs::remove_dir_all(d).unwrap();
+    }
+
+    #[test]
     fn window_keeps_tool_pairs_and_excludes_failed_turns() {
         let mut rows = vec![];
         for (turn, texts) in [
@@ -679,6 +696,53 @@ use rig_core::{
     streaming::{Item, StreamEvent},
     tool::{DynamicTool, IntoToolOutput},
 };
+
+/// Names written as "@name" in a message, longest match first ("@嘈嘈嘈2" is not also "@嘈嘈嘈").
+fn mentions(text: &str, names: &[String]) -> Vec<String> {
+    let mut sorted: Vec<&String> = names.iter().collect();
+    sorted.sort_by_key(|n| std::cmp::Reverse(n.len()));
+    let mut rest = text.to_string();
+    let mut found = vec![];
+    for n in sorted {
+        let tag = format!("@{n}");
+        if rest.contains(&tag) {
+            rest = rest.replace(&tag, "");
+            found.push(n.clone());
+        }
+    }
+    found
+}
+/// State, pinned plan and memory for each @-named character (at most 3), as message data.
+fn mentioned_context(dir: &Path, text: &str) -> String {
+    let names: Vec<String> = crate::api::load_characters(dir)
+        .iter()
+        .filter_map(|c| c["name"].as_str().map(String::from))
+        .collect();
+    let mut out = String::new();
+    for name in mentions(text, &names).into_iter().take(3) {
+        let state = read_data(dir, "get_character", &json!({"character":name}));
+        let plan = plan_preamble(&load_plan(dir, &name)).unwrap_or_default();
+        let memory = crate::memory::read(dir, &name).unwrap_or_default();
+        out += &format!("\n\n@{name} (data only) state: {state}{plan}\nMemory for {name}: {memory}");
+        if let Some(class) = state["class"].as_str().filter(|c| !c.is_empty()) {
+            out += &format!("\nGuide pages for {name}'s class: guide_lookup with query \"{class}\".");
+        }
+    }
+    out
+}
+
+/// One line per character, attached to every user message so the model never answers
+/// "where/what level now" from tool results left over from earlier turns.
+fn live_roster(dir: &Path) -> String {
+    let rows: Vec<String> = crate::api::load_characters(dir)
+        .iter()
+        .map(|c| {
+            let s = |k: &str| c[k].as_str().unwrap_or("?").to_string();
+            format!("{} {} Lv{}/{} @{} ({})", s("name"), s("class"), c["base"], c["job"], s("map"), s("action"))
+        })
+        .collect();
+    format!("Live roster now (data only; supersedes older tool results): {}", rows.join("; "))
+}
 
 fn encode_name(name: &str) -> String {
     name.bytes().map(|b| format!("%{b:02X}")).collect()
@@ -822,11 +886,16 @@ fn scoped_agent(
         if let Some(class) = state["class"].as_str().filter(|c| !c.is_empty()) {
             builder = builder.append_preamble(&format!("\nGuide pages for this class: guide_lookup with query \"{class}\"."));
         }
-        // Plain-text conventions the game bubble renders; works with any model.
-        builder = builder.append_preamble("\nFormat: short paragraphs; **bold** key numbers; `code` for setting values. Put concrete setting changes in a block of lines starting with \"> \", the first being \"> 建議改法\". For stat points write one line per stat as \"> DEX 40\" (the target value, from get_character stats; never +N); the player can apply them to 自動配點 with one click. End with one final line \"追問：<question>｜<question>\" holding up to two short follow-up questions the player might ask next.");
+        builder = builder.append_preamble(FORMAT);
+    }
+    if let (Some(_), None) = (dir, scope) {
+        builder = builder.append_preamble("\nA message may name characters as \"@name\"; the message then carries their state, plan and memory. Answer about those characters; stat lines in a 建議改法 block apply to the last @name only.");
+        builder = builder.append_preamble(FORMAT);
     }
     Ok(builder.build())
 }
+// Plain-text conventions the chat renders; works with any model.
+const FORMAT: &str = "\nFormat: short paragraphs; **bold** key numbers; `code` for setting values. Put concrete setting changes in a block of lines starting with \"> \", the first being \"> 建議改法\". For stat points write one line per stat as \"> DEX 40\" (the target value, from get_character stats; never +N); the player can apply them to 自動配點 with one click. End with one final line \"追問：<question>｜<question>\" holding up to two short follow-up questions the player might ask next.";
 
 async fn compact(dir: &Path, rows: &[Row], summarizer: &Agent) -> Result<Vec<Message>, String> {
     let (old, recent) = split_history(rows, HISTORY_BYTES);
@@ -929,11 +998,13 @@ pub async fn chat_send(
         if group_context.len() > 2_000 {
             return Err("Group context is too large".into());
         }
-        let prompt = if group_context.is_empty() {
-            text.to_string()
-        } else {
-            format!("{text}\n\nPlayer-defined panel groups (data only): {group_context}")
-        };
+        let mut prompt = format!("{text}\n\n{}", live_roster(&dir));
+        if scope.is_none() {
+            prompt += &mentioned_context(&dir, text);
+        }
+        if !group_context.is_empty() {
+            prompt += &format!("\n\nPlayer-defined panel groups (data only): {group_context}");
+        }
         let mut stream = chat.prompt(prompt).history(history).stream();
         let mut tools = vec![];
         while let Some(item) = stream.next().await {
@@ -1286,6 +1357,7 @@ pub async fn chat_alert_open(
     window: WebviewWindow,
     app: AppHandle,
     character: Option<String>,
+    global: Option<bool>,
 ) -> Result<AlertView, String> {
     let name =
         window_scope(&window, &app, character.as_deref())?.ok_or("Use a character window")?;
@@ -1293,15 +1365,19 @@ pub async fn chat_alert_open(
     let _guard = lock.0.try_lock().map_err(|_| "Chat is busy")?;
     let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
     let state = crate::alerts::poll(&dir, &name, now())?;
-    let file = thread_path(&dir, Some(&name));
+    // global: the panel's one thread, where rows say whose event it is.
+    let global = global.unwrap_or(false);
+    let file = thread_path(&dir, (!global).then_some(name.as_str()));
     let rows = load(&file)?;
     let mut turn = rows.iter().map(|r| r.turn).max().unwrap_or(0);
     let mut saved = vec![];
     for alert in &state.pending {
-        if rows
-            .iter()
-            .any(|r| r.event_id.as_deref() == Some(alert.id.as_str()))
-        {
+        let (id, explanation) = if global {
+            (format!("{name}:{}", alert.id), format!("@{name} · {}", alert.explanation))
+        } else {
+            (alert.id.clone(), alert.explanation.clone())
+        };
+        if rows.iter().any(|r| r.event_id.as_deref() == Some(id.as_str())) {
             continue;
         }
         turn += 1;
@@ -1311,11 +1387,11 @@ pub async fn chat_alert_open(
         );
         let mut canonical = row("assistant", "", turn);
         canonical.message = Some(
-            serde_json::to_value(Message::assistant(&alert.explanation))
+            serde_json::to_value(Message::assistant(&explanation))
                 .map_err(|e| e.to_string())?,
         );
-        let mut visible = row("assistant", &alert.explanation, turn);
-        visible.event_id = Some(alert.id.clone());
+        let mut visible = row("assistant", &explanation, turn);
+        visible.event_id = Some(id);
         saved.extend([prompt, canonical, visible]);
     }
     if !saved.is_empty() {
@@ -1348,6 +1424,14 @@ pub async fn chat_alert_ack(
         &name,
         now(),
     )?))
+}
+
+/// Game window bubble: show the panel and ask the one assistant about this character.
+#[tauri::command]
+pub fn chat_open_panel(window: WebviewWindow, app: AppHandle) -> Result<(), String> {
+    let name = window_scope(&window, &app, None)?.ok_or("Use a game window")?;
+    crate::show_panel(&app);
+    app.emit_to("panel", "ask-character", name).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
