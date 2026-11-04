@@ -1,0 +1,217 @@
+// Pre-renewal-style stat and combat formulas for the owned server.
+// Ported from scripts/formula-check.py (the oracle, validated against captures; see
+// docs/offline-backend/formulas.md). All integer steps floor like the live server.
+// Game records (job, item, monster, skill, refine table) are passed in; this module holds no game data
+// except the bundle's element (`of`) and weapon-size (`cf`) tables.
+
+const fl = Math.floor;
+export const STATS = ['str', 'agi', 'vit', 'int', 'dex', 'luk'];
+export const ELEMENTS = ['neutral', 'water', 'earth', 'fire', 'wind', 'poison', 'holy', 'dark', 'ghost', 'undead'];
+
+// ELEMENT_TABLE[defenderLv-1][attackElement][defenseElement], percent. Bundle `of` (sha256 78788be2…).
+export const ELEMENT_TABLE = [
+  [[100,100,100,100,100,100,100,100,25,100],[100,25,100,150,50,100,75,100,100,100],[100,100,100,50,150,100,75,100,100,100],[100,50,150,25,100,100,75,100,100,125],[100,175,50,100,25,100,75,100,100,100],[100,100,125,125,125,0,75,50,100,-25],[100,100,100,100,100,100,0,125,100,150],[100,100,100,100,100,50,125,0,100,-25],[25,100,100,100,100,100,75,75,125,100],[100,100,100,100,100,50,100,0,100,0]],
+  [[100,100,100,100,100,100,100,100,25,100],[100,0,100,175,25,100,50,75,100,100],[100,100,50,25,175,100,50,75,100,100],[100,25,175,0,100,100,50,75,100,150],[100,175,25,100,0,100,50,75,100,100],[100,75,125,125,125,0,50,25,75,-50],[100,100,100,100,100,100,-25,150,100,175],[100,100,100,100,100,25,150,-25,100,-50],[0,75,75,75,75,75,50,50,150,125],[100,75,75,75,75,25,125,0,100,0]],
+  [[100,100,100,100,100,100,100,100,0,100],[100,-25,100,200,0,100,25,50,100,125],[100,100,0,0,200,100,25,50,100,75],[100,0,200,-25,100,100,25,50,100,175],[100,200,0,100,-25,100,25,50,100,100],[100,50,100,100,100,0,25,0,50,-75],[100,100,100,100,100,125,-50,175,100,200],[100,100,100,100,100,0,175,-50,100,-75],[0,50,50,50,50,50,25,25,175,150],[100,50,50,50,50,0,150,0,100,0]],
+  [[100,100,100,100,100,100,100,100,0,100],[100,-50,100,200,0,75,0,25,100,150],[100,100,-25,0,200,75,0,25,100,50],[100,0,200,-50,100,75,0,25,100,200],[100,200,0,100,-50,75,0,25,100,100],[100,25,75,75,75,0,0,-25,25,-100],[100,75,75,75,75,125,-100,200,100,200],[100,75,75,75,75,-25,200,-100,100,-100],[0,25,25,25,25,25,0,0,200,175],[100,25,25,25,25,-25,175,0,100,0]],
+];
+
+// Weapon size modifier percent. Bundle `cf`.
+export const SIZE_TABLE = {
+  fist: { small: 100, medium: 100, large: 100 }, dagger: { small: 100, medium: 75, large: 50 },
+  '1hSword': { small: 75, medium: 100, large: 75 }, '2hSword': { small: 75, medium: 75, large: 100 },
+  '1hSpear': { small: 75, medium: 75, large: 100 }, '2hSpear': { small: 75, medium: 75, large: 100 },
+  '1hAxe': { small: 50, medium: 75, large: 100 }, '2hAxe': { small: 50, medium: 75, large: 100 },
+  mace: { small: 75, medium: 100, large: 100 }, '2hMace': { small: 100, medium: 100, large: 100 },
+  staff: { small: 100, medium: 100, large: 100 }, '2hStaff': { small: 100, medium: 100, large: 100 },
+  bow: { small: 100, medium: 100, large: 75 }, knuckle: { small: 100, medium: 75, large: 50 },
+  instrument: { small: 75, medium: 100, large: 75 }, whip: { small: 75, medium: 100, large: 50 },
+  book: { small: 100, medium: 100, large: 50 }, katar: { small: 75, medium: 100, large: 75 },
+};
+
+const REBORN = new Set(['lord_knight', 'high_wizard', 'high_priest', 'sniper', 'assassin_cross', 'whitesmith', 'paladin',
+  'champion', 'stalker', 'professor', 'clown', 'gypsy', 'creator']);
+// ponytail: only buffs seen in captures; others throw so callers never silently ignore a stat source.
+const BUFFS = {
+  AL_INCAGI: (o, lv) => { o['stat.agi'] += 2 + lv; },
+  AL_BLESSING: (o, lv) => { for (const s of ['str', 'int', 'dex']) o['stat.' + s] += lv; },
+  MC_LOUD: (o) => { o['stat.str'] += 4; },
+  SM_ENDURE: (o, lv) => { o.mdef += lv; },
+  AL_ANGELUS: (o, lv) => { o.vitDefRate += 5 * lv; },
+};
+
+const counter = () => new Proxy({}, { get: (o, k) => (k in o ? o[k] : 0) });
+const lookup = (arr, lv) => (arr?.length ? arr[Math.min(lv, arr.length) - 1] : 0);
+export const uniformInt = (lo, hi, rng = Math.random) => lo + fl(rng() * (hi - lo + 1));
+
+export function equipped(state, items) {
+  const inv = new Map(state.inventory.map((x) => [x.uid, x]));
+  return Object.entries(state.equipment).filter(([, uid]) => inv.has(uid))
+    .map(([slot, uid]) => ({ slot, stack: inv.get(uid), item: items[inv.get(uid).itemId] }));
+}
+
+/** Summed numeric equipment/card/buff bonuses; `stat.<x>` keys for stats. Throws on unsupported sources. */
+export function bonuses(state, items) {
+  const out = counter();
+  for (const { slot, stack, item } of equipped(state, items)) {
+    if (slot === 'ammo') continue;
+    for (const src of [item, ...(stack.cards ?? []).map((c) => items[c])]) {
+      const b = src.byRefine?.[String(stack.refine ?? 0)] ?? src.bonuses ?? {};
+      for (const [k, v] of Object.entries(b)) {
+        if (typeof v === 'number') out[k] += v;
+        else if (k === 'stats') for (const [s, n] of Object.entries(v)) out['stat.' + s] += n;
+        else throw new Error(`unsupported equipment bonus ${k}`);
+      }
+    }
+  }
+  for (const { id, lv } of state.buffs) {
+    if (!BUFFS[id]) throw new Error(`unsupported buff ${id}`);
+    BUFFS[id](out, lv);
+  }
+  return out;
+}
+
+export function totalStats({ stats, jobLv, skills = {} }, job, bonus) {
+  const t = { ...stats };
+  for (const b of job.jobBonus) if (b.lv <= jobLv) for (const [k, v] of Object.entries(b.stats)) t[k] += v;
+  for (const k of STATS) t[k] += bonus['stat.' + k];
+  t.dex += skills.AC_OWL ?? 0;
+  return t;
+}
+
+export const isRangedStat = (wt) => wt === 'bow' || wt === 'instrument' || wt === 'whip';
+export function statusAtk(t, ranged) {
+  const [main, sub] = ranged ? ['dex', 'str'] : ['str', 'dex'];
+  return t[main] + fl(t[main] / 10) ** 2 + fl(t[sub] / 5) + fl(t.luk / 5);
+}
+
+export function matk(int, b = counter()) {
+  const f = (d) => {
+    const v = fl((int + fl(int / d) ** 2) * (100 + b.matkRate) / 100) + b.matk;
+    return v + fl(v * b.magicPowerRate / 100);
+  };
+  return { min: f(7), max: f(5) };
+}
+
+export function maxPool(job, field, baseLv, stat, flat = 0, rate = 0) {
+  const table = field === 'maxHp' ? job.baseHp : job.baseSp;
+  let base = table[Math.min(baseLv, table.length) - 1];
+  if (job.id.endsWith('_high') || REBORN.has(job.id)) base = fl(base * 125 / 100); // reborn: unverified
+  return Math.max(1, fl((fl(base * (100 + stat) / 100) + flat) * (100 + rate) / 100));
+}
+
+/** Returns { motion, aspd, attackIntervalMs }. */
+export function aspd(job, wt, agi, dex, aspdRate = 0, aspdAdd = 0) {
+  const base = job.baseAspd[wt] ?? job.baseAspd.fist ?? 500;
+  let motion = base - fl(base * (4 * agi + dex) / 1000);
+  motion = Math.max(100, fl(motion * (100 - aspdRate) / 100) - 10 * aspdAdd);
+  return { motion, aspd: (2000 - motion) / 10, attackIntervalMs: 2 * motion };
+}
+
+export const castMs = (skill, lv, dex) => fl(lookup(skill.castMs, lv) * Math.max(0, 150 - dex) / 150);
+export const skillDelayMs = (skill, lv) => lookup(skill.delayMs, lv);
+export const refineAtk = (refineTable, weaponLevel = 1, refine = 0) =>
+  refine ? fl(refineTable.weapon[String(weaponLevel)][refine - 1].bonus / 100) : 0;
+export const elementMod = (attack, defense, defenseLv) =>
+  ELEMENT_TABLE[defenseLv - 1][ELEMENTS.indexOf(attack)][ELEMENTS.indexOf(defense)];
+export const sizeMod = (wt, size) => SIZE_TABLE[wt][size];
+
+/** Full stat panel (snapshot `derived` field names). data: { job, items, refine? }. */
+export function derive(state, { job, items, refine }) {
+  const c = state.character;
+  const b = bonuses(state, items);
+  const t = totalStats(c, job, b);
+  const sk = (k) => c.skills[k] ?? 0;
+  const eq = equipped(state, items);
+  const w = eq.find((e) => e.slot === 'weapon');
+  const wt = w?.item.weaponType ?? 'fist';
+  const ref = w?.stack.refine ?? 0;
+  const armorRefine = eq.filter((e) => e.slot !== 'ammo' && !(e.item.slots ?? []).includes('weapon'))
+    .reduce((n, e) => n + 70 * (e.stack.refine ?? 0), 0);
+  const hard = eq.filter((e) => e.slot !== 'ammo').reduce((n, e) => n + (e.item.def ?? 0), 0) + b.def + fl((armorRefine + 50) / 100);
+  const m = matk(t.int, b);
+  const a = aspd(job, wt, t.agi, t.dex, b.aspdRate, b.aspdAdd);
+  const maxHp = maxPool(job, 'maxHp', c.baseLv, t.vit, b.maxHp, b.maxHpRate);
+  const maxSp = maxPool(job, 'maxSp', c.baseLv, t.int, b.maxSp, b.maxSpRate);
+  return {
+    total: t, maxHp, maxSp,
+    statusAtk: statusAtk(t, isRangedStat(wt)),
+    refineAtk: ref ? refineAtk(refine, w.item.weaponLevel, ref) : 0,
+    matkMin: m.min, matkMax: m.max,
+    hardDef: Math.min(99, fl(hard * Math.max(0, 100 + b.defRate) / 100)),
+    vitDef: t.vit, hardMdef: Math.min(99, b.mdef), softMdef: t.int,
+    hit: c.baseLv + t.dex + b.hit + sk('AC_VULTURE') + 2 * sk('BS_WEAPONRESEARCH'),
+    flee: c.baseLv + t.agi + b.flee + 3 * sk('TF_MISS') + fl(3 * sk('MO_DODGE') / 2) + (sk('TF_BACKSLIDING') ? 10 : 0),
+    perfectDodge: 1 + fl(t.luk / 10) + b.perfectDodge,
+    crit: (1 + fl(t.luk * 3 / 10) + b.crit) * (wt === 'katar' ? 2 : 1),
+    aspd: a.aspd, attackIntervalMs: a.attackIntervalMs,
+    weightMax: job.baseWeight + 30 * t.str + 200 * sk('MC_INCCARRY') + (c.riding ? 1000 : 0) + 200 * Math.min(10, c.gymPass ?? 0),
+    hpRegen: fl(fl((1 + fl(t.vit / 5) + fl(maxHp / 200)) * (sk('SM_MOVINGRECOVERY') ? 150 : 100) / 100) * (100 + b.hpRecovRate) / 100),
+    spRegen: fl(fl((1 + fl(t.int / 6) + fl(maxSp / 100)) * (100 + b.spRecovRate) / 100) * (100 + 3 * sk('HP_MEDITATIO')) / 100),
+    atkBonus: b.atk, vitDefRate: b.vitDefRate, // vitDefRate (Angelus) feeds monsterDamageRange
+  };
+}
+
+/** One physical hit with all random parts already rolled. Crit ignores hard and soft DEF. */
+export function playerDamage({ statAtk, weaponRoll, arrowRoll = 0, wt = 'fist', size, atkBonus = 0, refineAtk = 0,
+  monsterDef = 0, monsterSoftDef = 0, elementMod = 100, hits = 1, crit = false }) {
+  const base = statAtk + fl((weaponRoll + arrowRoll) * sizeMod(wt, size) / 100) + atkBonus;
+  const dmg = crit ? base + refineAtk : fl(base * (100 - monsterDef) / 100) - monsterSoftDef + refineAtk;
+  return Math.max(1, fl(dmg * elementMod / 100)) * hits;
+}
+
+// Random parts of a physical hit: weapon roll [min,max], arrow roll [0,arrowAtk−1] (bow), monster soft DEF.
+function physicalRolls({ dex, weapon = {}, arrowAtk = 0, monster, crit = false }) {
+  const wt = weapon.weaponType ?? 'fist';
+  const max = weapon.atk ?? 0;
+  let min = Math.min(max, fl(dex * (80 + 20 * (weapon.weaponLevel ?? 0)) / 100));
+  if (wt === 'bow') min = fl(min * max / 100);
+  if (crit) min = max;
+  const vit = monster.stats.vit;
+  return { wt, weapon: [min, max], arrow: [0, wt === 'bow' ? Math.max(0, arrowAtk - 1) : 0], soft: [vit, vit + Math.max(0, fl(vit / 20) ** 2 - 1)] };
+}
+const physicalArgs = (o, r, weaponRoll, arrowRoll, monsterSoftDef) => ({ ...o, wt: r.wt, size: o.monster.size,
+  monsterDef: o.monster.def, weaponRoll, arrowRoll, monsterSoftDef });
+
+/** opts: { statAtk, dex, weapon, arrowAtk?, atkBonus?, refineAtk?, monster, elementMod?, hits?, crit? } → { min, max } */
+export function playerDamageRange(o) {
+  const r = physicalRolls(o);
+  return { min: playerDamage(physicalArgs(o, r, r.weapon[0], r.arrow[0], r.soft[1])),
+    max: playerDamage(physicalArgs(o, r, r.weapon[1], r.arrow[1], r.soft[0])) };
+}
+export function rollPlayerDamage(o, rng = Math.random) {
+  const r = physicalRolls(o);
+  return playerDamage(physicalArgs(o, r, uniformInt(...r.weapon, rng), uniformInt(...r.arrow, rng), uniformInt(...r.soft, rng)));
+}
+
+/** Player soft DEF range (rAthena pre-renewal structure, fitted 873/4): def2 = VIT scaled by Angelus. */
+export function playerSoftDefRange(vit, vitDefRate = 0) {
+  const def2 = fl(vit * (100 + vitDefRate) / 100);
+  const lo = fl(def2 / 2);
+  return [lo, lo + Math.max(0, fl(def2 * (def2 - 15) / 150) - 1)];
+}
+export const monsterDamage = (atkRoll, hardDef, softDef) => Math.max(1, fl(atkRoll * (100 - hardDef) / 100) - softDef);
+/** opts: { atk: [min,max], hardDef, vit, vitDefRate? } → { min, max } */
+export function monsterDamageRange({ atk, hardDef, vit, vitDefRate = 0 }) {
+  const [lo, hi] = playerSoftDefRange(vit, vitDefRate);
+  return { min: monsterDamage(atk[0], hardDef, hi), max: monsterDamage(atk[1], hardDef, lo) };
+}
+export function rollMonsterDamage({ atk, hardDef, vit, vitDefRate = 0 }, rng = Math.random) {
+  return monsterDamage(uniformInt(...atk, rng), hardDef, uniformInt(...playerSoftDefRange(vit, vitDefRate), rng));
+}
+
+/** Bolt-type magic hit (fitted 474/0 on Lightning Bolt). */
+export function magicDamage({ matkRoll, monster, elementMod = 100, hits = 1 }) {
+  const dmg = fl(matkRoll * (100 - monster.mdef) / 100) - monster.stats.int - fl(monster.stats.vit / 2);
+  return Math.max(1, fl(dmg * elementMod / 100)) * hits;
+}
+
+/** Even share per eligible member. ponytail: share mode / level-gap eligibility left to the caller. */
+export function partyExpShare({ baseExp, jobExp }, members) {
+  const pct = 100 + Math.min(100, 20 * (members - 1));
+  return { base: fl(baseExp * pct / (100 * members)), job: fl(jobExp * pct / (100 * members)) };
+}
+
+/** Base EXP lost on death (mechanics page; floor is our rounding choice, unverified). */
+export const deathPenalty = ({ baseExp, baseExpNext, job }) =>
+  job === 'novice' ? 0 : Math.min(baseExp, fl(baseExpNext / 100));

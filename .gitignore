@@ -32,3 +32,6 @@ src-tauri/target
 # Claude Code worktrees and local state
 .claude/
 graphify-out/cache/
+
+# Local bundle/capture inputs for formula checks
+.scratch/
