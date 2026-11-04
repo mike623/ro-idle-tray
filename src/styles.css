@@ -438,6 +438,7 @@ button.dot:hover { outline: 2px solid var(--select); }
 .list.ledger .sum .go { grid-column: 5; } .list.ledger .sum .idle { grid-column: 6; }
 .list.ledger .sum :is(.ask, .go, .idle) { width: 26px; height: 26px; padding: 0; font-size: 12px; }
 .list.ledger .none { margin: 12px; text-align: center; }
-.chat-head .who { display: flex; flex-direction: column; gap: 1px; }
-.chat-all { font-size: 11px; font-weight: 400; text-align: left; padding: 0; }
+.global-chat { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.assistant.char { padding: 0; overflow: hidden; }
+.char-chat { flex: 1; min-height: 0; }
 .list.ledger .add-group { align-self: flex-start; font-size: 11px; padding: 3px 10px; }

@@ -1128,8 +1128,9 @@ fn panel_scope(requested: Option<&str>, known: &[String]) -> Result<Option<Strin
     }
 }
 #[tauri::command]
-pub fn chat_character(window: WebviewWindow, app: AppHandle) -> Result<Value, String> {
-    let scope = window_scope(&window, &app, None)?.ok_or("Use a game window")?;
+pub fn chat_character(window: WebviewWindow, app: AppHandle, character: Option<String>) -> Result<Value, String> {
+    // Game windows get their own character; the panel names one it knows.
+    let scope = window_scope(&window, &app, character.as_deref())?.ok_or("Use a game window")?;
     let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
     let mut info = read_scoped_data(
         &dir,

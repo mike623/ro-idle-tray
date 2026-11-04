@@ -1,14 +1,20 @@
-// Injected into each game window. Secrets and model calls belong to Rust.
+// Injected into each game window as a floating bubble; the panel mounts the same chat
+// for one character (window.roIdleCharacterChat). Secrets and model calls belong to Rust.
 (() => {
   if (window !== window.top) return;
+  // The panel loads this file with data-embed and mounts it itself.
+  const embedOnly = document.currentScript?.hasAttribute('data-embed');
   const TOOL_LABELS = {list_characters:'角色列表',get_character:'角色狀態',get_log_summary:'讀取紀錄',game_lookup:'查詢資料',rank_maps:'地圖排名',guide_lookup:'查詢攻略',remember:'記住',update_memory:'更新記憶',forget:'忘記',recall:'回想'};
   const STARTERS = ['為什麼剛才死亡？','最近效率如何？','下一步怎麼升級？'];
-  const boot = () => {
-    if (document.getElementById('ro-idle-assistant')) return;
+  const boot = (opts = {}) => {
+    const embed = !!opts.mount;
+    if (!embed && document.getElementById('ro-idle-assistant')) return;
     const host = document.createElement('div');
-    host.id = 'ro-idle-assistant';
-    host.style.cssText = 'all:initial;position:fixed;right:14px;bottom:14px;z-index:2147483647;';
+    if (embed) { host.className = 'embed'; host.style.cssText = 'all:initial;display:block;height:100%;'; }
+    else { host.id = 'ro-idle-assistant'; host.style.cssText = 'all:initial;position:fixed;right:14px;bottom:14px;z-index:2147483647;'; }
     const root = host.attachShadow({mode:'closed'});
+    // Embedded: the panel names the character; a game window's own character comes from Rust.
+    const who = embed ? {character: opts.character} : {};
     root.innerHTML = `<style>
       :host{all:initial;--bg:#fff;--fg:#09090b;--muted:#f4f4f5;--mf:#71717a;--line:#e4e4e7;--pri:#18181b;--prf:#fafafa;--warn:#b45309}
       #box,.dock{font:13px/1.5 -apple-system,BlinkMacSystemFont,"PingFang TC",sans-serif;color:var(--fg);text-align:left}
@@ -61,14 +67,15 @@
       #plan-note{resize:none;font:inherit;font-size:12px;height:76px}
       .pa{display:flex;align-items:center;gap:8px} #plan-count{flex:1;font-size:11px;color:var(--mf)}
       .pa button{border:1px solid var(--line);border-radius:6px;padding:4px 12px;font-size:12px} .pa .primary{background:var(--pri);color:var(--prf);border-color:var(--pri)}
+      :host(.embed) #box{width:100%;height:100%;border:0;border-radius:0;box-shadow:none} :host(.embed) .dock,:host(.embed) #tutorial{display:none!important}
       #memory{margin-top:6px;padding:0 4px;font-size:10px;color:var(--mf);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} #memory:empty{display:none}
     </style><section id="box" hidden aria-label="角色助理"><header><div class="av" aria-hidden="true">✦</div><div class="who"><div><span id="title">助理</span> <span id="sub"></span></div><div id="state"></div></div><span id="model" class="chip" hidden></span><button id="new" class="icon" type="button" title="新對話" aria-label="新對話">↺</button><button id="close" class="icon" type="button" title="收起" aria-label="收起助理">—</button></header><div id="plan" hidden><p class="hint">勾選的攻略與指示會帶進這隻角色的每次對話。</p><input id="plan-q" type="search" placeholder="搜尋攻略…" aria-label="搜尋攻略"/><div id="plan-list" role="group" aria-label="攻略清單"></div><label class="lbl" for="plan-note">我的指示</label><textarea id="plan-note" maxlength="1000" placeholder="例：走 AGI 爆擊路線；不買超過 5 萬 zeny 的裝備"></textarea><div class="pa"><span id="plan-count"></span><button id="plan-cancel" type="button">取消</button><button id="plan-save" class="primary" type="button">儲存</button></div></div><div id="tutorial"></div><div id="messages" role="log" aria-label="角色對話"></div><div id="error" role="alert" hidden></div><form><button id="plan-btn" type="button" aria-expanded="false"></button><div class="field"><input aria-label="詢問角色" placeholder="問這隻角色的事…" maxlength="2000" required/><button id="send" type="submit" aria-label="送出">↑</button></div><div id="memory" aria-live="polite"></div></form></section><div class="dock"><button id="nudge" type="button" hidden></button><button id="pill" type="button" aria-expanded="false"><span class="av" aria-hidden="true">✦</span><span id="pill-label">助理</span><span id="badge" hidden></span></button></div>`;
-    document.body.append(host);
+    if (embed) opts.mount.replaceChildren(host); else document.body.append(host);
     const $ = (id) => root.getElementById(id);
     const invoke = (cmd,args={}) => window.__TAURI__.core.invoke(cmd,args);
     const el = (tag,cls='',text='') => { const n = document.createElement(tag); if(cls) n.className = cls; if(text) n.textContent = text; return n; };
     let name = null, busy = false, generation = 0, restored = false;
-    const tutorial = window.roIdleTutorial($('tutorial'),invoke,()=>name);
+    const tutorial = embed ? {refresh: async () => {}} : window.roIdleTutorial($('tutorial'),invoke,()=>name);
     let unread = 0, nudge = '', alertAt = 0;
     const pill = () => {
       $('pill-label').textContent = `問 ${name}`;
@@ -178,7 +185,7 @@
     const open = async (value) => {
       $('box').hidden = !value; $('pill').hidden = value; $('pill').setAttribute('aria-expanded',String(value)); pill();
       if (value) {
-        try { state(await invoke('chat_character')); } catch(e) { showError(e); }
+        try { state(await invoke('chat_character',who)); } catch(e) { showError(e); }
         if (!restored) await restore();
         await tutorial.refresh();
         root.querySelector('input').focus();
@@ -236,9 +243,10 @@
     followLine();
     $('pill').addEventListener('click',onPill);
     $('nudge').addEventListener('click',onPill);
-    $('close').addEventListener('click',()=>open(false));
-    root.addEventListener('keydown',(e)=>{if(e.key === 'Escape') open(false);});
-    window.addEventListener('ro-idle-chat-state',(e)=>state(e.detail));
+    const close = () => embed ? opts.onClose?.() : open(false);
+    $('close').addEventListener('click',close);
+    root.addEventListener('keydown',(e)=>{if(e.key === 'Escape') close();});
+    if (!embed) window.addEventListener('ro-idle-chat-state',(e)=>state(e.detail));
     $('new').addEventListener('click',async()=>{
       if (busy || !name) return;
       const current = generation;
@@ -262,7 +270,14 @@
       catch(e) { if(current === generation) {showError(e); await restore();} }
       finally { if(current === generation) {busy = false; $('send').disabled = false; $('new').disabled = false;} }
     });
-    invoke('chat_character').then(state).catch(()=>{});
+    if (!embed) { invoke('chat_character').then(state).catch(()=>{}); return; }
+    // Embedded opens straight away, on its unread log events when there are any.
+    (async () => {
+      try { state(await invoke('chat_character',who)); await alerts(); await onPill(); }
+      catch(e) { $('box').hidden = false; showError(e); }
+    })();
   };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+  window.roIdleCharacterChat = (mount, character, onClose) => boot({mount, character, onClose});
+  if (embedOnly) return;
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',()=>boot(),{once:true}); else boot();
 })();
