@@ -34,8 +34,6 @@ let editing = false;
 let expanded = null;
 // Profile number being dragged; refresh waits while a drag is in progress.
 let dragging = null;
-// "list" | "grid" | "board".
-let view = "list";
 // List view's status filter: "all" | "attention" | "idle" | "offline".
 let filter = "all";
 // Profile order from the last refresh, so saving never drops rows that are not on screen.
@@ -77,7 +75,7 @@ function editInline(node, value, onSave) {
   input.select();
 }
 
-function column(g, gi, boxes, bodyClass = "col-body") {
+function column(g, gi, boxes) {
   const col = el("section", "col");
   col.dataset.g = gi;
   const head = el("div", "col-head");
@@ -95,7 +93,7 @@ function column(g, gi, boxes, bodyClass = "col-body") {
     });
     head.append(del);
   }
-  const body = el("div", bodyClass);
+  const body = el("div", "sec-body");
   body.append(...boxes);
   col.append(head, body);
   return col;
@@ -124,46 +122,35 @@ function ledger(boxes) {
     sec.append(head, ...attn);
     parts.push(sec);
   }
-  groups.forEach((g, gi) => { if (cols[gi].length || filter === "all") parts.push(column(g, gi, cols[gi], "sec-body")); });
+  groups.forEach((g, gi) => { if (cols[gi].length || filter === "all") parts.push(column(g, gi, cols[gi])); });
   if (!parts.length) parts.push(el("p", "none dim", filter === "offline" ? "沒有離線角色" : "沒有符合的角色"));
+  if (filter === "all") {
+    const add = Object.assign(el("button", "btn add-group", "＋ 新增群組"), { type: "button" });
+    add.addEventListener("click", () => {
+      groups.push({ name: `群組 ${groups.length + 1}`, members: [] });
+      saveGroups();
+      refresh();
+    });
+    parts.push(add);
+  }
   return parts;
 }
 
-function board(boxes) {
-  const cols = byGroup(boxes);
-  const wrap = el("div", "cols");
-  const addCol = Object.assign(el("button", "add add-col", "＋"), { type: "button", title: "Add a group" });
-  addCol.setAttribute("aria-label", "Add a group");
-  addCol.addEventListener("click", () => {
-    groups.push({ name: `群組 ${groups.length + 1}`, members: [] });
-    saveGroups();
-    refresh();
-  });
-  wrap.append(...groups.map((g, gi) => column(g, gi, cols[gi])), addCol);
-  // list padding + columns (224 + 8 gap) + add button + scrollbar room.
-  invoke("set_panel_width", { width: 60 + groups.length * 232 });
-  return wrap;
-}
-
-// Save board membership and the overall order from what's on screen.
+// Save group membership and the overall order from what's on screen.
 function saveLayout() {
-  if (view === "board" || view === "list") {
-    const before = groups.map((g) => [...g.members]);
-    list.querySelectorAll(".col").forEach((col) => {
-      groups[Number(col.dataset.g)].members = [...col.querySelectorAll(":is(.col-body, .sec-body) > [data-n]")].map((x) => Number(x.dataset.n));
-    });
-    // Rows not in a group section (the attention list, or hidden by a filter) keep their old group and spot.
-    const placed = new Set(groups.flatMap((g) => g.members));
-    before.forEach((members, gi) => members.forEach((n, i) => {
-      if (!placed.has(n)) { groups[gi].members.splice(Math.min(i, groups[gi].members.length), 0, n); placed.add(n); }
-    }));
-    saveGroups();
-    const known = new Set(lastOrder);
-    const order = [...new Set([...groups.flatMap((g) => g.members).filter((n) => known.has(n)), ...lastOrder])];
-    invoke("reorder_profiles", { order });
-    return;
-  }
-  invoke("reorder_profiles", { order: [...list.querySelectorAll("[data-n]")].map((x) => Number(x.dataset.n)) });
+  const before = groups.map((g) => [...g.members]);
+  list.querySelectorAll(".col").forEach((col) => {
+    groups[Number(col.dataset.g)].members = [...col.querySelectorAll(".sec-body > [data-n]")].map((x) => Number(x.dataset.n));
+  });
+  // Rows not in a group section (the attention list, or hidden by a filter) keep their old group and spot.
+  const placed = new Set(groups.flatMap((g) => g.members));
+  before.forEach((members, gi) => members.forEach((n, i) => {
+    if (!placed.has(n)) { groups[gi].members.splice(Math.min(i, groups[gi].members.length), 0, n); placed.add(n); }
+  }));
+  saveGroups();
+  const known = new Set(lastOrder);
+  const order = [...new Set([...groups.flatMap((g) => g.members).filter((n) => known.has(n)), ...lastOrder])];
+  invoke("reorder_profiles", { order });
 }
 
 // Click a character name to copy it (e.g. to paste into game chat or trade).
@@ -469,11 +456,11 @@ async function refresh() {
   const scroll = list.scrollTop;
   const o = overview(state.profiles);
   lastOrder = state.profiles.map((p) => p.n);
-  const listed = view === "list" ? state.profiles.filter((p) => shown(p, filter, o.reasons)) : state.profiles;
+  const listed = state.profiles.filter((p) => shown(p, filter, o.reasons));
   const boxes = listed.map((p) => {
     const frag = p.roster?.length ? rosterCard(p.n, p.roster)
       : !p.info ? emptyCard(p.n)
-      : card(p.n, p.info, !p.offline && idling - (p.info.running ? 1 : 0) > 0, view === "list" ? o.reasons.get(p.n) : null);
+      : card(p.n, p.info, !p.offline && idling - (p.info.running ? 1 : 0) > 0, o.reasons.get(p.n));
     const box = frag.firstElementChild;
     box.dataset.n = p.n;
     box.addEventListener("contextmenu", (e) => { e.preventDefault(); invoke("profile_menu", { n: p.n }); });
@@ -489,9 +476,7 @@ async function refresh() {
     box.draggable = true;
     return box;
   });
-  if (view === "board") list.replaceChildren(board(boxes));
-  else if (view === "list") list.replaceChildren(...ledger(boxes));
-  else list.replaceChildren(...boxes);
+  list.replaceChildren(...ledger(boxes));
   list.scrollTop = scroll;
 
   const signed = live.filter((p) => p.info);
@@ -515,7 +500,6 @@ async function refresh() {
     $("summary").append(" · ", wake);
   }
   $("summary").title = counts;
-  $("tiles").hidden = view !== "list";
   for (const t of document.querySelectorAll("[data-filter]")) {
     const f = t.dataset.filter;
     t.querySelector("b").textContent = String(o.counts[f]);
@@ -535,27 +519,14 @@ async function refresh() {
   update.textContent = state.update ? `Update to v${state.update}` : "";
 }
 
-// List vs grid layout; remembered per machine.
-function setView(v) {
-  view = ["list", "grid", "board"].includes(v) ? v : "list";
-  filter = "all";
-  $("list").classList.toggle("grid", v === "grid");
-  $("list").classList.toggle("board", v === "board");
-  $("list").classList.toggle("ledger", view === "list");
-  if (view !== "board") invoke("set_panel_width", { width: 360 });
-  refresh();
-  for (const b of document.querySelectorAll("[data-view]")) b.setAttribute("aria-selected", String(b.dataset.view === v));
-  try { localStorage.setItem("roIdleTray.view", v); } catch {}
-}
-for (const b of document.querySelectorAll("[data-view]")) b.addEventListener("click", () => setView(b.dataset.view));
+// One view: the compact list at the panel's normal width.
+$("list").classList.add("ledger");
+invoke("set_panel_width", { width: 360 });
 for (const t of document.querySelectorAll("[data-filter]")) t.addEventListener("click", () => {
   filter = filter === t.dataset.filter ? "all" : t.dataset.filter;
   $("list").scrollTop = 0;
   refresh();
 });
-let savedView = "list";
-try { savedView = localStorage.getItem("roIdleTray.view") || "list"; } catch {}
-setView(savedView);
 
 // Drag a profile onto another to reorder; order is saved by the app.
 const list = $("list");
@@ -563,8 +534,7 @@ const clearMarks = () => list.querySelectorAll(".drop-before, .drop-after, .drag
   .forEach((x) => x.classList.remove("drop-before", "drop-after", "dragging", "drop-into"));
 const after = (box, e) => {
   const r = box.getBoundingClientRect();
-  // Half-width grid tiles sit side by side, so split them left/right; rows and board cards top/bottom.
-  return view === "grid" && r.width < list.clientWidth * 0.75 ? e.clientX > r.left + r.width / 2 : e.clientY > r.top + r.height / 2;
+  return e.clientY > r.top + r.height / 2;
 };
 list.addEventListener("dragstart", (e) => {
   const box = e.target.closest?.("[data-n]");
@@ -592,7 +562,7 @@ list.addEventListener("drop", (e) => {
   if (dragging == null || !moved) return;
   const box = e.target.closest?.("[data-n]");
   const col = !box && e.target.closest?.(".col");
-  if (col) col.querySelector(".col-body, .sec-body").append(moved);
+  if (col) col.querySelector(".sec-body").append(moved);
   else if (box && box !== moved) box[after(box, e) ? "after" : "before"](moved);
   else return;
   e.preventDefault();
@@ -635,10 +605,7 @@ $("update").addEventListener("click", () => invoke("update_app"));
 // AI provider settings. The key is write-only here: Rust encrypts it in the
 // app config dir and only reports whether one is saved.
 function aiShow(open) {
-  if (open) showPanel("ai"); else closeSettings();
-  // Board view widens the panel; settings use the normal width.
-  if (open) { invoke("set_panel_width", { width: 360 }); aiLoad(); }
-  else setView(view);
+  if (open) { showPanel("ai"); aiLoad(); } else closeSettings();
 }
 function aiFill(s) {
   $("ai-url").value = s.baseUrl;
