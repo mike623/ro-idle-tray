@@ -4,7 +4,8 @@
   "version": "0.2.7",
   "type": "module",
   "scripts": {
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "smoke": "node --no-warnings server/loadtest/run.mjs --scenario smoke"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"
