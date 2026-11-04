@@ -300,9 +300,9 @@
     "semantic_hash": ""
   },
   "src/bubble.js": {
-    "mtime": 1793754794.6601758,
-    "seen": 1793754824.246068,
-    "ast_hash": "ac5f33fd8d77e24d2d2e307eec1af1c2",
+    "mtime": 1793757447.1475036,
+    "seen": 1793757455.0571861,
+    "ast_hash": "19bb2da72160b942a0a037db5651c6f9",
     "semantic_hash": ""
   },
   "src/chat.js": {

@@ -46,7 +46,7 @@
       .alert b{font-size:11px;color:var(--warn);font-weight:600} .alert .at{font-size:12px;overflow-wrap:anywhere} .alert .as{font-size:11px;color:var(--mf)}
       .alert summary{font-size:11px;color:var(--mf);cursor:pointer} .alert pre{margin:4px 0 0;font:10px/1.5 ui-monospace,Menlo,monospace;color:var(--mf);white-space:pre-wrap;overflow-wrap:anywhere}
       .tip{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;display:flex;flex-direction:column;gap:4px;margin:2px 0}
-      .tt{font-size:11px;font-weight:500;color:var(--mf)} .text code{background:var(--muted);border-radius:4px;padding:0 4px;font:11px ui-monospace,Menlo,monospace} .gap{height:6px}
+      .tt{font-size:11px;font-weight:500;color:var(--mf)} .text code{background:var(--muted);border-radius:4px;padding:0 4px;font:11px ui-monospace,Menlo,monospace} .text code{cursor:pointer} .text code:hover{outline:1px solid var(--mf)} .text code.copied{outline:1px solid #4ade80} .gap{height:6px}
       .starters{display:flex;flex-wrap:wrap;gap:6px;padding-left:32px}
       .starters button{border:1px solid var(--line);border-radius:14px;padding:3px 10px;font-size:11px} .starters button:hover{background:var(--muted)}
       #error{margin:0 12px 8px;color:#dc2626;font-size:12px;white-space:pre-wrap}
@@ -104,7 +104,12 @@
       for (const part of line.split(/(\*\*[^*]+\*\*|`[^`]+`)/)) {
         if (!part) continue;
         if (part.length > 4 && part.startsWith('**') && part.endsWith('**')) parent.append(el('b','',part.slice(2,-2)));
-        else if (part.length > 2 && part.startsWith('`') && part.endsWith('`')) parent.append(el('code','',part.slice(1,-1)));
+        else if (part.length > 2 && part.startsWith('`') && part.endsWith('`')) {
+          // Click a `code` span (map id, item name…) to copy it.
+          const c = el('code','',part.slice(1,-1)); c.title = '點擊複製';
+          c.onclick = () => navigator.clipboard?.writeText(c.textContent).then(() => { c.classList.add('copied'); setTimeout(() => c.classList.remove('copied'), 900); });
+          parent.append(c);
+        }
         else parent.append(el('span','',part));
       }
     };
