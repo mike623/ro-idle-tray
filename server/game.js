@@ -48,7 +48,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     if (!C.driven) return s; // a seeded twin stays identical to its capture until something drives it
     const fight = C.fight && !C.fight.s.over ? C.fight : null;
     s.engaged = !!fight;
-    s.target = fight ? { name: fight.mob.name, lv: fight.mob.lv, hp: fight.s.mob.hpLeft, maxHp: fight.mob.hp } : null;
+    s.target = fight ? { uid: fight.uid, name: fight.mob.name, lv: fight.mob.lv, hp: fight.s.mob.hpLeft, maxHp: fight.mob.hp } : null;
     s.aggressors = fight?.s.mob.aggro ? 1 : 0;
     return s;
   };
@@ -263,6 +263,16 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
       const st = C.snapshot.stats;
       if (st?.itemsLooted) st.itemsLooted[d.itemId] = (st.itemsLooted[d.itemId] ?? 0) + d.qty;
       const out = emit(C, [{ body: { type: 'pickup', itemId: d.itemId, qty: d.qty, rare: d.rare } }]);
+      touch(C);
+      return { ok: true, events: out };
+    },
+    skip(C, a) { // targetSkip: walk away from a met monster that has not engaged (brain's target rules)
+      const F = target(C, a.uid);
+      rule(C.log.findLast((x) => x.body.type === 'found')?.body.uid === F.uid, 'TOO_EARLY'); // only what was already met
+      rule(!F.s.mob.aggro, 'ENGAGED');
+      C.fight = null;
+      C.snapshot.activity = 'idle';
+      const out = emit(C, [{ body: { type: 'targetSkip', reason: String(a.reason ?? 'skip'), monsterId: F.mob.id } }]);
       touch(C);
       return { ok: true, events: out };
     },

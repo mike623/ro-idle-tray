@@ -6,6 +6,8 @@ import http from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { parseArgs } from 'node:util';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { join, dirname, extname } from 'node:path';
 import { WebSocketServer } from 'ws';
 import { createGame } from './game.js';
 import { mulberry32 } from './rules/engine.js';
@@ -41,7 +43,7 @@ const CHAR_STUBS = {
 };
 
 export async function startServer({ port = 8787, db = 'server/data.sqlite', now = Date.now, seed, tickMs = 250, checkpointMs = 30000,
-  maxDrivers = 8 } = {}) {
+  maxDrivers = 8, clientCache = 'server/client-cache', upstream = 'https://ro-idle.app', logErrors = false } = {}) {
   const store = openStore(db);
   const game = createGame({ now, rng: seed == null ? Math.random : mulberry32(seed), maxDrivers });
   game.restore(store.load());
@@ -63,10 +65,15 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
       res.writeHead(status, { 'content-type': 'application/json', 'x-request-id': randomUUID(), ...headers });
       res.end(JSON.stringify(body));
     };
-    const fail = (status, code, message, extra) => send(status, { error: { code, message }, ...extra });
+    const fail = (status, code, message, extra) => {
+      if (logErrors) console.log(`[${status}] ${req.method} ${url.pathname} ${code}`); // shape mismatches the real client hits
+      send(status, { error: { code, message }, ...extra });
+    };
     try {
       const body = req.method === 'POST' ? await readJson(req) : undefined;
       const p = url.pathname;
+      if (req.method === 'GET' && p.startsWith('/brain/')) return serveBrain(res, p);
+      if (req.method === 'GET' && !p.startsWith('/api/')) return await serveClient(res, p);
       if (p === '/api/auth/config') return send(200, { authMode: 'dev', google: false });
       if (p === '/api/auth/dev-login' && req.method === 'POST') {
         const a = game.accounts.get(body?.username);
@@ -116,6 +123,27 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
       fail(500, 'INVARIANT', String(err.message));
     }
   });
+
+  function serveBrain(res, p) {
+    const name = p.slice('/brain/'.length);
+    if (!/^[\w-]+\.js$/.test(name)) return raw(res, 404, 'text/plain', 'not found');
+    raw(res, 200, TYPES['.js'], readFileSync(new URL(`../brain/${name}`, import.meta.url)));
+  }
+  // Official client bundle, cached locally on first GET (public static files only: no query, no credentials sent upstream).
+  // The cache dir is gitignored: never commit or redistribute it.
+  async function serveClient(res, p) {
+    if (!/^\/[\w.\/@-]*$/.test(p) || p.split('/').includes('..')) return raw(res, 404, 'text/plain', 'not found');
+    const key = p.endsWith('/') ? `${p}__index.html` : extname(p) ? p : `${p}/__index.html`;
+    const file = join(clientCache, key);
+    const type = TYPES[extname(file)] ?? 'application/octet-stream';
+    if (existsSync(file)) return raw(res, 200, type, readFileSync(file));
+    const up = await fetch(upstream + p, { redirect: 'follow' }).catch(() => null);
+    if (!up?.ok) { if (logErrors) console.log(`[404] GET ${p} (upstream ${up?.status ?? 'unreachable'})`); return raw(res, 404, 'text/plain', 'not found'); }
+    const bytes = Buffer.from(await up.arrayBuffer());
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, bytes);
+    raw(res, 200, up.headers.get('content-type') ?? type, bytes);
+  }
 
   function stream(req, res, C, url) {
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
@@ -180,6 +208,13 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
   };
 }
 
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png',
+  '.jpg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.bmp': 'image/bmp', '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav',
+  '.txt': 'text/plain; charset=utf-8' };
+const raw = (res, status, type, body) => { res.writeHead(status, { 'content-type': type }); res.end(body); };
+
 async function readJson(req) {
   let s = '';
   for await (const chunk of req) { s += chunk; if (s.length > 1e6) throw new SyntaxError('too large'); }
@@ -188,8 +223,10 @@ async function readJson(req) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const { values } = parseArgs({ options: { port: { type: 'string', default: '8787' }, db: { type: 'string', default: 'server/data.sqlite' },
-    checkpoint: { type: 'string', default: '30' }, 'max-drivers': { type: 'string', default: '8' } } });
-  const srv = await startServer({ port: +values.port, db: values.db, checkpointMs: 1000 * +values.checkpoint, maxDrivers: +values['max-drivers'] });
+    checkpoint: { type: 'string', default: '30' }, 'max-drivers': { type: 'string', default: '8' },
+    'client-cache': { type: 'string', default: 'server/client-cache' } } });
+  const srv = await startServer({ port: +values.port, db: values.db, checkpointMs: 1000 * +values.checkpoint, maxDrivers: +values['max-drivers'],
+    clientCache: values['client-cache'], logErrors: true });
   console.log(`ro-idle server on http://127.0.0.1:${srv.port} (db ${values.db})`);
   const stop = async () => { await srv.close(); process.exit(0); };
   process.on('SIGINT', stop);
