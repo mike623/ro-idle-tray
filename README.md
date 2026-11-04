@@ -9,6 +9,16 @@ Small macOS menu-bar wrapper for https://ro-idle.app/.
 - Game remains hosted remotely; authentication stays with the site.
 - Tray shows the running version (`RO Idle Tray vX.Y.Z`). It checks GitHub Releases on launch and every 6h; when a newer build exists an `Update to vX.Y.Z…` item appears. Nothing installs or restarts until you click it.
 
+## References
+
+Game sources used by the tray, the assistant, and the offline-backend work:
+
+- [ro-idle.app/info](https://ro-idle.app/info) — official site: [更新紀錄](https://ro-idle.app/info/updates), [新手指南](https://ro-idle.app/info/guide), [玩法與公式](https://ro-idle.app/info/mechanics) (stat, damage, HIT/FLEE, ASPD, cast, regen, death, offline-settlement rules "from the game's actual code"), [資料查詢](https://ro-idle.app/info/database).
+- Game bundle `https://ro-idle.app/assets/index-*.js` — static data literal (monsters, maps, skills, items) extracted by `scripts/extract-maps.mjs` into `src/game-data.json` / `src/item-info.json`; also the client API surface (`/api/characters/:id/{commands,stream,events,...}`).
+- [ned-lin-9527.github.io/Ragnarok](https://ned-lin-9527.github.io/Ragnarok/) ([repo](https://github.com/ned-lin-9527/Ragnarok)) — player guides and dated skill-tree / equipment data dumps; read live by `src-tauri/src/guide.rs`.
+- [nba9001-sys/ro-idle](https://github.com/nba9001-sys/ro-idle) — a different, client-only RO idle game (諸神放置錄). Not ro-idle.app; useful only as a reference simulation engine.
+- Dev builds record raw API traffic to `<app config>/capture/*.jsonl` (`src/capture.js`) for building an offline backend against real payloads.
+
 ## Install
 
 Download the `.dmg` from [Releases](https://github.com/mike623/ro-idle-tray/releases/latest). The build is not Apple-signed or notarized, so the first time: right-click the app › **Open** › **Open**.

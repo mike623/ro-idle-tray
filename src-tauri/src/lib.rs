@@ -813,6 +813,23 @@ pub fn run() {
                 });
             });
 
+            let cap_handle = handle.clone();
+            app.listen("ro-idle-capture", move |event| {
+                #[derive(serde::Deserialize)]
+                struct Cap { profile: String, rec: String }
+                let Ok(m) = serde_json::from_str::<Cap>(event.payload()) else { return };
+                if profile_number(&cap_handle, &m.profile).is_none() { return }
+                let Ok(dir) = cap_handle.path().app_config_dir().map(|d| d.join("capture")) else { return };
+                let ts = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
+                // ponytail: no rotation/cleanup; dev-only, delete the folder when done.
+                let path = dir.join(format!("{}-{}.jsonl", m.profile, utc_date(ts)));
+                let _ = std::fs::create_dir_all(&dir).and_then(|_| {
+                    use std::io::Write;
+                    std::fs::OpenOptions::new().create(true).append(true).open(&path)?
+                        .write_all(format!("{}\n", m.rec.replace('\n', " ")).as_bytes())
+                });
+            });
+
             // Right click: a small menu (show the panel, quit); left click toggles the panel.
             let tray_menu = tauri::menu::Menu::with_items(app, &[
                 &tauri::menu::MenuItem::with_id(app, "tray-show", "顯示 / 隱藏面板", true, None::<&str>)?,
@@ -1070,7 +1087,9 @@ fn open_profile(app: &AppHandle, profile: &str, show: bool) {
         let _ = window.move_window(tauri_plugin_positioner::Position::TrayCenter);
         return;
     }
-    let script = format!("const RO_IDLE_PROFILE = {profile:?};{}{CHARACTER_HOOK}{}", format!("{}{}", include_str!("../../src/move.js"), include_str!("../../src/items.js")), format!("{}{}", include_str!("../../src/tutorial-ui.js"), include_str!("../../src/bubble.js")));
+    // Dev builds also record raw API traffic (src/capture.js) for the offline-backend work.
+    let capture = if cfg!(debug_assertions) { include_str!("../../src/capture.js") } else { "" };
+    let script = format!("const RO_IDLE_PROFILE = {profile:?};{}{CHARACTER_HOOK}{capture}{}", format!("{}{}", include_str!("../../src/move.js"), include_str!("../../src/items.js")), format!("{}{}", include_str!("../../src/tutorial-ui.js"), include_str!("../../src/bubble.js")));
     let builder = WebviewWindowBuilder::new(
         app,
         &label,

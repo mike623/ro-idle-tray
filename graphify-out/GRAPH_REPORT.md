@@ -1,17 +1,17 @@
-# Graph Report - ro-idle-tray  (2026-11-04)
+# Graph Report - re-implement-server-backend-offline  (2026-11-04)
 
 ## Corpus Check
-- 52 files · ~77,440 words
+- 54 files · ~78,008 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 5 file(s) not represented in the graph (top: (none) 2, .icns 1, .ico 1)
+- Unclassified: 6 file(s) not represented in the graph (top: (none) 3, .icns 1, .ico 1)
 
 ## Summary
-- 762 nodes · 1511 edges · 39 communities (29 shown, 10 thin omitted)
+- 769 nodes · 1521 edges · 46 communities (29 shown, 17 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1bf4ead4`
+- Built from commit: `f305b66c`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -50,6 +50,11 @@
 - write_panel_geometry
 - run
 - open_profile
+- items.test.mjs
+- tutorial.test.mjs
+- extract-maps.test.mjs
+- capture.test.mjs
+- panel.test.mjs
 
 ## God Nodes (most connected - your core abstractions)
 1. `run()` - 20 edges
@@ -78,7 +83,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (39 total, 10 thin omitted)
+## Communities (46 total, 17 thin omitted)
 
 ### Community 0 - "lib.rs"
 Cohesion: 0.07
@@ -121,8 +126,8 @@ Cohesion: 0.25
 Nodes (7): description, identifier, permissions, remote, urls, $schema, windows
 
 ### Community 10 - "Element"
-Cohesion: 0.05
-Nodes (11): Element, environment(), window, source, source, arrows, snapshot, get() (+3 more)
+Cohesion: 0.13
+Nodes (4): Element, environment(), window, source
 
 ### Community 11 - "RO Idle Tray"
 Cohesion: 0.33
@@ -198,14 +203,14 @@ Nodes (12): confirm_remove(), dialog(), export_dir(), export_path(), open_accoun
 
 ## Knowledge Gaps
 - **4 isolated node(s):** `@tauri-apps/cli`, `ro-idle-tray`, `Text`, `Tool`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 278 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 282 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **17 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `AiConfig` connect `ai.rs` to `chat.rs`?**
-  _High betweenness centrality (0.005) - this node is a cross-community bridge._
+  _High betweenness centrality (0.004) - this node is a cross-community bridge._
 - **What connects `@tauri-apps/cli`, `ro-idle-tray`, `Text` to the rest of the system?**
   _4 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `lib.rs` be split into smaller, more focused modules?**
