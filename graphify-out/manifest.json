@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793802890.7186785,
-    "seen": 1793803703.779765,
-    "ast_hash": "3afa6524309f3b69566416d5f5a7f704",
+    "mtime": 1793807561.2035582,
+    "seen": 1793811387.258739,
+    "ast_hash": "020470f008cdb7fefd74dac2706113c0",
     "semantic_hash": ""
   },
   "src/atlas.html": {
@@ -447,6 +447,30 @@
     "mtime": 1793803687.1985042,
     "seen": 1793803703.7797592,
     "ast_hash": "7e30a9c670f2188c06e100603e068f46",
+    "semantic_hash": ""
+  },
+  "scripts/capture-gaps.py": {
+    "mtime": 1793810093.0509713,
+    "seen": 1793811387.257714,
+    "ast_hash": "5dac60601df38945db2da2a4c72c4e32",
+    "semantic_hash": ""
+  },
+  "scripts/formula-check.py": {
+    "mtime": 1793808365.8037903,
+    "seen": 1793811387.257739,
+    "ast_hash": "05212a69ff285ce710d7dce1824198dd",
+    "semantic_hash": ""
+  },
+  "docs/offline-backend/formulas.md": {
+    "mtime": 1793808623.8909779,
+    "seen": 1793811387.2588,
+    "ast_hash": "7bdaaf77b5c0cedc9ca6659df547cde5",
+    "semantic_hash": ""
+  },
+  "docs/offline-backend/gaps.md": {
+    "mtime": 1793810450.9828455,
+    "seen": 1793811387.258801,
+    "ast_hash": "320957913ba4ad9fa39dcfa6e670c1cf",
     "semantic_hash": ""
   }
 }
