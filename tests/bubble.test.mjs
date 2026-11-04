@@ -53,7 +53,7 @@ test('bubble isolates styles, restores the active thread and ignores old replies
   await e.get('pill').events.click(); await tick();
   assert.equal(e.get('box').hidden,false);
   assert.match(e.get('messages').textContent,/History for Alice/);
-  e.get('input').value='Why did I die?';
+  e.get('form input').value='Why did I die?';
   const pending=e.get('form').events.submit({preventDefault(){}}); await tick();
   const send=e.calls.find((c)=>c.cmd==='chat_send');
   assert.equal(send.args.character,'Alice');
@@ -111,7 +111,7 @@ test('replies render bold, code and tip blocks as nodes and the final 追問 lin
   const reply='放了 **109** 次\n> 建議改法\n> 加條件 `目標 HP 高於 40%`\n追問：為什麼要這樣排？｜改完幫我檢查';
   const e=environment();await tick();
   await e.get('pill').events.click();await tick();
-  e.get('input').value='Why?';
+  e.get('form input').value='Why?';
   const pending=e.get('form').events.submit({preventDefault(){}});await tick();
   e.finish([{role:'user',text:'Why?'},{role:'assistant',text:reply}]);await pending;await tick();
   const kids=e.get('messages').children;
@@ -153,7 +153,7 @@ test('player pins guide pages and a note to the character chat',async()=>{
 test('repeated tool calls fold into one chip with a count',async()=>{
   const e=environment(); await tick();
   await e.get('pill').events.click(); await tick();
-  e.get('input').value='How efficient?';
+  e.get('form input').value='How efficient?';
   e.get('form').events.submit({preventDefault(){}}); await tick();
   const send=e.calls.find((c)=>c.cmd==='chat_send');
   for (const t of ['get_log_summary','get_log_summary','get_log_summary','game_lookup']) send.args.onEvent.onmessage({kind:'tool',name:t});

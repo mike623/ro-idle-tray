@@ -143,7 +143,7 @@
     };
     const starters = (questions) => {
       const wrap = el('div','starters');
-      for (const q of questions) { const b = el('button','',q); b.type = 'button'; b.addEventListener('click',()=>{ root.querySelector('input').value = q; root.querySelector('form').requestSubmit(); }); wrap.append(b); }
+      for (const q of questions) { const b = el('button','',q); b.type = 'button'; b.addEventListener('click',()=>{ root.querySelector('form input').value = q; root.querySelector('form').requestSubmit(); }); wrap.append(b); }
       $('messages').append(wrap);
     };
     const render = (rows) => {
@@ -188,7 +188,7 @@
         try { state(await invoke('chat_character',who)); } catch(e) { showError(e); }
         if (!restored) await restore();
         await tutorial.refresh();
-        root.querySelector('input').focus();
+        root.querySelector('form input').focus();
       } else $('pill').focus();
     };
     const onPill = async()=>{
@@ -254,7 +254,7 @@
       catch(e) { if(current === generation) showError(e); }
     });
     root.querySelector('form').addEventListener('submit',async(e)=>{
-      e.preventDefault(); const input = root.querySelector('input'); const text = input.value.trim();
+      e.preventDefault(); const input = root.querySelector('form input'); const text = input.value.trim();
       if (busy || !name || !text) return;
       const current = generation; const character = name;
       busy = true; $('send').disabled = true; $('new').disabled = true; showError();
