@@ -624,3 +624,70 @@ The 4 analysed misses are all on profile-5 (Swordman, VIT63, hard DEF 9, Angelus
 AL_INCAGI Lv3 cast in 713 ms; the replay predicted 726 ms with DEX 41. The stream had only 14 events in the 2,369 s after its last snapshot, so the app was offline or the capture had a gap. The next snapshot shows DEX 43, and `floor(1000×(150−43)/150) = 713` is exact. The formula is right and the replay state was stale. Both the oracle and the JS capture test now drop a stream's state after a >120 s gap (15 such gaps in the capture), and `castMs_DEX` is 3,009 OK / 0 MISS.
 
 Known JS vs. oracle differences that no capture exercises: the JS player-damage path uses the panel `statusAtk` (DEX main for bow, instrument and whip; the oracle's damage path uses bow only). JS bolt MATK includes `magicPowerRate`, which is 0 in every capture. The JS check reads hard DEF and refine ATK from the replayed state, while the oracle reads them from the last snapshot.
+
+## Rules engine (`server/rules/engine.js`, #17)
+
+Pure and deterministic: callers inject time (`at`/`now`) and a seeded RNG (`mulberry32`). It sequences the formulas
+above and emits battle event bodies in the captured shapes ([api.md](api.md#battle-event--seq-body-wallms-simtime)).
+
+| Piece | Rule | Evidence |
+|---|---|---|
+| Encounter | monster drawn by spawn `count` (mechanics page: no coordinates); search 300 ms + Exp(mean 500 ms) | captured searching→found: min 300, p50 ~500, mean ~800, p95 ~2.2 s (profiles 1, 5) |
+| Approach | melee: walk 10 cells × `moveSpeedMs` (1120 = 10×112, 1500 = 10×150); ranged opener (bow, Provoke, magic attack rule): `found` at 9 cells, 500 ms, then the mob closes `(9 − range) × walkSpeed` (2100 = 500 + 8×200; mushrooms 8500 = 500 + 8×1000) | 1,129 + 588 captured `found` |
+| Player hit / crit | hit% = clamp(5, 95, 80 + HIT − (mobLv + mobAGI)); crit% = panel crit − mobLUK/5, crit always hits; dagger double attack 5%×TF_DOUBLE Lv | mechanics page; distribution not verified per roll |
+| Monster swing | passive mobs start after the first hit (aggressive on arrival), first swing uniform in [0, attackDelay], then every attackDelay; hit% = clamp(5, 95, 80 + mobLv + mobDEX − FLEE) after perfect dodge | captured Spore 1872 ms, Horn 1528 ms cadence |
+| Mob skills | attack-state `NPC_*ATTACK` skills fire at `rate`/10000 per swing with `delayMs` cooldown; damage = normal swing × element | ailments/DEF bypass not modelled |
+| Casts | SP paid at cast start, DEX cast time, damage at completion, next action after max(delay, ASPD interval); self buffs recast when missing (`buffStart` with level duration) | castMs 1978 captured for LB Lv4 / DEX 44; Endure 37 s |
+| Timing | `resolveAction` rejects actions before the ASPD interval (`TOO_EARLY`), unlearned levels, short SP, cooldowns | |
+| Rewards | solo EXP or `partyExpShare`; `basePct` = gain / level requirement; base level-up stat points floor((Lv−1)/5)+3 (fits captured 48/49/51 → 12/12/13); drops roll each slot per 10000 × kill-event `dropMult` (event monster, inside its window); weight warnings at 50/90% | |
+
+### L2 replay (`node tests/l2-fights.mjs 1000`, test `tests/engine-l2.test.mjs`)
+
+Each of the 400 fixture fights runs 1,000 seeds from its snapshot (`derived` panel, buffs, mob HP at our first hit);
+a fight passes when the real duration, damage taken and hits landed all lie in the simulated p5–p95. 2026-11-04 fixtures:
+
+| Stratum | Pass | Duration ok | Damage taken ok | Hits ok |
+|---|---|---|---|---|
+| **Own-finish** (all damage from `mobHpStart` is ours) | **141/153 = 92.2%** | 144 | 153 | 145 |
+| of which solo `found` at full HP | 21/25 = 84.0% | 23 | 25 | 22 |
+| Party-helped (allies hit the mob after we engaged) | 2/247 = 0.8% | 5 | 99 | 5 |
+| All | 143/400 = 35.8% | 149 | 252 | 150 |
+
+Party-helped fights cannot be replayed solo (the stream only has our own hits), so they are reported, not judged.
+Most "solo found" fights in the corpus (42/67) also took party damage; `ownDamage ≥ mobHpStart` is the solo filter.
+
+The 12 own-finish failures:
+
+- **Merchant one-hit kills of assist targets (6)**: real damage is 3 above our max (63 vs 52–63 borderline, 44 vs 31–41,
+  35 vs 32, 42 vs 39 twice). Every case fits the open player-damage outlier: monster soft DEF = floor(0.9 × VIT)
+  (see the investigation above). Applying that cut whenever the mob has not swung yet lifts own-finish only to 142/153,
+  so it is not adopted; the trigger condition is still unknown.
+- **Melee assist delay (3)**: the first own hit after a `targetSwitch` comes 1.4–2.6 s late in ~15% of melee assist
+  switches (0 ms in the rest; never for mage/archer). Probably walking to the ally's target; no distance is captured.
+- **Swordman vs Red Mushroom (DEF 100) (3)**: 3 of 10 fights deal 6 per hit instead of 1 (unrefined axe), killing in 3
+  hits. Suspect stale snapshot gear or a flat ATK outside the DEF step; needs a capture with a fresh snapshot.
+- **Mage bolt max roll (1)**: one Lightning Bolt killed 392 HP = exactly the max MATK roll ×4; a real <2% event.
+
+### Kill / EXP per hour (`node tests/l2-rates.mjs`)
+
+Each fixture character farms `mjolnir_09` alone for 3 simulated hours (search + approach + fight; HP/SP reset per
+fight). Captured 2026-11-04 rates (8 own characters, one party, 2.9–4.1 active hours each; gaps >120 s excluded):
+
+| Char (capture) | Job | Sim kills/h (solo) | Real own kills/h | Real `found`/h | Real base EXP/h (party share) |
+|---|---|---|---|---|---|
+| 72397 (profile-1) | thief | 327 | 84 | 91 | 20,844 |
+| 72444 (profile-2) | not in fixtures | – | 0 | 0 | 18,842 |
+| 72468 (profile-3) | mage | 318 | 203 | 0 | 18,762 |
+| 72472 (profile-4) | merchant | 162 | 38 | 0 | 18,706 |
+| 72688 (profile-5) | swordman | 158 | 67 | 488 | 18,742 |
+| 74435 (profile-6) | merchant | 168 | 41 | 0 | 18,689 |
+| 74496 (profile-7) | archer | 425 | 108 | 0 | 18,793 |
+| 74917 (profile-8) | acolyte | 20 (209 deaths/h) | 1 | 0 | 18,640 |
+| **Party** | | **1,577** (65,904 base EXP/h each) | **541** | | **~18,700 each** |
+
+Profile ↔ character from the request paths in each capture file. Per-character rates are not comparable
+one-to-one: only the thief and swordman search (the swordman pulls 488 mobs/h for the party), the others assist. At party level the
+solo sum is ~2.9× the real kill rate, while each fight's duration matches (L2 above). The gap is session time the engine does not
+model: party assist overlap (several members on one mob), looting, sitting/regen, buff upkeep by the acolyte, town trips.
+That belongs to the brain/session layer (#23), not the per-fight rules. population.md's (branch `re-implement-server-backend-offline`) ~62 fights/h per character
+(all 8 averaged) is consistent with 541 party kills/h ÷ 8 ≈ 68.
