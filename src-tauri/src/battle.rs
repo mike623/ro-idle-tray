@@ -103,9 +103,33 @@ pub fn protocol<R: tauri::Runtime>(
     });
 }
 
-/// Opens (or focuses) the battle view on `name`'s party.
+/// Character the battle view is watching; its party is held online while the view is open.
+static FOCUS: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+
+/// Profile numbers of the watched party (empty when the view is closed or hidden).
+pub(crate) fn held_profiles(app: &AppHandle) -> Vec<u8> {
+    let shown = app.get_webview_window("battle").is_some_and(|w| w.is_visible().unwrap_or(false));
+    let focus = FOCUS.lock().unwrap().clone();
+    if !shown || focus.is_empty() {
+        return vec![];
+    }
+    profile_numbers(&same_map(crate::battle_roster(app), &focus))
+}
+
+fn profile_numbers(party: &[Value]) -> Vec<u8> {
+    party.iter().filter_map(|c| c["profile"].as_str()?.strip_prefix("profile-")?.parse().ok()).collect()
+}
+
+/// Opens (or focuses) the battle view on `name`'s party and brings that party online:
+/// offline (auto offline) windows send no live events, so the view would stand still.
 #[tauri::command]
 pub fn open_battle(app: AppHandle, name: Option<String>) {
+    if let Some(n) = name.as_deref().filter(|n| !n.is_empty()) {
+        *FOCUS.lock().unwrap() = n.to_string();
+        for p in profile_numbers(&same_map(crate::battle_roster(&app), n)) {
+            crate::set_offline(&app, p, false);
+        }
+    }
     let name_js = serde_json::to_string(&name.unwrap_or_default()).unwrap_or_else(|_| "\"\"".into());
     if let Some(w) = app.get_webview_window("battle") {
         let _ = w.eval(format!("window.battleFocus && window.battleFocus({name_js})"));
@@ -202,6 +226,8 @@ mod tests {
         assert_eq!(names(same_map(all.clone(), "A")), ["A", "B"]);
         assert_eq!(names(same_map(all.clone(), "D")), ["D", "E"]);
         assert_eq!(names(same_map(all, "Z")), Vec::<String>::new());
+        let party = vec![serde_json::json!({"profile": "profile-3"}), serde_json::json!({"profile": "x"}), serde_json::json!({"profile": "profile-11"})];
+        assert_eq!(profile_numbers(&party), [3, 11]);
     }
 
     #[test]

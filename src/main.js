@@ -323,7 +323,6 @@ function card(n, info, othersIdling, why) {
     } else b.disabled = true;
   });
   q(".action").textContent = info.action ?? "–";
-  q(".battle-link").addEventListener("click", () => invoke("open_battle", { name: info.name }));
   const t = info.target;
   q(".target").textContent = t ? `${t.name}${t.lv == null ? "" : ` Lv.${t.lv}`}` : "無";
   if (t && t.maxHp) {
@@ -372,6 +371,10 @@ function card(n, info, othersIdling, why) {
   const ask = q(".ask");
   ask.setAttribute("aria-label", `問 ${info.name} 的助理`);
   ask.addEventListener("click", (e) => { e.stopPropagation(); document.dispatchEvent(new CustomEvent("ask-character", { detail: info.name })); });
+
+  const live = q(".live");
+  live.setAttribute("aria-label", `戰鬥畫面（${info.name}）`);
+  live.addEventListener("click", (e) => { e.stopPropagation(); invoke("open_battle", { name: info.name }); });
 
   const go = q(".go");
   go.setAttribute("aria-label", `Open game window（${info.name}）`);
