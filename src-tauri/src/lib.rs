@@ -28,6 +28,8 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 /// Game windows load the owned server (which serves the official client from its local cache) and run brain/client.js;
 /// no updater, no auto-offline (a window with no brain gets no simulation), no capture.
 const SERVER: Option<&str> = option_env!("RO_IDLE_SERVER");
+/// Game window title prefix; the Beta says so, so it is never mistaken for the live ro-idle.app window.
+const GAME_TITLE: &str = if SERVER.is_some() { "[BETA · own server] RO放置仙境" } else { "RO放置仙境" };
 
 pub(crate) fn game_origin_ok(url: &tauri::Url) -> bool {
     match SERVER.and_then(|s| tauri::Url::parse(s).ok()) {
@@ -607,7 +609,7 @@ fn update_title(app: &AppHandle, n: u8) {
             None => format!("{}（{}）", i.name, i.class),
         }
     });
-    let _ = w.set_title(&format!("RO放置仙境 — {}", who.unwrap_or_else(|| format!("Account {n}"))));
+    let _ = w.set_title(&format!("{GAME_TITLE} — {}", who.unwrap_or_else(|| format!("Account {n}"))));
 }
 
 fn save_profile_ids(app: &AppHandle, ids: &[u8]) {
@@ -1111,7 +1113,7 @@ fn open_profile(app: &AppHandle, profile: &str, show: bool) {
         &label,
         WebviewUrl::External(SERVER.unwrap_or("https://ro-idle.app/").parse().unwrap()),
     )
-    .title(format!("RO放置仙境 — Account {n}"))
+    .title(format!("{GAME_TITLE} — Account {n}"))
     .inner_size(1100.0, 760.0)
     .min_inner_size(800.0, 580.0)
     .data_store_identifier(profile_store_id(n))
