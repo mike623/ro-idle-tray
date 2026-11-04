@@ -27,6 +27,8 @@ GAME MECHANICS & ANSWERS
 
 ### 屬性相剋表 · 依防禦屬性等級查倍率
 
+> Snapshot note: the live page has a Lv1–4 selector; the server HTML (and this copy) holds **defense level 1 only**. All four levels are in the game bundle (`element[level−1][atk][def]`, see [formulas.md](formulas.md)).
+
 列為攻擊屬性、欄為目標防禦屬性。數值是原始屬性修正百分比；0 或負值如何處理由各傷害路徑決定，不代表所有技能都會替怪物回血。
 
 | 攻擊 ＼ 防禦 | 無 | 水 | 地 | 火 | 風 | 毒 | 聖 | 暗 | 念 | 不死 |

@@ -91,11 +91,11 @@ The "view": envelope + `snapshot`. Same object is the command reply `view` and (
 Plain `EventSource`, unnamed `id` (never set). Client reconnect: on `error` it waits (randomised within the last
 `restart.windowMs`, else exponential 1 s → 30 s), re-GETs the view, then reopens with `after=lastSeq`.
 
-| Event | `data` | Seen | Client action (bundle) |
+| Event | `data` | Seen (by 18:20 on 2026-11-04) | Client action (bundle) |
 |---|---|---|---|
-| `snapshot` | `{snapshot, revision, commandRevision, lastSeq, running, backlogMs, settledAtMs}` — full snapshot, not a diff | 971 | replace state |
-| `events` | `[event…]` (1–20+ per message) | 7,300 | append to log |
-| `chat` | `[{id, channel, senderId, senderName, text, atMs}]` (only `channel:"announce"` seen) | 1,125 | chat pane |
+| `snapshot` | `{snapshot, revision, commandRevision, lastSeq, running, backlogMs, settledAtMs}` — full snapshot, not a diff | ~970 | replace state |
+| `events` | `[event…]` (1–20+ per message) | ~7,300 | append to log |
+| `chat` | `[{id, channel, senderId, senderName, text, atMs}]` (only `channel:"announce"` seen) | ~1,100 | chat pane |
 | `chatCursor` | `{cursor: 337678}` — latest chat id, sent at open | 113 | resume point for `chatAfter` |
 | `restart` | `{windowMs: 5790}` | 16 | server restarting; reconnect within `min(windowMs, 60s)` |
 | `lounge` | `{room, capacity, members:[{id, name, seat, idle, sit, job, look}]}` | 11 | social, out of phase 1 |
@@ -165,7 +165,7 @@ Expected but never seen: death, MVP, card drop (`isCard:true`), overweight stop.
 ```json
 {"events":[{"seq":350344,"body":{"by":"牙暉","job":21,"base":33,"type":"exp","party":true,
   "jobPct":0.0136,"basePct":0.0286},"wallMs":1793802675792,"simTime":217921152}, …],
- "gap":false,"retainedFrom":201283}
+ "gap":false,"retainedFrom":340846}
 ```
 
 `retainedFrom` = oldest seq still stored (~8–10k events back); `gap` presumably true when `after < retainedFrom`
@@ -241,10 +241,31 @@ Command replies carry the inner object (`storage:{items,…}`). Fee is per town 
 {"party":{"id":21747,"name":"askern","leaderId":72444,"expShare":"even","itemShare":"random","maxMembers":12,
   "members":[{"id":72397,"name":"嘈嘈嘈","mapId":"mjolnir_09","running":true,"baseLv":50,"job":"thief",
     "look":{"appearance":{"sex":"m","hair":1,"hairColor":0},"headgear":{"top":2220},"gear":{}},
-    "vitals":{"hp":100,"sp":100},"buffs":[{"id":"AL_ANGELUS","lv":10},{"id":"AL_INCAGI","lv":3}]}, …]}}
+    "vitals":{"hp":100,"sp":100},"buffs":[{"id":"AL_ANGELUS","lv":10},{"id":"AL_INCAGI","lv":3}]}, …]},
+ "invites":[],
+ "own":[{"id":72688,"name":"嘈嘈嘈2","partyId":21747,"running":true,"vending":false,"mapId":"mjolnir_09",
+   "baseLv":48,"job":"swordman","invites":[]}, …]}
 ```
 
-`vitals` are percents. Party write endpoints (invite/leave/kick/share) exist in the bundle but were not called.
+`vitals` are percents; `own` = the account's other characters (for "我的其他角色" joins); `party` is `null` when not
+in a party.
+
+Party writes — **bundle only, never captured**: `POST /api/characters/:id/party/<action>`; the client applies the
+reply as the new party view and toasts `reply.notice` if present. Actions and bodies:
+
+| Action | Body |
+|---|---|
+| `create` | `{name}` |
+| `invite` | `{name}` (character name) |
+| `respond` | `{partyId, accept}` |
+| `leave` | `{}` |
+| `kick` | `{memberId}` |
+| `leader` | `{memberId}` |
+| `rename` | `{name}` |
+| `settings` | `{expShare, itemShare}` (seen values `even`, `random`) |
+| `recruit` | `{recruit: …\|null}` (lobby listing; `null` ends it) |
+| `application` | `{characterId, accept}` (leader reviews a lobby application) |
+| `withdraw` | `{partyId}` (cancel own application) |
 Other reads seen once, no shape needed for phase 1: `/guild` (`{guild, invites, skills, directory}` — directory
 is other players, not reproduced), `/mail` (`{inbox, sent, fee:1000, maxItems:5, maxNote:60, ttlDays:14}`),
 `/api/costumes`, `/api/rankings`, `/api/shared-configs`, `/lounge/*`.
