@@ -35,3 +35,4 @@ graphify-out/cache/
 
 # Local bundle/capture inputs for formula checks
 .scratch/
+server/data.sqlite*
