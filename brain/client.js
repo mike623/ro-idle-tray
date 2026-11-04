@@ -16,11 +16,11 @@ export function drive({ base, characterId, token, now = Date.now, intervalMs = 2
     if (ws?.readyState !== 1) return;
     for (const a of tick(brain, now())) {
       log('>', characterId, a);
-      if (a.type === 'command') command(a.command);
+      if (a.type === 'command') command(a.command, brain.inflight);
       else ws.send(JSON.stringify({ id: ++n, ...a }));
     }
   }
-  async function command(c) {
+  async function command(c, sent) {
     let m;
     try {
       const r = await fetch(`${base}/api/characters/${characterId}/commands`, { method: 'POST',
@@ -29,14 +29,17 @@ export function drive({ base, characterId, token, now = Date.now, intervalMs = 2
       m = { type: 'result', ok: r.ok, error: body.error?.code, view: body.view };
     } catch { m = { type: 'result', ok: false, error: 'NETWORK' }; }
     log('<', characterId, m.ok ? { type: 'result', ok: true } : m);
+    if (brain.inflight !== sent) return; // late reply: the brain gave up on it and moved on
     observe(brain, m, now());
     step();
   }
   function connect() {
+    if (closed) return;
     ws = new WebSocketImpl(url);
     ws.onopen = () => opened();
     ws.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
+      if (m.type === 'result' && (m.id !== n || brain.inflight?.type === 'command')) return; // late reply to a dropped action
       if (m.type !== 'snapshot') log('<', characterId, m);
       observe(brain, m, now());
       step();

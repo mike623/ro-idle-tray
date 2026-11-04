@@ -239,3 +239,14 @@ test('a lost result does not wedge the brain', () => {
   assert.deepEqual(tick(b, T + 5000), []);
   assert.deepEqual(tick(b, T + 10001), [{ type: 'search' }]);
 });
+
+test('still overweight after a town trip: stopOnOverweight stops; a refused trip falls back to hunting', () => {
+  const b = brainWith(snap({ weightPercent: 95, saveMap: 'payon', mapId: 'payon', config: { stopOnOverweight: true } }));
+  assert.deepEqual(tick(b, T), [{ type: 'search' }], 'nothing to sell or store: trip ends');
+  ok(b, { uid: 7 }); ev(b, { type: 'targetSkip' });
+  assert.deepEqual(tick(b, T + 1), [{ type: 'command', command: { type: 'stop' } }]);
+  const c = brainWith(snap({ config: { townBuy: [{ itemId: 501, qty: 10, below: 6 }] } }));
+  assert.deepEqual(tick(c, T), [{ type: 'command', command: { type: 'selectMap', mapId: 'payon' } }]);
+  fail(c, 'GAME_RULE');
+  assert.deepEqual(tick(c, T), [{ type: 'search' }]);
+});

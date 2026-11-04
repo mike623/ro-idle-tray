@@ -1103,7 +1103,7 @@ fn open_profile(app: &AppHandle, profile: &str, show: bool) {
     // Dev builds also record raw API traffic (src/capture.js) for the offline-backend work.
     let capture = if cfg!(debug_assertions) && SERVER.is_none() { include_str!("../../src/capture.js") } else { "" };
     let brain = SERVER.map_or(String::new(), |s| format!(
-        "if (window.top === window && location.origin === {s:?}) import({s:?} + '/brain/client.js').then(m => m.boot({{ profile: RO_IDLE_PROFILE }})).catch(e => console.error('[brain]', e));"
+        "if (window.top === window && location.origin === new URL({s:?}).origin) import(location.origin + '/brain/client.js').then(m => m.boot({{ profile: RO_IDLE_PROFILE }})).catch(e => console.error('[brain]', e));"
     ));
     let script = format!("const RO_IDLE_PROFILE = {profile:?};{brain}{}{CHARACTER_HOOK}{capture}{}", format!("{}{}", include_str!("../../src/move.js"), include_str!("../../src/items.js")), format!("{}{}", include_str!("../../src/tutorial-ui.js"), include_str!("../../src/bubble.js")));
     let builder = WebviewWindowBuilder::new(

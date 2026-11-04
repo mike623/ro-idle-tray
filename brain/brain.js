@@ -176,13 +176,15 @@ function decide(b, now) {
   const store = cfg.autoStorage;
   const short = (cfg.townBuy ?? []).some((t) => count(t.itemId) < t.below);
   const heavy = s.weightPercent >= 90 || (store?.enabled && s.weightPercent >= store.abovePercent);
+  if (s.weightPercent >= 90 && cfg.stopOnOverweight && now < b.supplyAfter) return cmd({ type: 'stop' }); // the trip did not fix it
   if (!b.town && now >= b.supplyAfter && (short || heavy) && s.saveMap) b.town = { queue: null };
   if (b.town) {
-    if (s.mapId !== s.saveMap) return cmd({ type: 'selectMap', mapId: s.saveMap }) ?? (b.town = null);
-    if (!b.town.queue) b.town.queue = townQueue(cfg, s, inv, equipped, count);
-    const next = b.town.queue.shift();
+    const go = s.mapId !== s.saveMap && cmd({ type: 'selectMap', mapId: s.saveMap });
+    if (go) return go;
+    if (s.mapId === s.saveMap) b.town.queue ??= townQueue(cfg, s, inv, equipped, count);
+    const next = b.town.queue?.shift();
     if (next) return { type: 'command', command: next, queued: true };
-    b.town = null;
+    b.town = null; // done, or the save map refused us: hunt on and retry later
     b.supplyAfter = now + SUPPLY_EVERY_MS;
   }
 

@@ -132,8 +132,9 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
 
   function serveBrain(res, p) {
     const name = p.slice('/brain/'.length);
-    if (!/^[\w-]+\.js$/.test(name)) return raw(res, 404, 'text/plain', 'not found');
-    raw(res, 200, TYPES['.js'], readFileSync(new URL(`../brain/${name}`, import.meta.url)));
+    const file = new URL(`../brain/${name}`, import.meta.url);
+    if (!/^[\w-]+\.js$/.test(name) || !existsSync(file)) return raw(res, 404, 'text/plain', 'not found');
+    raw(res, 200, TYPES['.js'], readFileSync(file));
   }
   // Official client bundle, cached locally on first GET (public static files only: no query, no credentials sent upstream).
   // The cache dir is gitignored: never commit or redistribute it.

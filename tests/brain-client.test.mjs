@@ -94,6 +94,7 @@ test('serves /brain/*.js and the official client from the local cache (one upstr
   assert.match(brain.headers.get('content-type'), /javascript/);
   assert.match(await brain.text(), /export function tick/);
   assert.equal((await get('/brain/brain.mjs')).status, 404);
+  assert.equal((await get('/brain/nope.js')).status, 404);
   for (let i = 0; i < 2; i++) {
     const r = await get('/?x=1');
     assert.equal(await r.text(), '<html>/</html>');

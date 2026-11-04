@@ -177,7 +177,7 @@ skills (`recovery.order`); pick up drops (`autoLoot`); in a fight: wait for `fou
 unless the mob hit us, `targets.blacklist/whitelist`, `escape.dangerMonsters`, lv/MVP/aggressive filters when monster
 data is passed), `use:"buff"` skills missing or within `cond.refreshBeforeSec`, `use:"attack"` skills (`repeat:"once"`
 per target), then `attack`; `combat.skillOnly` never melees. Out of a fight: `sit` (`hpBelow`→`hpUntil`), `statsAddAuto`,
-town supply (any `townBuy` under `below`, weight ≥ 90 % or ≥ `autoStorage.abovePercent`): `selectMap saveMap` → `sell`
+town supply (any `townBuy` under `below`, weight ≥ 90 % or ≥ `autoStorage.abovePercent`; still ≥ 90 % after a trip with `stopOnOverweight` → `stop`): `selectMap saveMap` → `sell`
 `autoSell` stacks (not equipped, not `autoSellHeld`) → `storageDeposit` `autoStorage.items` minus `keep` → `buy`
 `townBuy` → `selectMap lockMap`; then `search`. Skill `cond`: `hpAbove/hpBelow/spAbove/spBelow` (%), `selfLacks`,
 `allyLacks`, `targetAggro`, `or`. Attack/buff `percent` is read as an SP floor (%), heal `percent` as the HP trigger.
