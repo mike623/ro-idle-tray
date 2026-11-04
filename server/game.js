@@ -63,9 +63,13 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     if (!out.length) return out;
     C.log.push(...out);
     if (C.log.length > LOG_KEEP) C.log.splice(0, C.log.length - LOG_KEEP);
+    g.onEmit?.(C, out);
     notify(C, 'events', out);
     return out;
   }
+  // hooks for server/offline.js (arrows: touch/party/job are consts defined below)
+  Object.assign(g, { emit, combatOf, addItem, takeItem, die, touch: (C) => touch(C), party: (C) => party(C), job: (C) => job(C),
+    progress: (M, mob) => progress(M, mob, 1, 1) });
 
   // ---------- characters ----------
   g.addCharacter = (view, account) => {
@@ -186,18 +190,23 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
   }
   function onDeath(C, F) {
     F.settled = true;
+    return die(C, F.mob.id);
+  }
+  /** Death penalty, respawn at the save map; also used by the offline checkout (server/offline.js). */
+  function die(C, monsterId, t = now()) {
     const s = C.snapshot, c = s.character;
+    const dead = emit(C, [{ t, body: { type: 'death', monsterId } }]); // ponytail: shape guessed (never captured); summary already reads it
     c.baseExp = e.applyDeath({ ...c }, job(C)).baseExp;
     // ponytail: instant respawn at the save map with 50% HP/SP (mechanics page); the 5 s respawn delay is not modelled
     c.hp = fl(s.derived.maxHp / 2); c.sp = fl(s.derived.maxSp / 2);
     const from = s.mapId;
     s.mapId = s.saveMap;
-    if (s.stats) { s.stats.deaths = (s.stats.deaths ?? 0) + 1; s.stats.deathLog?.push({ t: s.time, mapId: from, damage: 0, monsterId: F.mob.id }); } // ponytail: killing-blow damage not tracked
+    if (s.stats) { s.stats.deaths = (s.stats.deaths ?? 0) + 1; s.stats.deathLog?.push({ t: s.time, mapId: from, damage: 0, monsterId }); } // ponytail: killing-blow damage not tracked
     C.fight = null;
     s.activity = 'idle';
-    const out = emit(C, [{ body: { type: 'mapChange', from, to: s.mapId, cause: 'return' } }]);
+    const out = emit(C, [{ t, body: { type: 'mapChange', from, to: s.mapId, cause: 'return' } }]);
     touch(C);
-    return out;
+    return [...dead, ...out];
   }
 
   const ownerOf = (uid) => [...g.chars.values()].find((x) => x.fight?.uid === uid);

@@ -34,15 +34,15 @@ No token → `401 {error:{code:"UNAUTHENTICATED"}}` (the client's login screen).
 | Path | Notes |
 |---|---|
 | `GET /api/characters` | account's characters |
-| `GET /api/characters/:id[?deferCatchup=1]` | view: `characterId, name, revision, commandRevision, lastSeq, running, backlogMs:0, settledAtMs, clockFrozen, deleteAfterMs, snapshot` |
-| `GET /api/characters/:id/stream?after=` | SSE: `snapshot` (`{snapshot, revision, commandRevision, lastSeq, running, backlogMs, settledAtMs}`), `chatCursor {cursor:0}`, `gap` if `after` is older than the log, backlog `events`, then live `events` / `snapshot` |
+| `GET /api/characters/:id[?deferCatchup=1]` | view: `characterId, name, revision, commandRevision, lastSeq, running, backlogMs, settledAtMs, clockFrozen, deleteAfterMs, snapshot`; without `deferCatchup` it settles the offline backlog first (see Offline checkout) |
+| `GET /api/characters/:id/stream?after=` | SSE: `snapshot` (`{snapshot, revision, commandRevision, lastSeq, running, backlogMs, settledAtMs}`), `chatCursor {cursor:0}`, settles the backlog on open; `gap` if `after` is older than the log or an offline checkout lies after it, backlog `events`, then live `events` / `snapshot`; `idle` + close once the account has no input for 20 min |
 | `GET /api/characters/:id/events?after=&limit=` | `{events, gap, retainedFrom}`; last 10 000 events kept |
-| `GET /api/characters/:id/summary?after=` | away summary, all captured keys; `estimatedMs/Zeny` stay 0 (rate checkout is #18) |
+| `GET /api/characters/:id/summary?after=` | away summary, all captured keys; settles first; offline checkouts after `after` add `estimatedMs/Zeny`, kills, EXP, loot, potions |
 | `GET /api/characters/:id/party` | `{party:{…, members:[{id,name,mapId,running,baseLv,job,look,vitals,buffs}]}, invites:[], own:[…]}` |
 | `GET /api/maps/population` | `{at, maps:{mapId:[characters on map, 0]}}` for every map (second count's meaning unknown) |
 | `GET /api/kill-event` | `{event, nowMs}`; `progress` counts kills of `event.monsterId` |
 | `GET /api/storage` | account storage |
-| `POST /api/presence` | `{ok:true}` |
+| `POST /api/presence` | `{ok:true}`; marks the account online (20-min idle and 7-day clocks) |
 | `POST /api/characters/:id/commands` | `{commandId, command}` → `200 {ok:true, view}` / `422 {error:{code:"GAME_RULE", message}, view}`; storage commands add `storage`; same `commandId` returns the stored reply; a failing command changes nothing |
 
 Commands: `start`, `stop`, `selectMap`, `updateConfig` (whole config), `allocateStats` (RO raise cost
@@ -215,10 +215,51 @@ the browser driver does not load it.
   EXP share goes to `running` members on the killer's map. Party writes (`POST /:id/party/*`) → 422 GAME_RULE.
 - Self buffs/support (`cast` of a `self` skill, Heal) need a live encounter; buffs are not timed down outside fights.
 - `useItem`/`teleport` have no delay check; AL_TELEPORT costs no SP. No two-hand/shield exclusion on `equip`.
-- SSE never sends `idle`, `superseded` (many viewers allowed) or `restart` (no notice on shutdown).
+- SSE never sends `superseded` (many viewers allowed) or `restart` (no notice on shutdown).
 - No server-side idle brain: auto sell/buy/storage/stat-up/potion are the client brain's job; `running` is only a flag.
 - Weight warnings (`weight` events), overweight stop, `heldItems`, card/refine bonuses beyond `formulas.derive`.
 - `sessionBase`/`stats` counters: only `stats.kills`, `stats.itemsLooted`, deaths updated.
 - Regen ticks (6 s standing / 3 s sitting) are RO defaults, not fitted to captures.
 - Population second count = 0 (meaning unknown). Chat/lounge/trade/arena are stubs.
-- Undriven characters do not simulate; the rate-based delta checkout is #18.
+
+## Offline checkout (#18, `server/offline.js`)
+
+A character advances in real time only while it is **live**: a WebSocket driver connected that sent an action in the
+last 20 min (the 20-min no-input pause). Otherwise its sim clock is frozen (`clockFrozen:true`, `backlogMs` = away
+time, `settledAtMs` = when it stopped). The next GET view (no `deferCatchup`), stream open, summary, command or its
+driver's (re)connect / first action after the pause settles the away time in one step:
+
+- Rates per map from the character's own driven history (kills per monster, EXP, zeny from autoSell/shopSell/autoBuy,
+  pickups, potions, deaths; farming time = gaps < 60 s between brain actions; halved past 6 h so it stays recent). With
+  < 10 min / 3 kills of history: 30 sim-min of engine fights on the map, time stretched ×2.9 (captured party kills/h
+  vs simulated, formulas.md), expected drops, cached per character/map/level.
+- Cut-offs: potions run out (stock / use rate) → stop `CRITICAL_SUPPLY`; first death drawn from the death rate
+  (exponential) → `death` + `mapChange` to the save map (same `die()` as live fights), no more farming; 7 days after
+  the account was last online → stop `OFFLINE_7D`. Loot stops at 90% weight (`unpicked`). Time not farmed only
+  regenerates (6 s ticks).
+- Online (7-day clock, SSE `idle` after 20 min) = human signals only: GET view, stream open, `POST /api/presence`,
+  commands. Brain traffic does not count, so an unattended bot that disconnects after 7+ days stops at once.
+- Party: while a member is live, offline members get its kills' EXP share in real time and their own farming by rates
+  on return, so no stretch is lost (the share may be paid twice when history already holds party shares).
+- Log: one `system` event 「離線結算 N 小時」 plus level-up/death/stop events; `/events` and SSE report `gap:true` past it;
+  `/summary` adds the settled totals (`estimatedMs`, `estimatedZeny`, kills, EXP, `looted`, `used`, `unpicked`, `noPotion`).
+- Restart: drivers are not persisted; a character driven at checkpoint time counts as offline from its last action.
+
+Cost is O(monsters + item kinds), independent of away time (`node --test server/offline.test.mjs`, 500 runs):
+24 h checkout p50 0.011 ms / p99 0.14 ms on an idle M-series Mac, p99 0.8–8.6 ms at load average ~69; the first
+engine-sampled checkout per character/map/level costs 6–13 ms idle (up to ~160 ms under that load), then is cached.
+Example after 3 h away, engine-sampled rates (thief 72397, mjolnir_09):
+
+```json
+{"summary":{"events":13,"fromSeq":387282,"toSeq":387294,"fromWallMs":1800000000000,"toWallMs":1800010800000,"gap":true,
+ "truncated":false,"estimatedMs":10800000,"estimatedZeny":0,"kills":518,
+ "killsByMonster":{"1013":80,"1031":56,"1085":29,"1104":37,"1128":246,"1174":70},"baseExp":75836,"jobExp":47467,
+ "baseLevelUps":0,"jobLevelUps":12,"deaths":0,"deathLog":[],"stopped":null,
+ "looted":{"935":135,"947":135,"1013":63,…},"autoSold":{},"autoSellZeny":0,"used":{},"autoBuyZeny":0,
+ "unpicked":0,"noPotion":0,"rareDrops":[],"noIncome":[],"noIncomeKills":0}}
+```
+
+Gaps: rates do not change with level-ups inside one checkout; stop code `OFFLINE_7D` and the `death` body are guessed
+(never captured); a viewer with no driver does not make a character live; engine sampling resets HP per fight and has
+no potions or zeny (so no supply stop and a low death risk without history); offline loot does not fill `rareDrops`;
+the killer in an offline death is the most-killed monster.

@@ -10,6 +10,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname, extname } from 'node:path';
 import { WebSocketServer } from 'ws';
 import { createGame } from './game.js';
+import { attachOffline } from './offline.js';
 import { mulberry32 } from './rules/engine.js';
 
 export function openStore(path) {
@@ -45,11 +46,12 @@ const CHAR_STUBS = {
 export async function startServer({ port = 8787, db = 'server/data.sqlite', now = Date.now, seed, tickMs = 250, checkpointMs = 30000,
   maxDrivers = 8, clientCache = 'server/client-cache', upstream = 'https://ro-idle.app', logErrors = false } = {}) {
   const store = openStore(db);
-  const game = createGame({ now, rng: seed == null ? Math.random : mulberry32(seed), maxDrivers });
+  const game = attachOffline(createGame({ now, rng: seed == null ? Math.random : mulberry32(seed), maxDrivers }));
   game.restore(store.load());
   let closed = false;
   const checkpoint = () => { if (!closed) store.save(game); };
   const drivers = new Map(); // charId → ws
+  const viewers = new Set(); // open SSE streams { account, res }
 
   const accountOf = (req, url) => {
     const auth = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
@@ -90,7 +92,7 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
       if (p === '/api/maps/population') return send(200, game.population());
       if (p === '/api/kill-event') return send(200, { event: game.killEvent, nowMs: now() });
       if (p === '/api/storage') return send(200, { storage: game.storageFor(account) });
-      if (p === '/api/presence') return send(200, { ok: true });
+      if (p === '/api/presence') { game.online(account); return send(200, { ok: true }); }
       if (p === '/api/rankings') return send(200, { rankings: { updatedAt: now(), cacheSeconds: 30, overall: [] } });
       if (STUBS[p]) return send(200, STUBS[p]);
 
@@ -99,8 +101,12 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
       const C = game.chars.get(+m[1]);
       if (!C || C.account !== account) return fail(404, 'NOT_FOUND', '角色不存在');
       const after = +(url.searchParams.get('after') ?? 0) || 0;
+      const seenSeq = C.lastSeq; // stream default `after`: before the checkout, so its gap is reported
+      // deferCatchup=1 returns the pending backlog; the stream open (or a plain GET / summary / command) settles it
+      if ((m[2] === undefined && !url.searchParams.has('deferCatchup')) || m[2] === 'stream' || m[2] === 'summary') game.checkout(C);
+      if (m[2] === 'stream') game.online(account);
       switch (m[2]) {
-        case undefined: return send(200, game.view(C));
+        case undefined: { const v = game.view(C); game.online(account); return send(200, v); }
         case 'events': return send(200, game.events(C, after, Math.min(1000, +(url.searchParams.get('limit') ?? 1000) || 1000)));
         case 'summary': return send(200, game.summary(C, after));
         case 'party': // the client applies a party write reply as the party view, so writes fail loudly instead
@@ -111,7 +117,7 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
           const r = game.command(C.id, body);
           return send(r.status, r.body);
         }
-        case 'stream': return stream(req, res, C, url);
+        case 'stream': return stream(req, res, C, url, seenSeq);
         default:
           if (CHAR_STUBS[m[2]]) return send(200, CHAR_STUBS[m[2]]);
           if (req.method === 'POST') return send(200, { ok: true }); // ponytail: social writes (lounge heartbeat…) accepted as no-ops
@@ -145,17 +151,19 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
     raw(res, 200, up.headers.get('content-type') ?? type, bytes);
   }
 
-  function stream(req, res, C, url) {
+  function stream(req, res, C, url, seenSeq) {
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
     const write = (name, data) => res.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
     write('snapshot', game.streamHello(C));
     write('chatCursor', { cursor: 0 });
-    const after = +(url.searchParams.get('after') ?? C.lastSeq);
+    const after = +(url.searchParams.get('after') ?? seenSeq);
     const back = game.events(C, after, Infinity);
     if (back.gap) write('gap', {});
     if (back.events.length) write('events', back.events);
     const off = game.subscribe(C.id, write);
-    req.on('close', off);
+    const v = { account: C.account, write, res };
+    viewers.add(v);
+    req.on('close', () => { off(); viewers.delete(v); });
   }
 
   const wss = new WebSocketServer({ noServer: true });
@@ -175,6 +183,7 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
     if (driven.length >= game.maxDrivers) { out({ type: 'error', error: 'DRIVER_LIMIT', limit: game.maxDrivers }); return ws.close(4001, 'DRIVER_LIMIT'); }
     if (prev) { prev.send(JSON.stringify({ type: 'superseded' })); prev.close(4000, 'superseded'); }
     drivers.set(C.id, ws);
+    game.driverOn(C.id);
     const off = game.subscribe(C.id, (type, data) => out(type === 'events' ? { type, events: data } : { type, ...data }));
     out({ type: 'snapshot', ...game.streamHello(C) });
     ws.on('message', (raw) => {
@@ -185,17 +194,21 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
     });
     ws.on('close', () => {
       off();
-      if (drivers.get(C.id) === ws) drivers.delete(C.id);
+      if (drivers.get(C.id) === ws) { drivers.delete(C.id); game.driverOff(C.id); }
       checkpoint();
     });
   }
 
+  /** Closes streams of accounts with no input for 20 min (`idle`; the client reopens on activity). */
+  const sweep = () => {
+    for (const v of viewers) if (game.idleViewer(v.account)) { v.write('idle', {}); v.res.end(); viewers.delete(v); }
+  };
   const timers = [];
-  if (tickMs) timers.push(setInterval(game.tick, tickMs));
+  if (tickMs) timers.push(setInterval(() => { game.tick(); sweep(); }, tickMs));
   if (checkpointMs) timers.push(setInterval(checkpoint, checkpointMs));
   await new Promise((r) => server.listen(port, '127.0.0.1', r));
   return {
-    port: server.address().port, game, checkpoint,
+    port: server.address().port, game, checkpoint, sweep,
     close: async () => {
       timers.forEach(clearInterval);
       for (const ws of wss.clients) ws.terminate();
