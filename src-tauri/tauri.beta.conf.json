@@ -1,0 +1,25 @@
+{
+  "productName": "RO Idle Tray Beta",
+  "identifier": "com.mikewong.ro-idle-tray.beta",
+  "app": {
+    "security": {
+      "capabilities": [
+        "default",
+        "items",
+        "atlas",
+        "ro-idle-remote",
+        {
+          "identifier": "beta-remote",
+          "description": "Beta: the game page is served by the local owned server (RO_IDLE_SERVER).",
+          "windows": ["game-*"],
+          "remote": { "urls": ["http://127.0.0.1:*/*", "http://localhost:*/*"] },
+          "permissions": ["core:event:allow-emit", "game-commands"]
+        }
+      ]
+    }
+  },
+  "bundle": {
+    "targets": ["app"],
+    "createUpdaterArtifacts": false
+  }
+}

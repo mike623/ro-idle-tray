@@ -1218,7 +1218,7 @@ pub fn chat_character(window: WebviewWindow, app: AppHandle, character: Option<S
 
 pub(crate) fn game_profile(window: &WebviewWindow, app: &AppHandle) -> Result<u8, String> {
     let url = window.url().map_err(|e| e.to_string())?;
-    if url.scheme() != "https" || url.host_str() != Some("ro-idle.app") {
+    if !crate::game_origin_ok(&url) {
         return Err("Not allowed from this origin".into());
     }
     let profile = window

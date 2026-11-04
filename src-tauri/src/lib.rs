@@ -24,6 +24,18 @@ use tauri::{
 use tauri_plugin_positioner::WindowExt;
 use tauri_plugin_updater::{Update, UpdaterExt};
 
+/// Beta build (#19): `RO_IDLE_SERVER=http://127.0.0.1:8787 npx tauri build --debug --config src-tauri/tauri.beta.conf.json`.
+/// Game windows load the owned server (which serves the official client from its local cache) and run brain/client.js;
+/// no updater, no auto-offline (a window with no brain gets no simulation), no capture.
+const SERVER: Option<&str> = option_env!("RO_IDLE_SERVER");
+
+pub(crate) fn game_origin_ok(url: &tauri::Url) -> bool {
+    match SERVER.and_then(|s| tauri::Url::parse(s).ok()) {
+        Some(s) => url.origin() == s.origin(),
+        None => url.scheme() == "https" && url.host_str() == Some("ro-idle.app"),
+    }
+}
+
 // Runs before the game bundle. The game calls global fetch for
 // GET /api/characters/{id}?deferCatchup=1 and opens a global EventSource on
 // /api/characters/{id}/stream whose `snapshot` events carry live levels. Both
@@ -882,7 +894,7 @@ pub fn run() {
             // character and fills the tray label without a click.
             let offline = handle.state::<Profiles>().offline.lock().unwrap().clone();
             for n in ids.into_iter().filter(|n| !offline.contains(n)) {
-                open_profile(&handle, &format!("profile-{n}"), false);
+                open_profile(&handle, &format!("profile-{n}"), SERVER.is_some()); // Beta: show for side-by-side
             }
             let poll_handle = handle.clone();
             std::thread::spawn(move || loop {
@@ -1089,12 +1101,15 @@ fn open_profile(app: &AppHandle, profile: &str, show: bool) {
         return;
     }
     // Dev builds also record raw API traffic (src/capture.js) for the offline-backend work.
-    let capture = if cfg!(debug_assertions) { include_str!("../../src/capture.js") } else { "" };
-    let script = format!("const RO_IDLE_PROFILE = {profile:?};{}{CHARACTER_HOOK}{capture}{}", format!("{}{}", include_str!("../../src/move.js"), include_str!("../../src/items.js")), format!("{}{}", include_str!("../../src/tutorial-ui.js"), include_str!("../../src/bubble.js")));
+    let capture = if cfg!(debug_assertions) && SERVER.is_none() { include_str!("../../src/capture.js") } else { "" };
+    let brain = SERVER.map_or(String::new(), |s| format!(
+        "if (window.top === window && location.origin === {s:?}) import({s:?} + '/brain/client.js').then(m => m.boot({{ profile: RO_IDLE_PROFILE }})).catch(e => console.error('[brain]', e));"
+    ));
+    let script = format!("const RO_IDLE_PROFILE = {profile:?};{brain}{}{CHARACTER_HOOK}{capture}{}", format!("{}{}", include_str!("../../src/move.js"), include_str!("../../src/items.js")), format!("{}{}", include_str!("../../src/tutorial-ui.js"), include_str!("../../src/bubble.js")));
     let builder = WebviewWindowBuilder::new(
         app,
         &label,
-        WebviewUrl::External("https://ro-idle.app/".parse().unwrap()),
+        WebviewUrl::External(SERVER.unwrap_or("https://ro-idle.app/").parse().unwrap()),
     )
     .title(format!("RO放置仙境 — Account {n}"))
     .inner_size(1100.0, 760.0)
@@ -1114,6 +1129,12 @@ fn open_profile(app: &AppHandle, profile: &str, show: bool) {
         }
         true
     });
+    // Beta: the brain runs in this page, so a hidden window must not be suspended (stalls of ~25 s otherwise).
+    let builder = if SERVER.is_some() {
+        builder.background_throttling(tauri::utils::config::BackgroundThrottlingPolicy::Disabled)
+    } else {
+        builder
+    };
     match builder.build() {
         Ok(window) => {
             #[cfg(target_os = "macos")]
@@ -1135,6 +1156,9 @@ struct PendingUpdate(Mutex<Option<Update>>);
 /// Checks GitHub for a newer release; the panel then shows "Update to vX".
 // ponytail: never installs on its own; the idle game keeps running until the user clicks.
 async fn check_update(app: &AppHandle) {
+    if SERVER.is_some() {
+        return; // the Beta must never update itself into the release app
+    }
     let checked = match app.updater() {
         Ok(updater) => updater.check().await,
         Err(e) => return eprintln!("[ro-idle-tray] updater: {e}"),
@@ -1739,6 +1763,9 @@ const WAKE_EVERY: Duration = Duration::from_secs(3600);
 /// Offline is the default: a profile whose game window stays closed for a minute goes offline.
 /// Offline earns ~97% of online EXP (e2e 2026-11-03) at no local or server cost.
 fn auto_offline_tick(app: &AppHandle) {
+    if SERVER.is_some() {
+        return;
+    }
     let profiles = app.state::<Profiles>();
     let due = {
         let mut woke = profiles.woke_at.lock().unwrap();

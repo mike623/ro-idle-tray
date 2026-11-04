@@ -168,6 +168,47 @@ session over WS with SSE/events/summary checks; **cheat: attack faster than ASPD
 swing + 646 ms, no damage rolled**; SP/items/unlearned/unknown actions; superseded driver + account cap; party EXP share
 and `NOT_YOURS`; SQLite checkpoint survives a restart.
 
+## Client brain (#19) and Beta tray
+
+`brain/brain.js` — pure OpenKore-style loop, `observe(state, wsMessage, nowMs)` + `tick(state, nowMs) → actions[]`
+(one action in flight, paced by the wall time passed in, never by timers). Per tick, first match wins: `stopAtLv` /
+death without `autoResumeAfterDeath` → `stop`; `escape.lowHp` fly → `teleport`; `hpPotion`/`spPotion` and `use:"heal"`
+skills (`recovery.order`); pick up drops (`autoLoot`); in a fight: wait for `found`, then `skip` (monsterRules `defend`
+unless the mob hit us, `targets.blacklist/whitelist`, `escape.dangerMonsters`, lv/MVP/aggressive filters when monster
+data is passed), `use:"buff"` skills missing or within `cond.refreshBeforeSec`, `use:"attack"` skills (`repeat:"once"`
+per target), then `attack`; `combat.skillOnly` never melees. Out of a fight: `sit` (`hpBelow`→`hpUntil`), `statsAddAuto`,
+town supply (any `townBuy` under `below`, weight ≥ 90 % or ≥ `autoStorage.abovePercent`): `selectMap saveMap` → `sell`
+`autoSell` stacks (not equipped, not `autoSellHeld`) → `storageDeposit` `autoStorage.items` minus `keep` → `buy`
+`townBuy` → `selectMap lockMap`; then `search`. Skill `cond`: `hpAbove/hpBelow/spAbove/spBelow` (%), `selfLacks`,
+`allyLacks`, `targetAggro`, `or`. Attack/buff `percent` is read as an SP floor (%), heal `percent` as the HP trigger.
+
+`brain/client.js` — `drive({base, characterId, token})` (Node 22) or `boot({profile})` (browser: dev-login as the
+profile's account, reload, drive every character of it). WS for actions, REST for commands.
+
+Server additions: `skip {uid, reason}` → `targetSkip` (only after `found`; `ENGAGED` once an aggressive mob is on you);
+`snapshot.target.uid` so a reconnecting brain resumes; `GET /brain/*.js`; any other non-`/api` GET serves the official
+client from `server/client-cache/` (gitignored; filled by one public, credential-less GET per file from ro-idle.app,
+query dropped; never commit or redistribute it); 4xx are logged by the CLI.
+
+Beta tray (side by side with the release app; different identifier, own WebKit stores and app-support dir):
+
+```sh
+node server/seed.js --db server/data.sqlite --account profile-1 --token t1 <capture profile-1.jsonl>   # account = tray profile
+node server/index.js --port 8797 --db server/data.sqlite
+CARGO_TARGET_DIR=$PWD/src-tauri/target-beta RO_IDLE_SERVER=http://127.0.0.1:8797 \
+  npx tauri build --debug --config src-tauri/tauri.beta.conf.json
+open "src-tauri/target-beta/debug/bundle/macos/RO Idle Tray Beta.app"
+```
+
+`RO_IDLE_SERVER` is read at build time: game windows load it instead of ro-idle.app and import `/brain/client.js`;
+the updater check, auto-offline and API capture are off; game windows open visible and are never background-throttled
+by WebKit (a hidden, throttled page stalled the brain for ~25 s at a time). Port 8787 may be taken on this machine (a local proxy).
+
+Brain gaps: `buffPotion`, `restock` (storage withdraw), `autoBuy` wings/arrows, `partySupport`/`partyAssist` and
+`target:"allies"` buffs (no ally data on the WS), `lureCount`, `missStreak`/`bigHit`/`noTarget`/`searchTimeoutSec`
+escapes, `recovery.hysteresis`, `stopOnNoIncome`, homunculus. Lv/MVP filters need monster data (`createBrain({monsters})`);
+the browser driver does not load it.
+
 ## Gaps (defaults picked, not verified against ro-idle.app)
 
 - Party assist (`targetSwitch`): only the encounter's owner can hit it. Party drops: killer only (`itemShare` ignored).

@@ -37,3 +37,4 @@ graphify-out/cache/
 .scratch/
 server/data.sqlite*
 server/client-cache/
+src-tauri/target-*
