@@ -20,6 +20,10 @@ pub async fn titles(dir: &Path) -> Result<Vec<String>, String> {
     Ok(titles)
 }
 
+pub fn page_url(title: &str) -> String {
+    format!("{BASE}guides/{}.html", encode(title))
+}
+
 pub async fn lookup(dir: &Path, page: Option<&str>, query: Option<&str>) -> Value {
     let cache = dir.join("guide");
     let titles = match titles(dir).await {
@@ -37,7 +41,7 @@ pub async fn lookup(dir: &Path, page: Option<&str>, query: Option<&str>) -> Valu
     let [title] = found[..] else {
         return json!({"error":"Page not found; pick one exact title","candidates":if found.is_empty() { titles.iter().collect() } else { found }});
     };
-    let url = format!("{BASE}guides/{}.html", encode(title));
+    let url = page_url(title);
     let text = match cached(&cache.join(format!("{title}.txt")), &url, |html| Ok(article_text(html))).await {
         Ok(t) => t,
         Err(e) => return json!({"error":format!("Guide page unavailable: {e}")}),
@@ -224,6 +228,11 @@ mod tests {
             <a href="guides/..%2Fetc.html">evil</a><a href="guides/.hidden.html">h</a><a href="guides/bad%ZZ.html">b</a>"#;
         assert_eq!(parse_index(html), vec!["刺客技能說明"]);
         assert_eq!(encode("刺客技能說明"), "%E5%88%BA%E5%AE%A2%E6%8A%80%E8%83%BD%E8%AA%AA%E6%98%8E");
+    }
+
+    #[test]
+    fn page_links_keep_titles_in_one_encoded_path_segment() {
+        assert_eq!(page_url("STR & AGI?#/攻略"), format!("{BASE}guides/STR%20%26%20AGI%3F%23%2F%E6%94%BB%E7%95%A5.html"));
     }
 
     #[test]

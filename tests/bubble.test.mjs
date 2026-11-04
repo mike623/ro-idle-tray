@@ -45,7 +45,7 @@ function environment({panel=true,unread=0,history=[],replies={}}={}) {
     const element=new Element(); element.tagName=tag; element.attachShadow=()=>root; return element;
   }};
   vm.runInNewContext(source,{window,document,Date,setTimeout});
-  const assistant = panel ? window.roIdleAssistant(new Element(),{roster:()=>['Alice','Bob','Bob2'],groups:()=>'[]',summary:()=>'3 角色'}) : null;
+  const assistant = panel ? window.roIdleAssistant(new Element(),{skills:[{id:'MG_FIREBOLT',name:'火箭術',maxLv:10}],roster:()=>['Alice','Bob','Bob2'],groups:()=>'[]',summary:()=>'3 角色'}) : null;
   const send = async (text,rows) => {
     get('form input').value=text;
     const pending=get('form').events.submit({preventDefault(){}}); await tick();
@@ -169,11 +169,47 @@ test('player pins guide pages and a note to the focused character',async()=>{
   await e.assistant.ask('Alice'); await tick();
   await e.get('plan-btn').events.click(); await tick();
   assert.equal(e.get('plan').hidden,false);
-  const boxes=e.get('plan-list').children.filter((n)=>n.tagName==='label').map((l)=>l.children[0]);
+  const boxes=e.get('plan-list').children.filter((n)=>n.className==='guide-row').map((r)=>r.children[0].children[0]);
   assert.deepEqual([...boxes.map((b)=>b.checked)],[false,false,true]);
   boxes[0].checked=true; e.get('plan-list').events.change({target:boxes[0]});
   e.get('plan-note').value='  走 DEX  ';
   await e.get('plan-save').events.click(); await tick();
   assert.deepEqual(plain(e.calls.find((c)=>c.cmd==='chat_plan_set').args),{character:'Alice',pages:['裝備逐件保留判定','弓箭手技能說明'],note:'走 DEX'});
   assert.equal(e.get('plan-btn').textContent,'📖 Alice 跟隨：裝備逐件保留判定、弓箭手技能說明、我的指示');
+});
+
+test('guide icons open the article without changing the reading plan and report failures',async()=>{
+  const e=environment({replies:{open_guide:()=>{throw new Error('Cannot open guide');}}});
+  await e.assistant.ask('Alice'); await tick();
+  await e.get('plan-btn').events.click(); await tick();
+  e.get('plan-note').value='unsaved note';
+  const row=e.get('plan-list').children.find((n)=>n.className==='guide-row');
+  const link=row.children[1];
+  assert.equal(link.tagName,'button');
+  assert.equal(link.type,'button');
+  assert.equal(link.attrs['aria-label'],'在攻略視窗開啟：弓箭手技能說明');
+  await link.events.click();
+  assert.deepEqual(plain(e.calls.find((c)=>c.cmd==='open_guide').args),{page:'弓箭手技能說明'});
+  assert.equal(row.children[0].children[0].checked,false);
+  assert.equal(e.get('plan-count').textContent,'已選 1／3');
+  assert.equal(e.get('plan-note').value,'unsaved note');
+  assert.equal(e.get('plan').hidden,false);
+  assert.equal(e.get('error').hidden,false);
+  assert.match(e.get('error').textContent,/Cannot open guide/);
+  assert.ok(!e.calls.some((c)=>c.cmd==='chat_plan_set'));
+});
+
+test('skill IDs display in Chinese and apply affordable targets to the focused character',async()=>{
+  const e=environment({replies:{apply_skills:()=>[{id:'MG_FIREBOLT',target:10,level:3,reason:'技能點不足'}]}});
+  await e.assistant.ask(null);
+  await e.send('@Bob2 skills?',[{role:'user',text:'@Bob2 skills?'},{role:'assistant',text:'> 建議改法\n> MG_FIREBOLT 10'}]);
+  const tip=answerBody(e,1).children[0], b=tip.children.at(-1);
+  assert.match(tip.textContent,/火箭術 10/);
+  assert.doesNotMatch(tip.textContent,/MG_FIREBOLT/);
+  assert.equal(b.textContent,'套用技能點');
+  await b.onclick(); assert.ok(!e.calls.some(c=>c.cmd==='apply_skills'));
+  await b.onclick();
+  assert.deepEqual(plain(e.calls.find(c=>c.cmd==='apply_skills').args),{character:'Bob2',rows:[{id:'MG_FIREBOLT',target:10}]});
+  assert.match(tip.textContent,/火箭術 3／10：技能點不足/);
+  assert.equal(b.disabled,true);
 });

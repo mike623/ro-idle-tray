@@ -20,7 +20,7 @@
       "commands": {
         "allow": [
           "get_state", "chat_history", "chat_send", "chat_new", "chat_memory",
-          "chat_character", "chat_alerts", "chat_alert_open", "chat_alert_ack", "chat_plan", "chat_plan_set", "apply_stats"
+          "chat_character", "chat_alerts", "chat_alert_open", "chat_alert_ack", "chat_plan", "chat_plan_set", "apply_stats", "apply_skills", "open_guide"
         ]
       }
     },

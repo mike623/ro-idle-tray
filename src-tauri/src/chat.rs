@@ -926,7 +926,7 @@ fn scoped_agent(
     Ok(builder.build())
 }
 // Plain-text conventions the chat renders; works with any model.
-const FORMAT: &str = "\nFormat: short paragraphs; **bold** key numbers; `code` for setting values. Put concrete setting changes in a block of lines starting with \"> \", the first being \"> 建議改法\". Only add that block when you suggest a concrete change; with nothing to change, leave it out. For stat points write one line per stat as \"> DEX 40\" (the target value, from get_character stats; never +N); the player can apply them to 自動配點 with one click. End with one final line \"追問：<question>｜<question>\" holding up to two short follow-up questions the player might ask next.";
+const FORMAT: &str = "\nFormat: short paragraphs; **bold** key numbers; `code` for setting values. Put concrete setting changes in a block of lines starting with \"> \", the first being \"> 建議改法\". Only add that block when you suggest a concrete change; with nothing to change, leave it out. For stat points write one line per stat as \"> DEX 40\" (the target value, from get_character stats; never +N); the player can apply them to 自動配點 with one click. For skill learning write one line per skill as \"> MG_FIREBOLT 10\" (absolute target level, valid skill id from game_lookup). List skills in spending priority order, prerequisites first. The UI displays Chinese names and lets the player apply affordable targets; never imply all targets can be reached. End with one final line \"追問：<question>｜<question>\" holding up to two short follow-up questions the player might ask next.";
 
 async fn compact(dir: &Path, rows: &[Row], summarizer: &Agent, history_bytes: usize) -> Result<Vec<Message>, String> {
     let (old, recent) = split_history(rows, history_bytes);

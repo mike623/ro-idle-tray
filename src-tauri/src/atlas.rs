@@ -120,7 +120,7 @@ pub async fn move_all(
         return Err("Unknown map".into());
     }
     let call = format!("window.__roIdleMove({})", serde_json::to_string(&map_id).unwrap());
-    run_move(&app, &call, pending).await
+    run_move(&app, &call, pending, 20).await
 }
 
 /// Move only the characters the user selected in the atlas.
@@ -146,7 +146,7 @@ pub async fn move_selected(
         return Err("Unknown map".into());
     }
     let call = format!("window.__roIdleMove({})", serde_json::to_string(&map_id).unwrap());
-    run_move(&app, &call, pending).await
+    run_move(&app, &call, pending, 20).await
 }
 
 /// Panel's Recall button: every in-play character to its own save point (回儲存點).
@@ -155,7 +155,7 @@ pub async fn recall_all(app: AppHandle) -> Result<Vec<MoveResult>, String> {
     let lock = app.state::<MoveLock>();
     let _guard = lock.0.try_lock().map_err(|_| "A move is already in progress")?;
     let pending = pending_profiles(&app, None)?;
-    run_move(&app, "window.__roIdleRecall()", pending).await
+    run_move(&app, "window.__roIdleRecall()", pending, 20).await
 }
 
 /// The one merged 道具設定 file: game's own export format, so 匯入檔案 also takes it.
@@ -208,7 +208,7 @@ pub async fn items_merge(app: AppHandle) -> Result<Vec<MoveResult>, String> {
         .and_then(|f| f.get("overrides").filter(|o| o.is_object()).cloned())
         .unwrap_or_else(|| serde_json::json!({}));
     let call = format!("window.__roIdleItems({overrides})");
-    let results = run_move(&app, &call, pending).await?;
+    let results = run_move(&app, &call, pending, 20).await?;
     let mut config = serde_json::json!({});
     let (mut from, mut characters) = (Vec::new(), Vec::new());
     for r in &results {
@@ -268,7 +268,7 @@ pub async fn items_apply(app: AppHandle) -> Result<Vec<MoveResult>, String> {
     let pending = pending_profiles(&app, None)?;
     let overrides = file.get("overrides").filter(|o| o.is_object()).cloned().unwrap_or_else(|| serde_json::json!({}));
     let call = format!("window.__roIdleApplyItems({config}, {overrides})");
-    run_move(&app, &call, pending).await
+    run_move(&app, &call, pending, 20).await
 }
 
 /// Row menu's 輔助模式 toggle: on = current-map monsters all 被打才還手, re-applied on each map switch.
@@ -279,7 +279,7 @@ pub async fn assist_mode(app: &AppHandle, n: u8, on: bool) -> Result<u64, String
     let pending = pending_profiles(app, Some(&BTreeSet::from([n])))?;
     let by_map = if on { crate::knowledge::map_monsters() } else { serde_json::Value::Null };
     let call = format!("window.__roIdleAssist({by_map})");
-    let result = run_move(app, &call, pending).await?.pop().ok_or("Character not in play")?;
+    let result = run_move(app, &call, pending, 20).await?.pop().ok_or("Character not in play")?;
     match result.error {
         Some(e) => Err(e),
         None => Ok(result.data.and_then(|d| d.as_u64()).unwrap_or(0)),
@@ -294,6 +294,17 @@ pub async fn apply_stats(
     character: String,
     rows: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
+    apply_character(&app, character, format!("window.__roIdleStatsAuto({rows})"), 20).await
+}
+
+#[tauri::command]
+pub async fn apply_skills(app: AppHandle, character: String, rows: serde_json::Value) -> Result<serde_json::Value, String> {
+    let who = serde_json::to_string(&character).map_err(|e| e.to_string())?;
+    // At most 30 skill requests, each with a 15-second timeout.
+    apply_character(&app, character, format!("window.__roIdleApplySkills({rows},{who})"), 480).await
+}
+
+async fn apply_character(app: &AppHandle, character: String, call: String, timeout: u64) -> Result<serde_json::Value, String> {
     let profiles = app.state::<crate::Profiles>();
     let n = profiles.info.lock().unwrap().iter().find(|(_, c)| c.name == character).map(|(&n, _)| n)
         .ok_or("Character not found")?;
@@ -313,8 +324,7 @@ pub async fn apply_stats(
     let lock = app.state::<MoveLock>();
     let _guard = lock.0.try_lock().map_err(|_| "A move is already in progress")?;
     let pending = BTreeMap::from([(n, character)]);
-    let call = format!("window.__roIdleStatsAuto({rows})");
-    let result = run_move(&app, &call, pending).await?.pop().ok_or("Character not in play")?;
+    let result = run_move(&app, &call, pending, timeout).await?.pop().ok_or("Character not in play")?;
     match result.error {
         Some(e) => Err(e),
         None => Ok(result.data.unwrap_or_default()),
@@ -326,6 +336,7 @@ async fn run_move(
     app: &AppHandle,
     call: &str,
     mut pending: BTreeMap<u8, String>,
+    timeout: u64,
 ) -> Result<Vec<MoveResult>, String> {
     static NEXT: AtomicU64 = AtomicU64::new(1);
     let event = format!("ro-idle-map-{}", NEXT.fetch_add(1, Ordering::Relaxed));
@@ -361,7 +372,7 @@ async fn run_move(
     for r in &results {
         pending.remove(&r.profile);
     }
-    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(20);
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(timeout);
     while !pending.is_empty() {
         let Ok(Some(mut result)) = tokio::time::timeout_at(deadline, rx.recv()).await else {
             break;

@@ -210,6 +210,12 @@ const CHARACTER_HOOK: &str = r#"
     if (ids) await assistApply(id, s, ids); else send(s);
     return byMap[s.mapId]?.length ?? 0;
   };
+  window.__roIdleApplySkills = async (rows, character) => {
+    const id = streamId;
+    return roIdleApplySkills(rows, id, character,
+      () => streamId === id ? cache[id] : null,
+      snapshot => { if (streamId === id) { cache[id] = snapshot; send(snapshot); } });
+  };
   // Chat's 套用到自動配點 button. rows = [{stat, n, add}]: add → current stat + n, else target n.
   // Suggested stats go first in the 自動配點 list; other existing rows are kept after them.
   window.__roIdleStatsAuto = async rows => {
@@ -655,6 +661,7 @@ pub fn run() {
             toggle_idle,
             atlas::recall_all,
             atlas::apply_stats,
+            atlas::apply_skills,
             atlas::items_merge,
             atlas::items_apply,
             atlas::items_read,
@@ -1103,7 +1110,7 @@ fn open_profile(app: &AppHandle, profile: &str, show: bool) {
     }
     // Dev builds also record raw API traffic (src/capture.js) for the offline-backend work.
     let capture = if cfg!(debug_assertions) { include_str!("../../src/capture.js") } else { "" };
-    let script = format!("const RO_IDLE_PROFILE = {profile:?};{}{CHARACTER_HOOK}{capture}{}", format!("{}{}", include_str!("../../src/move.js"), include_str!("../../src/items.js")), format!("{}{}", include_str!("../../src/tutorial-ui.js"), include_str!("../../src/bubble.js")));
+    let script = format!("const RO_IDLE_PROFILE = {profile:?};{}{CHARACTER_HOOK}{capture}{}", format!("{}{}", include_str!("../../src/move.js"), format!("{}{}", include_str!("../../src/items.js"), include_str!("../../src/skills.js"))), format!("{}{}", include_str!("../../src/tutorial-ui.js"), include_str!("../../src/bubble.js")));
     let builder = WebviewWindowBuilder::new(
         app,
         &label,
@@ -1574,20 +1581,25 @@ fn open_atlas(app: AppHandle, q: Option<String>) {
 /// Player-made strategy guide (class builds, skill simulator, gear keep/sell lists).
 /// Label "guide" matches no capability, so the external page gets no IPC.
 #[tauri::command]
-fn open_guide(app: AppHandle) {
+fn open_guide(app: AppHandle, page: Option<String>) -> Result<(), String> {
+    let url = match page.as_deref() {
+        Some(title) => guide::page_url(title),
+        None => "https://ned-lin-9527.github.io/Ragnarok/index.html".into(),
+    }.parse::<tauri::Url>().map_err(|e| e.to_string())?;
     if let Some(w) = app.get_webview_window("guide") {
-        let _ = w.show();
-        let _ = w.set_focus();
-        return;
+        if page.is_some() {
+            w.navigate(url).map_err(|e| e.to_string())?;
+        }
+        w.show().map_err(|e| e.to_string())?;
+        w.set_focus().map_err(|e| e.to_string())?;
+        return Ok(());
     }
-    let _ = WebviewWindowBuilder::new(
-        &app,
-        "guide",
-        WebviewUrl::External("https://ned-lin-9527.github.io/Ragnarok/index.html".parse().unwrap()),
-    )
-    .title("RO 放置仙境攻略")
-    .inner_size(1100.0, 820.0)
-    .build();
+    WebviewWindowBuilder::new(&app, "guide", WebviewUrl::External(url))
+        .title("RO 放置仙境攻略")
+        .inner_size(1100.0, 820.0)
+        .build()
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 /// Class progression chart (src/classes.html), bundled with the tray.
