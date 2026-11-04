@@ -158,11 +158,14 @@ export function derive(state, { job, items, refine }) {
 
 /** One physical hit with all random parts already rolled. Crit ignores hard and soft DEF. */
 export function playerDamage({ statAtk, weaponRoll, arrowRoll = 0, wt = 'fist', size, atkBonus = 0, refineAtk = 0,
-  monsterDef = 0, monsterSoftDef = 0, elementMod = 100, hits = 1, crit = false }) {
+  monsterDef = 0, monsterSoftDef = 0, elementMod = 100, hits = 1, crit = false, doubleLv = 0 }) {
   const base = statAtk + fl((weaponRoll + arrowRoll) * sizeMod(wt, size) / 100) + atkBonus;
   const dmg = crit ? base + refineAtk : fl(base * (100 - monsterDef) / 100) - monsterSoftDef + refineAtk;
-  return Math.max(1, fl(dmg * elementMod / 100)) * hits;
+  const out = Math.max(1, fl(dmg * elementMod / 100)) * hits;
+  return wt === 'katar' ? out + katarOffhand(out, doubleLv) : out;
 }
+/** Katar off-hand hit, fitted to captures (all katar hits fit with it, formulas.md): floor(damage × (1 + 2×TF_DOUBLE lv) / 100). */
+export const katarOffhand = (damage, doubleLv = 0) => fl(damage * (1 + 2 * doubleLv) / 100);
 
 // Random parts of a physical hit: weapon roll [min,max], arrow roll [0,arrowAtk−1] (bow), monster soft DEF.
 function physicalRolls({ dex, weapon = {}, arrowAtk = 0, monster, crit = false }) {

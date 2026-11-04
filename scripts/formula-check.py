@@ -136,6 +136,8 @@ def captures(directory):
     for path in sorted(Path(directory).glob('*.jsonl')):
         seen = set()
         for number, line in enumerate(path.open(), 1):
+            if not line.endswith('\n'):
+                continue  # half-written last line of a capture still being recorded
             try:
                 r = json.loads(line)
                 if r.get('kind') != 'sse' or r.get('name') not in ('snapshot', 'events'):
@@ -157,10 +159,14 @@ ELEMENTS = ('neutral', 'water', 'earth', 'fire', 'wind', 'poison', 'holy', 'dark
 BUFFS = {'AL_INCAGI', 'AL_BLESSING', 'AL_ANGELUS', 'SM_ENDURE', 'MC_LOUD'}
 # A stream silent this long (app offline/capture gap) may have missed statUp/jobLv/equip changes: drop its state.
 STALE_GAP_MS = 120_000
+# (monster, item) pairs whose captured rate disagrees with the bundle table; informational, see twin-report.md L1.
+# 1128 Horn → 935 Shell: 1,026 / 1,713 kills = 59.9% vs bundle 5500 (55%, 4.1σ); 947 Horn at the same 5500 fits
+# (947), evenly over every capture hour, so the server table likely differs from the client bundle (data drift).
+KNOWN_DROP_OUTLIERS = {(1128, 935)}
 # Exit code gates only adopted formulas. Rejected alternatives are informational; adopted fitted damage
 # envelopes have documented unresolved outliers and gate on a miss-rate ceiling instead of zero.
 INFORMATIONAL = {'monster_angelus_alternative', 'monster_damage_candidate', 'monster_def2_softdef',
-                 'monster_wiki_softdef', 'monster_wiki_softdef_angelus', 'refine_before_def_alternative'}
+                 'monster_wiki_softdef', 'monster_wiki_softdef_angelus', 'refine_before_def_alternative', 'drops_known_outlier'}
 FITTED_MAX_MISS_RATE = {'player_damage_candidate': 0.02, 'monster_def2_softdef_angelus': 0.01}
 
 
@@ -236,6 +242,15 @@ def checks(directory, bundle):
     # A target status is visible on the caster's stream, not every attacker's stream.
     changed_targets = {e['body']['uid'] for _, kind, e in records if kind == 'event'
                        and e['body']['type'] == 'statusStart' and 'monsterId' in e['body']}
+    # A buffEnd with no buffStart since the replayed expiry proves an unseen refresh (capture gap, e.g. a party
+    # Blessing recast): keep the buff until that end. Per stream and buff: sorted (simTime, type) of start/end events.
+    buff_marks = collections.defaultdict(list)
+    for stream, kind, e in records:
+        if kind == 'event' and e['body']['type'] in ('buffStart', 'buffEnd'):
+            buff_marks[stream, e['body']['buffId']].append((e['simTime'], e['body']['type']))
+    def ends_later(stream, buff, now):
+        nxt = next((typ for t, typ in buff_marks.get((stream, buff), []) if t > now), None)
+        return nxt == 'buffEnd'
     damage_groups = collections.defaultdict(list)
     for stream, kind, s in records:
         if kind == 'snapshot':
@@ -301,7 +316,7 @@ def checks(directory, bundle):
         snap = state[stream]
         c, d = snap['character'], snap['derived']
         # Mutate only our decoded snapshot, never the capture files.
-        snap['buffs'] = [b for b in snap['buffs'] if snap['time'] + b['remainingMs'] > e['simTime']]
+        snap['buffs'] = [b for b in snap['buffs'] if snap['time'] + b['remainingMs'] > e['simTime'] or ends_later(stream, b['id'], e['simTime'])]
         typ = body['type']
         if typ == 'buffEnd': snap['buffs'] = [b for b in snap['buffs'] if b['id'] != body['buffId']]
         if typ == 'buffStart':
@@ -327,7 +342,8 @@ def checks(directory, bundle):
             mon = monsters[body['monsterId']]
             element = skills[body['skill']].get('element', 'neutral') if typ == 'skillHit' else 'neutral'
             if element == 'weapon': element = 'neutral'
-            if body.get('uid') in changed_targets:
+            # Enchant Poison endows the weapon; captured hits mix 125 and 100 under it, so the hit element is unknown.
+            if body.get('uid') in changed_targets or (typ == 'playerAttack' and c['skills'].get('AS_ENCHANTPOISON')):
                 result['element_table']['SKIP'] += 1
             else:
                 check('element_table', elements[mon['elementLv']-1][ELEMENTS.index(element)][ELEMENTS.index(mon['element'])], body['elementMod'])
@@ -358,6 +374,8 @@ def checks(directory, bundle):
             mod = body.get('elementMod', 100)
             hits = body.get('hits', 1)
             lo, hi = max(1, lo * mod // 100)*hits, max(1, hi * mod // 100)*hits
+            if wt == 'katar':  # katar off-hand hit: + floor(damage × (1 + 2×Double Attack lv) / 100)
+                lo, hi = (x + x * (1 + 2 * c['skills'].get('TF_DOUBLE', 0)) // 100 for x in (lo, hi))
             envelope('player_damage_candidate', lo, hi, body['damage'])
             damage_groups[(stream, mon['id'], wt)].append((lo, hi, body['damage']))
             if d['refineAtk'] and body['result'] == 'hit':
@@ -432,6 +450,10 @@ def checks(directory, bundle):
                 result['drops_4sigma']['SKIP'] += 1
                 continue
             sigma = math.sqrt(n*sum(p*(1-p) for p in probabilities))
+            if (mid, item) in KNOWN_DROP_OUTLIERS:
+                envelope('drops_known_outlier', max(0, math.floor(expected-4*sigma)), math.ceil(expected+4*sigma), observed)
+                drop_details.append((mid, item, n, round(expected, 2), observed))
+                continue
             envelope('drops_4sigma', max(0, math.floor(expected-4*sigma)), math.ceil(expected+4*sigma), observed)
             drop_details.append((mid, item, n, round(expected, 2), observed))
     return data, result, examples, damage_groups, drop_details

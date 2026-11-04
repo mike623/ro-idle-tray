@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as f from './formulas.js';
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 
@@ -54,6 +54,14 @@ test('player physical damage follows the fitted order (formulas.md worked exampl
     monsterDef: 10, monsterSoftDef: 28, hits: 2 }), 52);
 });
 
+test('katar adds an off-hand hit of floor(damage × (1 + 2×Double Attack lv) / 100) (captured assassin max 178 → 215)', () => {
+  assert.equal(f.katarOffhand(178, 10), 37);
+  assert.equal(f.katarOffhand(141, 10), 29);
+  // statATK33 + floor(17×100% katar vs medium)=50; floor(50×90%)−28+14 = 31; + floor(31×21/100)=6 → 37
+  assert.equal(f.playerDamage({ statAtk: 33, weaponRoll: 17, wt: 'katar', size: 'medium', refineAtk: 14,
+    monsterDef: 10, monsterSoftDef: 28, doubleLv: 10 }), 37);
+});
+
 test('player damage envelope: merchant knife vs Coco is a single value', () => {
   const coco = { def: 0, size: 'small', stats: { vit: 34 } };
   assert.deepEqual(f.playerDamageRange({ statAtk: 55, dex: 43, weapon: items[1201], monster: coco }), { min: 38, max: 38 });
@@ -101,12 +109,14 @@ test('death penalty: 1% of next-level EXP, never below zero, none for novices', 
 
 // ---- Capture check: replay the user's SSE captures through this module and compare with the Python oracle.
 
-const CAPTURE = process.env.RO_CAPTURE_DIR ?? join(homedir(), 'Library/Application Support/com.mikewong.ro-idle-tray/capture');
+const LIVE_CAPTURE = process.env.RO_CAPTURE_DIR ?? join(homedir(), 'Library/Application Support/com.mikewong.ro-idle-tray/capture');
+// The capture dir may still be growing: JS and the oracle read one frozen copy, or their counts differ by a few events.
+let CAPTURE = LIVE_CAPTURE;
 const ROOT = resolve(import.meta.dirname, '../..');
 const BUNDLE = resolve(ROOT, process.env.RO_BUNDLE ?? '.scratch/bundle.js');
 const ORACLE = join(ROOT, 'scripts/formula-check.py');
 const STALE_GAP_MS = 120_000; // mirrors the oracle: drop replay state after a capture gap
-const haveInputs = existsSync(CAPTURE) && existsSync(BUNDLE);
+const haveInputs = existsSync(LIVE_CAPTURE) && existsSync(BUNDLE);
 
 // Static bundle data via the oracle's non-evaluating parser (no bundle JS is executed).
 const bundleData = () => JSON.parse(execFileSync('python3', ['-I', '-c', `
@@ -129,8 +139,8 @@ function captureRecords() {
   for (const file of readdirSync(CAPTURE).filter((n) => n.endsWith('.jsonl')).sort()) {
     const seen = new Set();
     for (const line of readFileSync(join(CAPTURE, file), 'utf8').split('\n')) {
-      if (!line) continue;
-      const r = JSON.parse(line);
+      let r;
+      try { r = JSON.parse(line); } catch { continue; } // empty or half-written last line (oracle skips it too)
       if (r.kind !== 'sse' || (r.name !== 'snapshot' && r.name !== 'events')) continue;
       const data = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
       if (r.name === 'snapshot') out.push([file, 'snapshot', data.snapshot]);
@@ -159,6 +169,11 @@ function jsCounts(data) {
   const records = captureRecords();
   const changed = new Set(records.filter(([, k, e]) => k === 'event' && e.body.type === 'statusStart' && 'monsterId' in e.body).map(([, , e]) => e.body.uid));
   const state = {}, lastSeen = {}, groups = new Map();
+  // same replay rule as the Python oracle: a later buffEnd with no buffStart in between keeps an expired buff (unseen refresh)
+  const marks = {};
+  for (const [st, k, e] of records) if (k === 'event' && (e.body.type === 'buffStart' || e.body.type === 'buffEnd'))
+    (marks[`${st}|${e.body.buffId}`] ??= []).push([e.simTime, e.body.type]);
+  const endsLater = (st, id, now) => (marks[`${st}|${id}`] ?? []).find(([t]) => t > now)?.[1] === 'buffEnd';
   const derive = (s) => { try { return f.derive(s, { job: jobs[s.character.job], items, refine: data.refine }); } catch { return null; } };
 
   for (const [stream, kind, s] of records) {
@@ -179,7 +194,7 @@ function jsCounts(data) {
     const snap = state[stream];
     if (!snap) continue;
     const c = snap.character;
-    snap.buffs = snap.buffs.filter((b) => snap.time + b.remainingMs > s.simTime);
+    snap.buffs = snap.buffs.filter((b) => snap.time + b.remainingMs > s.simTime || endsLater(stream, b.id, s.simTime));
     const typ = body.type;
     if (typ === 'buffEnd') snap.buffs = snap.buffs.filter((b) => b.id !== body.buffId);
     if (typ === 'buffStart') {
@@ -198,7 +213,8 @@ function jsCounts(data) {
     }
     const mon = monsters[body.monsterId];
     const fresh = !changed.has(body.uid);
-    if ((typ === 'playerAttack' || typ === 'skillHit') && body.elementMod != null && fresh) {
+    const endowed = typ === 'playerAttack' && c.skills.AS_ENCHANTPOISON; // weapon element unknown per hit (oracle skips too)
+    if ((typ === 'playerAttack' || typ === 'skillHit') && body.elementMod != null && fresh && !endowed) {
       let el = typ === 'skillHit' ? skills[body.skill].element ?? 'neutral' : 'neutral';
       if (el === 'weapon') el = 'neutral';
       check('element_table', f.elementMod(el, mon.element, mon.elementLv) === body.elementMod, `${el}→${mon.element}`);
@@ -208,7 +224,7 @@ function jsCounts(data) {
       const weapon = eq.find((e) => e.slot === 'weapon')?.item ?? {};
       envelope('player_damage_candidate', f.playerDamageRange({ statAtk: d.statusAtk, dex: t.dex, weapon,
         arrowAtk: eq.find((e) => e.slot === 'ammo')?.item.atk ?? 0, atkBonus: d.atkBonus, refineAtk: d.refineAtk,
-        monster: mon, elementMod: body.elementMod ?? 100, hits: body.hits ?? 1, crit: body.result === 'crit' }), body.damage);
+        monster: mon, elementMod: body.elementMod ?? 100, hits: body.hits ?? 1, crit: body.result === 'crit', doubleLv: c.skills.TF_DOUBLE ?? 0 }), body.damage);
     }
     if (typ === 'monsterAttack' && body.result === 'hit' && fresh)
       envelope('monster_def2_softdef_angelus', f.monsterDamageRange({ atk: mon.atk, hardDef: d.hardDef, vit: t.vit, vitDefRate: d.vitDefRate }), body.damage);
@@ -228,7 +244,10 @@ function jsCounts(data) {
   return { res, examples };
 }
 
-test('capture check: JS module matches captures at least as well as the Python oracle', { skip: !haveInputs && 'capture dir or bundle absent' }, () => {
+test('capture check: JS module matches captures at least as well as the Python oracle', { skip: !haveInputs && 'capture dir or bundle absent' }, (t) => {
+  CAPTURE = mkdtempSync(join(tmpdir(), 'ro-capture-'));
+  t.after(() => rmSync(CAPTURE, { recursive: true, force: true }));
+  for (const n of readdirSync(LIVE_CAPTURE).filter((x) => x.endsWith('.jsonl'))) cpSync(join(LIVE_CAPTURE, n), join(CAPTURE, n));
   const { res, examples } = jsCounts(bundleData());
   const py = oracleCounts();
   const rows = Object.keys(res).filter((k) => res[k].OK + res[k].MISS).sort();

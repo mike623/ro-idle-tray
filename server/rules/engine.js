@@ -42,7 +42,7 @@ const playerHit = (c, m) => clamp(5, 95, 80 + c.hit - (m.lv + m.stats.agi));
 
 function physical(c, m, { elementMod, hits, crit = false, ratio = 100 }, rng) {
   return fl(f.rollPlayerDamage({ statAtk: c.statusAtk, dex: c.dex, weapon: c.weapon, arrowAtk: c.arrowAtk ?? 0,
-    atkBonus: c.atkBonus, refineAtk: c.refineAtk, monster: m, elementMod, hits, crit }, rng) * ratio / 100);
+    atkBonus: c.atkBonus, refineAtk: c.refineAtk, monster: m, elementMod, hits, crit, doubleLv: c.skills?.TF_DOUBLE ?? 0 }, rng) * ratio / 100);
 }
 
 function hitMob(s, t, dmg) {
