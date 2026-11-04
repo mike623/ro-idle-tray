@@ -43,7 +43,7 @@ function environment(alertInfo={unread:0,nudge:''},alertRows=[{role:'assistant',
   const document={readyState:'complete',getElementById:()=>null,body:new Element(),createElement(tag){
     const element=new Element(); element.tagName=tag; element.attachShadow=(options)=>{mode=options.mode;return root;};return element;
   }};
-  vm.runInNewContext(source,{window,document,Date});
+  vm.runInNewContext(source,{window,document,Date,setTimeout});
   return {get,window,calls,mode:()=>mode,finish:(rows)=>finish(rows),setCharacter:(name)=>{serverCharacter=name;}};
 }
 test('bubble isolates styles, restores the active thread and ignores old replies after switching characters',async()=>{
@@ -150,7 +150,7 @@ test('player pins guide pages and a note to the character chat',async()=>{
   assert.equal(e.get('plan-btn').textContent,'📖 跟隨：裝備逐件保留判定、弓箭手技能說明、我的指示');
 });
 
-test('repeated tool calls fold into one chip with a count',async()=>{
+test('tool calls fold into one summary line with counts',async()=>{
   const e=environment(); await tick();
   await e.get('pill').events.click(); await tick();
   e.get('form input').value='How efficient?';
@@ -158,6 +158,26 @@ test('repeated tool calls fold into one chip with a count',async()=>{
   const send=e.calls.find((c)=>c.cmd==='chat_send');
   for (const t of ['get_log_summary','get_log_summary','get_log_summary','game_lookup']) send.args.onEvent.onmessage({kind:'tool',name:t});
   const answer=e.get('messages').children.at(-1);
-  const chips=answer.children[1].children[0];
-  assert.deepEqual([...chips.children.map((c)=>c.textContent)],['⌕ 讀取紀錄 ×3','⌕ 查詢資料']);
+  const [sum,list]=answer.children[1].children[0].children;
+  assert.equal(sum.textContent,'⌕ 4 次查詢：讀取紀錄 ×3、查詢資料');
+  assert.equal(list.children.length,4);
+});
+
+test('stat lines in a tip get a two-click 套用到自動配點 button',async()=>{
+  const reply='建議如下\n> 建議改法\n> **DEX 40**\n> VIT +10\n> 其餘保留';
+  const e=environment();await tick();
+  const applied=[];
+  e.window.__roIdleStatsAuto=async(rows)=>{applied.push(rows);return [{stat:'dex',target:40},{stat:'vit',target:25}];};
+  await e.get('pill').events.click();await tick();
+  e.get('form input').value='points?';
+  const pending=e.get('form').events.submit({preventDefault(){}});await tick();
+  e.finish([{role:'user',text:'points?'},{role:'assistant',text:reply}]);await pending;await tick();
+  const tip=e.get('messages').children[1].children[1].children[1].children[1];
+  const b=tip.children.at(-1);
+  assert.equal(b.textContent,'套用到自動配點');
+  await b.onclick();
+  assert.equal(applied.length,0);
+  await b.onclick();
+  assert.deepEqual(JSON.parse(JSON.stringify(applied[0])),[{stat:'dex',n:40,add:false},{stat:'vit',n:10,add:true}]);
+  assert.equal(b.textContent,'✓ 已套用：DEX 40、VIT 25');
 });

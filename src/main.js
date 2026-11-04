@@ -475,11 +475,12 @@ async function refresh() {
     box.addEventListener("contextmenu", (e) => { e.preventDefault(); invoke("profile_menu", { n: p.n }); });
     if (p.offline) markOffline(box);
     const t = box.querySelector(".offt");
-    if (t) {
-      // Online: time to auto offline (starts once the panel closes). Offline: time to the hourly wake.
-      t.dataset.until = Date.now() + (p.offline ? state.wakeIn : state.autoOffIn) * 1000;
-      t.dataset.off = p.offline ? "1" : "";
-      t.title = p.offline ? "自動上線倒數（每小時喚醒一次）" : "自動離線倒數（開啟遊戲視窗會重新計時）";
+    // Offline rows count down to the hourly wake. Online rows go offline 1 min after their
+    // game window closes; that countdown is not shown.
+    if (t && p.offline) {
+      t.dataset.until = Date.now() + state.wakeIn * 1000;
+      t.dataset.off = "1";
+      t.title = "自動上線倒數（每小時喚醒一次）";
       setOfft(t);
     }
     box.draggable = true;
@@ -494,31 +495,7 @@ async function refresh() {
   const stopped = signed.filter((p) => p.info.running === false && !p.info.stopping).length;
   const off = state.profiles.length - live.length;
   const counts = `${state.profiles.length} profiles · ${signed.length} signed in · ${idling} idling${off ? ` · ${off} offline` : ""}`;
-  // Every live character shares the same auto-offline countdown, so it shows once here.
-  const timer = el("span", "offt");
-  const asleep = !live.length;
-  timer.setAttribute("role", "button");
-  timer.tabIndex = 0;
-  if (state.keepAwake) {
-    timer.textContent = "☀ 保持上線";
-    timer.title = "保持上線：不自動離線。點一下恢復自動離線";
-  } else {
-    timer.dataset.until = Date.now() + (asleep ? state.wakeIn : state.autoOffIn) * 1000;
-    timer.dataset.off = asleep ? "1" : "";
-    timer.title = `${asleep ? "自動上線倒數（每小時喚醒一次）" : "自動離線倒數（開啟遊戲視窗會重新計時）"}。點一下改為保持上線`;
-    setOfft(timer);
-  }
-  timer.addEventListener("click", () => invoke("toggle_keep_awake"));
-  timer.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); invoke("toggle_keep_awake"); } });
-  $("summary").replaceChildren(o.map ? `全部在 ${o.map} · ` : `${counts} · `, timer);
-  // Rows hide their own timers in the compact list; offline ones still wake on the hour.
-  if (off && !asleep && !state.keepAwake) {
-    const wake = Object.assign(el("span", "offt"), { title: "離線角色自動上線倒數（每小時喚醒一次）" });
-    wake.dataset.until = Date.now() + state.wakeIn * 1000;
-    wake.dataset.off = "1";
-    setOfft(wake);
-    $("summary").append(" · ", wake);
-  }
+  $("summary").textContent = o.map ? `全部在 ${o.map} · ${counts}` : counts;
   $("summary").title = counts;
   for (const t of document.querySelectorAll("[data-filter]")) {
     const f = t.dataset.filter;
@@ -632,6 +609,12 @@ $("idle-all").addEventListener("click", (e) => {
   e.currentTarget.disabled = true;
   for (const n of idleAllTargets) { pending.set(n, Date.now() + 4000); invoke("toggle_idle", { n }); }
   setTimeout(refresh, 4100);
+});
+$("refresh").addEventListener("click", async (e) => {
+  const b = e.currentTarget;
+  b.disabled = true;
+  const n = await invoke("refresh_all").catch(() => 0);
+  setTimeout(() => { b.disabled = false; }, n * 5000);
 });
 $("items").addEventListener("click", () => invoke("open_items"));
 $("maps").addEventListener("click", () => invoke("open_atlas", { q: null }));
@@ -870,3 +853,7 @@ setInterval(() => {
   document.querySelectorAll(".offt[data-until]").forEach(setOfft);
 }, 1000);
 groupsReady.then(refresh);
+
+// More menu: close after picking an item or clicking anywhere else.
+$("more").addEventListener("click", (e) => { if (e.target.closest(".menu button")) $("more").open = false; });
+document.addEventListener("click", (e) => { if (!e.target.closest("#more")) $("more").open = false; });

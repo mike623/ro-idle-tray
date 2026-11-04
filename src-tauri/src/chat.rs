@@ -823,7 +823,7 @@ fn scoped_agent(
             builder = builder.append_preamble(&format!("\nGuide pages for this class: guide_lookup with query \"{class}\"."));
         }
         // Plain-text conventions the game bubble renders; works with any model.
-        builder = builder.append_preamble("\nFormat: short paragraphs; **bold** key numbers; `code` for setting values. Put concrete setting changes in a block of lines starting with \"> \", the first being \"> 建議改法\". End with one final line \"追問：<question>｜<question>\" holding up to two short follow-up questions the player might ask next.");
+        builder = builder.append_preamble("\nFormat: short paragraphs; **bold** key numbers; `code` for setting values. Put concrete setting changes in a block of lines starting with \"> \", the first being \"> 建議改法\". For stat points write one line per stat as \"> DEX 40\" (the target value, from get_character stats; never +N); the player can apply them to 自動配點 with one click. End with one final line \"追問：<question>｜<question>\" holding up to two short follow-up questions the player might ask next.");
     }
     Ok(builder.build())
 }

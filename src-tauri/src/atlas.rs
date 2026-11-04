@@ -286,6 +286,41 @@ pub async fn assist_mode(app: &AppHandle, n: u8, on: bool) -> Result<u64, String
     }
 }
 
+/// Chat's 套用到自動配點 from the panel: writes stat targets into that character's 自動配點.
+/// rows = [{stat, n, add}] (see window.__roIdleStatsAuto); Ok = the [{stat, target}] written.
+#[tauri::command]
+pub async fn apply_stats(
+    app: AppHandle,
+    character: String,
+    rows: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let profiles = app.state::<crate::Profiles>();
+    let n = profiles.info.lock().unwrap().iter().find(|(_, c)| c.name == character).map(|(&n, _)| n)
+        .ok_or("Character not found")?;
+    // Offline: boot its window and wait for the game page to report in (auto offline closes it
+    // again a minute later). ponytail: polls info.updated; 90s covers a slow login.
+    if profiles.offline.lock().unwrap().contains(&n) {
+        let since = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        let handle = app.clone();
+        app.run_on_main_thread(move || crate::set_offline(&handle, n, false)).map_err(|e| e.to_string())?;
+        let mut ready = false;
+        for _ in 0..90 {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            if profiles.info.lock().unwrap().get(&n).is_some_and(|c| c.name == character && c.updated > since) { ready = true; break; }
+        }
+        if !ready { return Err("Character did not come online within 90s".into()); }
+    }
+    let lock = app.state::<MoveLock>();
+    let _guard = lock.0.try_lock().map_err(|_| "A move is already in progress")?;
+    let pending = BTreeMap::from([(n, character)]);
+    let call = format!("window.__roIdleStatsAuto({rows})");
+    let result = run_move(&app, &call, pending).await?.pop().ok_or("Character not in play")?;
+    match result.error {
+        Some(e) => Err(e),
+        None => Ok(result.data.unwrap_or_default()),
+    }
+}
+
 /// Runs `call` (a JS promise expression) in each pending profile's game window.
 async fn run_move(
     app: &AppHandle,

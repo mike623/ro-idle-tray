@@ -79,17 +79,16 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .pill { vertical-align: 1px; margin-left: 4px; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 9px; border: 1px solid currentColor; background: var(--face); white-space: nowrap; }
 .pill.ok { color: var(--ink-green); }
 .pill.warn { color: var(--danger); }
-.foot { border-top: 1px solid var(--edge-dark); padding: 5px 8px; display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 6px; row-gap: 4px; }
-/* Five actions no longer fit beside "Start at Login" in the 360px panel, so the
-   footer stacks: toggle + version on top, actions below. Wider (board) panels
-   keep a single line. */
-.foot .row { grid-column: 1 / -1; grid-row: 2; }
-.foot .ver { grid-column: 2; grid-row: 1; justify-self: end; white-space: nowrap; }
-@media (min-width: 470px) {
-  .foot { display: flex; gap: 5px; }
-  .foot .ver { margin-left: auto; }
-}
-#add { min-width: 24px; padding-inline: 5px; }
+/* One row: daily actions, a More menu for the rest, 助理 at the right end. */
+.foot { border-top: 1px solid var(--edge-dark); padding: 5px 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.more { position: relative; }
+.more > summary { list-style: none; cursor: default; }
+.more > summary::-webkit-details-marker { display: none; }
+.more .menu { position: absolute; bottom: calc(100% + 4px); left: 0; z-index: 30; min-width: 150px; padding: 4px; display: flex; flex-direction: column; background: var(--face); border: 1px solid var(--edge-dark); border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.more .menu button { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 8px; border: 0; border-radius: 4px; background: none; color: inherit; font: inherit; text-align: left; }
+.more .menu button:hover { background: var(--face-2); }
+.more .menu hr { border: 0; border-top: 1px solid var(--edge-dark); margin: 4px 2px; width: auto; }
+#quit { color: var(--danger); }
 .list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
 /* Rows keep their height; the list scrolls instead of squashing them. */
 .list > * { flex-shrink: 0; }
@@ -246,8 +245,8 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .ghost { min-height: 24px; display: flex; align-items: center; gap: 5px; padding: 0 6px; font-size: 11px; white-space: nowrap; }
 .switch { width: 24px; height: 14px; border-radius: 7px; background: #8a90a0; display: flex; align-items: center; padding: 2px; }
 .switch span { width: 10px; height: 10px; border-radius: 50%; background: #fff; transition: margin .15s; }
-.ghost[aria-pressed="true"] .switch { background: var(--select); }
-.ghost[aria-pressed="true"] .switch span { margin-left: 10px; }
+[aria-pressed="true"] > .switch { background: var(--select); }
+[aria-pressed="true"] > .switch span { margin-left: 10px; }
 
 /* Drag to reorder. */
 .list [data-n] { cursor: grab; }
@@ -368,9 +367,8 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .stage { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .stage[hidden] { display: none; }
 /* The assistant's button sits at the footer's right end. */
-.fab { grid-column: 2; grid-row: 1; justify-self: end; padding: 3px 12px; border: 1px solid var(--select); border-radius: 14px; color: var(--ink-blue); background: var(--face); font-weight: 600; font-size: 11px; white-space: nowrap; }
+.fab { margin-left: auto; padding: 3px 12px; border: 1px solid var(--select); border-radius: 14px; color: var(--ink-blue); background: var(--face); font-weight: 600; font-size: 11px; white-space: nowrap; }
 .fab:hover, .fab[aria-expanded="true"] { background: var(--face-2); }
-@media (min-width: 470px) { .fab { margin-left: auto; } }
 .assistant { position: absolute; right: 10px; bottom: 10px; z-index: 6; width: min(400px, calc(100% - 20px)); height: min(600px, calc(100% - 20px)); display: flex; flex-direction: column; padding: 10px; gap: 10px; background: var(--face-2); border: 1px solid var(--edge-mid); border-radius: 10px; box-shadow: 0 12px 36px #000a; user-select: text; -webkit-user-select: text; }
 .assistant[hidden] { display: none; }
 .chat-head { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
@@ -403,7 +401,6 @@ button.dot:hover { outline: 2px solid var(--select); }
 
 /* Header: version beside the name, status tiles that filter the compact list. */
 .title .ver { font-size: 10px; font-weight: 400; opacity: .7; }
-#summary .offt { font-variant-numeric: tabular-nums; }
 .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 6px 10px; background: var(--head-2); border-bottom: 1px solid var(--edge-dark); }
 .tile { display: flex; flex-direction: column; align-items: flex-start; padding: 4px 8px; border: 1px solid var(--edge-mid); border-radius: 6px; background: var(--face); color: var(--text-dim); font-size: 10px; text-align: left; }
 .tile b { font-size: 15px; line-height: 1.2; color: var(--text); }
@@ -445,6 +442,4 @@ button.dot:hover { outline: 2px solid var(--select); }
 .assistant.char { padding: 0; overflow: hidden; }
 .char-chat { flex: 1; min-height: 0; }
 .list.ledger .add-group { align-self: flex-start; font-size: 11px; padding: 3px 10px; }
-#summary .offt { cursor: pointer; border-radius: 4px; padding: 0 3px; }
-#summary .offt:hover { background: rgba(127,127,127,.15); color: var(--text); }
 .assist { flex: none; font-size: 11px; line-height: 1; margin-left: 3px; cursor: default; }

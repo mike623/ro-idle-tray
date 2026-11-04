@@ -40,11 +40,12 @@
       .me{align-self:flex-end;max-width:80%;background:var(--pri);color:var(--prf);border-radius:8px;padding:7px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
       .ai{display:flex;gap:8px} .ai .av{width:24px;height:24px;font-size:11px} .col{min-width:0;flex:1;display:flex;flex-direction:column;gap:6px}
       .text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
-      .tools{display:flex;flex-wrap:wrap;gap:4px} .tools:empty{display:none}
-      .tools span{background:var(--muted);color:var(--mf);border-radius:6px;padding:1px 6px;font-size:10px}
+      .tools summary{font-size:10px;color:var(--mf);cursor:pointer} .tools div{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+      .tools span{overflow-wrap:anywhere;background:var(--muted);color:var(--mf);border-radius:6px;padding:1px 6px;font-size:10px}
       .alert{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:3px}
       .alert b{font-size:11px;color:var(--warn);font-weight:600} .alert .at{font-size:12px;overflow-wrap:anywhere} .alert .as{font-size:11px;color:var(--mf)}
       .alert summary{font-size:11px;color:var(--mf);cursor:pointer} .alert pre{margin:4px 0 0;font:10px/1.5 ui-monospace,Menlo,monospace;color:var(--mf);white-space:pre-wrap;overflow-wrap:anywhere}
+      .tip button{align-self:flex-start;margin-top:4px;border:1px solid var(--pri);background:var(--pri);color:var(--prf);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer} .tip button.warn{background:var(--warn);border-color:var(--warn)} .tip button:disabled{opacity:.6;cursor:default}
       .tip{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;display:flex;flex-direction:column;gap:4px;margin:2px 0}
       .tt{font-size:11px;font-weight:500;color:var(--mf)} .text code{background:var(--muted);border-radius:4px;padding:0 4px;font:11px ui-monospace,Menlo,monospace} .text code{cursor:pointer} .text code:hover{outline:1px solid var(--mf)} .text code.copied{outline:1px solid #4ade80} .gap{height:6px}
       .starters{display:flex;flex-wrap:wrap;gap:6px;padding-left:32px}
@@ -89,14 +90,35 @@
     };
     const showError = (e='') => { $('error').textContent = String(e); $('error').hidden = !e; };
     const scroll = () => { $('messages').scrollTop = $('messages').scrollHeight; };
-    // One chip per tool; repeats show a count ("⌕ 讀取紀錄 ×8") instead of a new chip.
-    const toolChips = new WeakMap();
-    const addTool = (chips,tool) => {
-      if (!toolChips.has(chips)) toolChips.set(chips,new Map());
-      const seen = toolChips.get(chips), label = `⌕ ${TOOL_LABELS[tool] ?? tool}`;
-      const hit = seen.get(tool);
-      if (hit) { hit.count++; hit.chip.textContent = `${label} ×${hit.count}`; }
-      else { const chip = el('span','',label); seen.set(tool,{chip,count:1}); chips.append(chip); }
+    // Tool calls fold into one line ("⌕ 3 次查詢：角色狀態、查詢攻略"); open it for the full calls.
+    const toolCalls = new WeakMap();
+    const toolBox = () => {
+      const box = el('details','tools'), sum = el('summary'), list = el('div');
+      box.hidden = true; box.append(sum,list); toolCalls.set(box,{calls:[],sum,list}); return box;
+    };
+    const addTool = (box,call) => {
+      const {calls,sum,list} = toolCalls.get(box); calls.push(call);
+      list.append(el('span','',call));
+      const counts = new Map();
+      for (const c of calls) { const n = c.split(/\s/)[0]; counts.set(n,(counts.get(n) ?? 0) + 1); }
+      sum.textContent = `⌕ ${calls.length} 次查詢：${[...counts].map(([n,k]) => `${TOOL_LABELS[n] ?? n}${k > 1 ? ` ×${k}` : ''}`).join('、')}`;
+      box.hidden = false;
+    };
+    // "> DEX 40" / "> DEX +10" tip lines → one button that writes them into the game's 自動配點.
+    // Two clicks: stat points can't be taken back in game.
+    const STAT = /^\s*(STR|AGI|VIT|INT|DEX|LUK)\s*[:：]?\s*([+＋])?\s*(\d{1,2})\b/i;
+    const statButton = (tip,rows) => {
+      if (!rows.length) return;
+      // Game window: its own hook. Panel: Rust runs the same hook in that character's window.
+      const apply = typeof window.__roIdleStatsAuto === 'function' ? window.__roIdleStatsAuto : (r) => invoke('apply_stats',{character:name,rows:r});
+      const b = el('button','','套用到自動配點'); b.type = 'button'; let armed = false;
+      b.onclick = async () => {
+        if (!armed) { armed = true; b.className = 'warn'; b.textContent = '確定？加下去不能退回'; setTimeout(() => { if (armed && !b.disabled) { armed = false; b.className = ''; b.textContent = '套用到自動配點'; } },4000); return; }
+        b.disabled = true; b.textContent = typeof window.__roIdleStatsAuto === 'function' ? '套用中…' : '上線並套用中…';
+        try { const list = await apply(rows); b.className = ''; b.textContent = `✓ 已套用：${list.map(r => `${r.stat.toUpperCase()} ${r.target}`).join('、')}`; }
+        catch (e) { b.disabled = false; armed = false; b.className = ''; b.textContent = `失敗：${e.message || e}，再試一次`; }
+      };
+      tip.append(b);
     };
     // Replies use a plain-text convention (see chat.rs preamble): **bold**, `code`, "> " tip lines, final "追問：a｜b".
     const FOLLOW = /^追問[:：]/;
@@ -115,7 +137,8 @@
     };
     const format = (body,text) => {
       body.replaceChildren();
-      const lines = text.split('\n'); let follow = [], tip = null;
+      const lines = text.split('\n'); let follow = [], tip = null, stats = [];
+      const close = () => { if (tip) statButton(tip,stats); tip = null; stats = []; };
       if (FOLLOW.test((lines[lines.length - 1] ?? '').trim())) follow = lines.pop().trim().replace(FOLLOW,'').split(/[｜|]/).map((q)=>q.trim()).filter(Boolean).slice(0,2);
       while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
       for (const line of lines) {
@@ -123,13 +146,16 @@
           const t = line.replace(/^>\s?/,'');
           if (!tip) { tip = el('div','tip'); body.append(tip); if (t.trim() === '建議改法') { tip.append(el('div','tt',t.trim())); continue; } }
           const d = el('div'); inline(d,t); tip.append(d);
-        } else { tip = null; const d = el('div',line.trim() ? '' : 'gap'); inline(d,line); body.append(d); }
+          const m = STAT.exec(t.replace(/\*\*|`/g,''));
+          if (m) stats.push({stat: m[1].toLowerCase(), n: Number(m[3]), add: !!m[2]});
+        } else { close(); const d = el('div',line.trim() ? '' : 'gap'); inline(d,line); body.append(d); }
       }
+      close();
       return follow;
     };
     const card = (role,text,tools=[]) => {
       if (role === 'user') { const body = el('div','me',text); $('messages').append(body); scroll(); return {body}; }
-      const row = el('div','ai'), col = el('div','col'), chips = el('div','tools'), body = el('div','text');
+      const row = el('div','ai'), col = el('div','col'), chips = toolBox(), body = el('div','text');
       for (const t of tools) addTool(chips,t);
       const follow = format(body,text);
       col.append(chips,body); row.append(el('div','av','✦'),col); $('messages').append(row); scroll(); return {body,chips,follow};

@@ -72,6 +72,9 @@ const CHARACTER_HOOK: &str = r#"
       map: domText('地圖') ?? (typeof s.mapId === 'string' ? s.mapId : null),
       action: domText('行動'),
       assist: !!assistMap(), assistNote,
+      // Base stats + the 自動配點 plan, so the chat agent can suggest absolute targets.
+      stats: c.stats && typeof c.stats === 'object' ? c.stats : null,
+      statsAuto: s.config?.statsAddAuto?.enabled ? s.config.statsAddAuto.list ?? [] : null,
       target: s.target && typeof s.target.name === 'string'
         ? { name: s.target.name, lv: num(s.target.lv), hp: num(s.target.hp), maxHp: num(s.target.maxHp) } : null,
     };
@@ -203,6 +206,21 @@ const CHARACTER_HOOK: &str = r#"
     if (ids) await assistApply(id, s, ids); else send(s);
     return byMap[s.mapId]?.length ?? 0;
   };
+  // Chat's 套用到自動配點 button. rows = [{stat, n, add}]: add → current stat + n, else target n.
+  // Suggested stats go first in the 自動配點 list; other existing rows are kept after them.
+  window.__roIdleStatsAuto = async rows => {
+    const id = streamId, s = cache[id];
+    if (!s?.config) throw new Error('No character currently in play');
+    const now = s.character?.stats ?? {};
+    const list = rows.map(r => {
+      if (r.add && !Number.isFinite(now[r.stat])) throw new Error('Current stats unknown');
+      return {stat: r.stat, target: Math.min(99, Math.max(1, Math.round(r.add ? now[r.stat] + r.n : r.n)))};
+    });
+    const keep = (s.config.statsAddAuto?.list ?? []).filter(r => !list.some(x => x.stat === r.stat));
+    const snapshot = await roIdleUpdateConfig(id, {...s.config, statsAddAuto: {enabled: true, list: [...list, ...keep]}});
+    if (snapshot && streamId === id) { cache[id] = snapshot; send(snapshot); }
+    return list;
+  };
   // Called by the tray panel: press the game's own 開始掛機 / 停止掛機 button.
   window.__roIdleToggle = () => {
     const btn = [...document.querySelectorAll('button.xp-btn.primary')]
@@ -213,14 +231,17 @@ const CHARACTER_HOOK: &str = r#"
   // Character select screen: report its rows so the panel can list them.
   const rows = () => [...document.querySelectorAll('ul[aria-label="角色列表"] li')];
   // Name = direct text of the row's bold line (its <span> holds （掛機中）).
-  const rowName = li => [...(li.firstElementChild?.firstElementChild?.childNodes ?? [])]
+  // The game later put ▲▼ reorder buttons first in the row, so find the bold line instead of going by position.
+  const rowHead = li => li.querySelector('.font-bold') ?? li.firstElementChild?.firstElementChild;
+  const rowName = li => [...(rowHead(li)?.childNodes ?? [])]
     .filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
   let lastRoster = '';
   const scanRoster = () => {
     // Row markup (game's character row): li > div > [div.font-bold "name" <span>（掛機中）</span>, div "盜賊 Lv.22 / Job 8・map", div? delete notice].
     const chars = rows().map(li => {
-      const [head, line, note] = li.firstElementChild?.children ?? [];
+      const head = rowHead(li);
       if (!head) return null;
+      const line = head.nextElementSibling, note = line?.nextElementSibling;
       const name = rowName(li);
       const status = [...head.querySelectorAll('span')].map(e => e.textContent.trim().replace(/^[(（]|[)）]$/g, '')).join(' ') || null;
       const detail = [line, note].filter(Boolean).map(e => e.textContent.trim()).join(' · ');
@@ -250,8 +271,10 @@ const CHARACTER_HOOK: &str = r#"
     if (!list.length) return;
     let lastName = null;
     try { lastName = localStorage.getItem('roIdleTray.lastCharacter'); } catch {}
-    // Last character played on this profile, else the first one.
-    const li = list.find(r => rowName(r) === lastName) ?? list[0];
+    // Last character played on this profile, else the first one. If the remembered one is
+    // not found (renamed, deleted, or row markup changed), pick nothing rather than the wrong one.
+    const li = lastName ? list.find(r => rowName(r) === lastName) : list[0];
+    if (!li) { entered = true; obs.disconnect(); console.warn('[ro-idle-tray] auto-enter: no row named', lastName); return; }
     entered = true;
     obs.disconnect();
     console.info('[ro-idle-tray] auto-enter', rowName(li));
@@ -283,12 +306,10 @@ struct Profiles {
     goals: Mutex<HashMap<String, String>>,
     /// Profiles switched to offline: no game window at all, so the server stops ticking them live.
     offline: Mutex<Vec<u8>>,
-    /// Last time a game window was visible, or the panel was opened.
-    active_at: Mutex<std::time::Instant>,
+    /// Per profile: last time its game window was visible (or it came online).
+    active_at: Mutex<HashMap<u8, std::time::Instant>>,
     /// Last hourly wake of offline profiles.
     woke_at: Mutex<std::time::Instant>,
-    /// Header timer toggled to keep-awake: auto offline paused (session only).
-    keep_awake: std::sync::atomic::AtomicBool,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
@@ -338,6 +359,12 @@ struct CharacterLabel {
     /// Last 輔助模式 apply result, for the dev log only.
     #[serde(default, skip_serializing)]
     assist_note: Option<String>,
+    /// Base stats {str, agi, vit, int, dex, luk}.
+    #[serde(default)]
+    stats: Option<serde_json::Value>,
+    /// 自動配點 targets [{stat, target}] when on.
+    #[serde(default)]
+    stats_auto: Option<serde_json::Value>,
     /// Map name as the game shows it (地圖), e.g. 普隆德拉原野 09.
     map: Option<String>,
     /// Current action as the game shows it (行動), e.g. 戰鬥中.
@@ -614,6 +641,7 @@ pub fn run() {
             open_account,
             toggle_idle,
             atlas::recall_all,
+            atlas::apply_stats,
             atlas::items_merge,
             atlas::items_apply,
             atlas::items_read,
@@ -642,7 +670,7 @@ pub fn run() {
             hide_panel,
             profile_menu,
             toggle_online,
-            toggle_keep_awake,
+            refresh_all,
             ai::ai_get_settings,
             ai::ai_save_settings,
             ai::ai_list_models,
@@ -706,9 +734,8 @@ pub fn run() {
                 // Every boot starts all profiles online once so each one settles its offline
                 // progress and shows it is healthy and idling; auto offline closes them after 3 min.
                 offline: Mutex::new(Vec::new()),
-                active_at: Mutex::new(std::time::Instant::now()),
+                active_at: Mutex::new(HashMap::new()),
                 woke_at: Mutex::new(std::time::Instant::now()),
-                keep_awake: Default::default(),
             });
             *handle.state::<PanelLayout>().0.lock().unwrap() = load_panel_geometry(&handle);
 
@@ -1315,11 +1342,8 @@ struct PanelState {
     nicknames: HashMap<String, String>,
     goals: HashMap<String, String>,
     pinned: bool,
-    /// Seconds until auto offline closes the online profiles (counts while no game window is open).
-    auto_off_in: u64,
     /// Seconds until the hourly wake brings offline profiles back.
     wake_in: u64,
-    keep_awake: bool,
 }
 
 #[tauri::command]
@@ -1352,36 +1376,41 @@ fn get_state(app: AppHandle) -> PanelState {
         nicknames: profiles.nicknames.lock().unwrap().clone(),
         goals: profiles.goals.lock().unwrap().clone(),
         pinned: app.state::<PanelLayout>().0.lock().unwrap().pinned,
-        // Read only: the hidden panel still polls get_state, so touching active_at here would block auto offline.
-        auto_off_in: AUTO_OFFLINE_AFTER.saturating_sub(profiles.active_at.lock().unwrap().elapsed()).as_secs(),
         wake_in: WAKE_EVERY.saturating_sub(profiles.woke_at.lock().unwrap().elapsed()).as_secs(),
-        keep_awake: profiles.keep_awake.load(std::sync::atomic::Ordering::Relaxed),
     }
 }
 
-/// Header timer click: pause auto offline (keep-awake), or resume it with a full countdown.
+/// Refresh button: boot offline profiles one at a time, in panel order, so each loads its
+/// latest numbers; each goes offline again a minute later like any closed window.
+/// Returns how many will boot (the panel keeps the button busy that long).
 #[tauri::command]
-fn toggle_keep_awake(app: AppHandle) {
+fn refresh_all(app: AppHandle) -> usize {
+    static BUSY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
     let profiles = app.state::<Profiles>();
-    let was = profiles.keep_awake.fetch_xor(true, std::sync::atomic::Ordering::Relaxed);
-    if was {
-        *profiles.active_at.lock().unwrap() = std::time::Instant::now();
-    } else {
-        // Keep-awake means online: bring every offline profile back now.
-        set_all_offline(app.clone(), false);
+    let offline = profiles.offline.lock().unwrap().clone();
+    let order: Vec<u8> = profiles.ids.lock().unwrap().iter().copied().filter(|n| offline.contains(n)).collect();
+    if order.is_empty() || BUSY.swap(true, std::sync::atomic::Ordering::SeqCst) {
+        return 0;
     }
-    notify(&app);
+    let count = order.len();
+    std::thread::spawn(move || {
+        for n in order {
+            let h = app.clone();
+            let _ = app.run_on_main_thread(move || set_offline(&h, n, false));
+            // ponytail: fixed gap so pages don't all log in at once; tune if the server minds.
+            std::thread::sleep(REFRESH_GAP);
+        }
+        BUSY.store(false, std::sync::atomic::Ordering::SeqCst);
+    });
+    count
 }
+const REFRESH_GAP: Duration = Duration::from_secs(5);
 
 /// Status dot on a card: flip that profile between online and offline.
 #[tauri::command]
 fn toggle_online(app: AppHandle, n: u8) {
     let profiles = app.state::<Profiles>();
     let off = profiles.offline.lock().unwrap().contains(&n);
-    if off {
-        // Brought online by hand for editing: give it a full countdown.
-        *profiles.active_at.lock().unwrap() = std::time::Instant::now();
-    }
     set_offline(&app, n, !off);
 }
 
@@ -1550,7 +1579,6 @@ fn items_characters(app: AppHandle) -> Vec<serde_json::Value> {
 #[tauri::command]
 fn open_items(app: AppHandle) {
     // Editing fans out through the game pages, so they all come online while the editor is open.
-    *app.state::<Profiles>().active_at.lock().unwrap() = std::time::Instant::now();
     set_all_offline(app.clone(), false);
     if let Some(w) = app.get_webview_window("items") {
         let _ = w.show();
@@ -1660,6 +1688,8 @@ fn set_offline(app: &AppHandle, n: u8, off: bool) {
         }
         if off { list.push(n) } else { list.retain(|x| *x != n) }
     }
+    // Coming online starts a full countdown.
+    profiles.active_at.lock().unwrap().remove(&n);
     let label = format!("game-profile-{n}");
     if off {
         if let Some(w) = app.get_webview_window(&label) {
@@ -1672,12 +1702,12 @@ fn set_offline(app: &AppHandle, n: u8, off: bool) {
     notify(app);
 }
 
-const AUTO_OFFLINE_AFTER: Duration = Duration::from_secs(180);
+const AUTO_OFFLINE_AFTER: Duration = Duration::from_secs(60);
 /// Every offline profile comes online at least this often, so its offline progress is
-/// settled and the panel shows fresh numbers; auto offline closes it again 3 min later.
+/// settled and the panel shows fresh numbers; auto offline closes it again a minute later.
 const WAKE_EVERY: Duration = Duration::from_secs(3600);
 
-/// Offline is the default: no game window or item editor open for 3 min closes every online game page.
+/// Offline is the default: a profile whose game window stays closed for a minute goes offline.
 /// Offline earns ~97% of online EXP (e2e 2026-11-03) at no local or server cost.
 fn auto_offline_tick(app: &AppHandle) {
     let profiles = app.state::<Profiles>();
@@ -1692,29 +1722,27 @@ fn auto_offline_tick(app: &AppHandle) {
     if due {
         let waking = profiles.offline.lock().unwrap().clone();
         if !waking.is_empty() {
-            *profiles.active_at.lock().unwrap() = std::time::Instant::now();
             let h = app.clone();
             let _ = app.run_on_main_thread(move || waking.into_iter().for_each(|n| set_offline(&h, n, false)));
             return;
         }
     }
-    // Only a game window or the item editor needs the pages; the panel just watches the countdown run.
-    let seen = app
-        .webview_windows()
-        .iter()
-        .any(|(label, w)| (label.starts_with("game-") || label == "items") && w.is_visible().unwrap_or(false));
-    {
-        let mut at = profiles.active_at.lock().unwrap();
-        if seen || profiles.keep_awake.load(std::sync::atomic::Ordering::Relaxed) {
-            *at = std::time::Instant::now();
-            return;
-        }
-        if at.elapsed() < AUTO_OFFLINE_AFTER {
-            return;
-        }
-    }
+    // Each profile counts down on its own: its game window visible (or the item editor,
+    // which needs every page) holds it at a full minute.
+    let visible = |label: &str| app.get_webview_window(label).is_some_and(|w| w.is_visible().unwrap_or(false));
+    let hold_all = visible("items");
     let offline = profiles.offline.lock().unwrap().clone();
-    let going: Vec<u8> = profiles.ids.lock().unwrap().iter().copied().filter(|n| !offline.contains(n)).collect();
+    let now = std::time::Instant::now();
+    let going: Vec<u8> = {
+        let mut at = profiles.active_at.lock().unwrap();
+        profiles.ids.lock().unwrap().iter().copied().filter(|n| !offline.contains(n)).filter(|&n| {
+            let t = at.entry(n).or_insert(now);
+            if hold_all || visible(&format!("game-profile-{n}")) {
+                *t = now;
+            }
+            t.elapsed() >= AUTO_OFFLINE_AFTER
+        }).collect()
+    };
     if going.is_empty() {
         return;
     }
