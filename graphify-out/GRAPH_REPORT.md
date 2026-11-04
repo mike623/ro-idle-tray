@@ -1,17 +1,17 @@
 # Graph Report - UI-simulation  (2026-11-04)
 
 ## Corpus Check
-- 66 files · ~105,797 words
+- 66 files · ~106,015 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 7 file(s) not represented in the graph (top: (none) 3, .icns 1, .ico 1)
 
 ## Summary
-- 931 nodes · 1804 edges · 66 communities (42 shown, 24 thin omitted)
+- 933 nodes · 1809 edges · 67 communities (43 shown, 24 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 8 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d2602b44`
+- Built from commit: `3ff5d6c3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -74,6 +74,7 @@
 - .on_dispatch
 - confirm_remove
 - ChatEvent
+- guide.rs
 
 ## God Nodes (most connected - your core abstractions)
 1. `run()` - 20 edges
@@ -102,7 +103,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (66 total, 24 thin omitted)
+## Communities (67 total, 24 thin omitted)
 
 ### Community 0 - "lib.rs"
 Cohesion: 0.08
@@ -162,7 +163,7 @@ Nodes (14): ALLOWED, CALL_TIMEOUT, CONNECT_TIMEOUT, ENDPOINT, failure(), MAX_RES
 
 ### Community 19 - "battle.rs"
 Cohesion: 0.11
-Nodes (15): asset(), battle_backfill(), battle_party(), cache_file(), FOCUS, held_profiles(), MIRRORS, open_battle() (+7 more)
+Nodes (16): asset(), battle_backfill(), battle_party(), cache_file(), FOCUS, held_profiles(), MIRRORS, open_battle() (+8 more)
 
 ### Community 20 - "atlas.rs"
 Cohesion: 0.15
@@ -189,8 +190,8 @@ Cohesion: 0.11
 Nodes (12): atk(), bonuses(), captures(), checks(), equipped(), formula_inventory(), Literal, main() (+4 more)
 
 ### Community 27 - "alerts.rs"
-Cohesion: 0.07
-Nodes (40): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+32 more)
+Cohesion: 0.13
+Nodes (24): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+16 more)
 
 ### Community 33 - "items.js"
 Cohesion: 0.26
@@ -234,7 +235,7 @@ Nodes (19): AlertView, append(), archive(), character_threads_are_isolated_and_c
 
 ### Community 51 - "battle.js"
 Cohesion: 0.06
-Nodes (31): atl, ATLASES, encounters, fx, ground, ITEMS, JOB_ID, last (+23 more)
+Nodes (32): atl, ATLASES, encounters, fx, ground, ITEMS, JOB_ID, last (+24 more)
 
 ### Community 52 - "render"
 Cohesion: 0.18
@@ -272,9 +273,13 @@ Nodes (4): confirm_remove(), dialog(), profile_number(), remove_account()
 Cohesion: 0.67
 Nodes (3): ChatEvent, Text, Tool
 
+### Community 66 - "guide.rs"
+Cohesion: 0.13
+Nodes (16): article_text(), BASE, BUDGET, cached(), decode(), excerpt(), fetch(), live_guide_fetches_index_and_a_page() (+8 more)
+
 ## Knowledge Gaps
 - **4 isolated node(s):** `@tauri-apps/cli`, `ro-idle-tray`, `Text`, `Tool`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 349 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 350 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **24 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions

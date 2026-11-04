@@ -12,7 +12,7 @@ const asset = (host, path) => `${window.ROASSET_BASE ?? 'roasset://localhost/'}$
 const RA = asset('assets.latam-tools.com.br', ''), RI = asset('ro-idle.app', ''), RS = asset('ro-survivors.com', '/assets');
 const UI = asset('cdn.jsdelivr.net', '/gh/GodLesZ/rangarok-js@9da23a5d2e55b7bb5bd59e6296e78dba19a913d1/basic_interface');
 const W = 980, H = 640, BASE = 430, FACE_R = 6, FACE_L = 2;      // RO directions: 6 = east, 2 = west
-const MARCH_PX_MS = 0.11, LAG = 3500, KEEP = 5 * 60 * 1000;   // game state arrives in ~3 s batches
+const MARCH_PX_MS = 0.11, LAG = 3500, KEEP = 5 * 60 * 1000;   // LAG: march layout pad past the newest event
 // ragassets job ids by the game's job key.
 const JOB_ID = { novice: 0, swordman: 1, mage: 2, archer: 3, acolyte: 4, merchant: 5, thief: 6, knight: 7, priest: 8, wizard: 9,
   blacksmith: 10, hunter: 11, assassin: 12, crusader: 14, monk: 15, sage: 16, rogue: 17, alchemist: 18, bard: 19, dancer: 20,
@@ -48,20 +48,30 @@ const skillName = (s) => SKILLS[s] || NPC_SKILLS[s] || String(s ?? '').replace(/
 
 // ---------- state
 let focus = window.BATTLE_FOCUS || '', pcs = [], PEV = [], seen = new Set(), mapId = null;
-let head = 0, headAt = 0, dirty = true;
+let head = 0, dirty = true;
 let mobs = {}, uids = [], encounters = [], lures = [], T0 = 0, marchPrefix = [];
 // 3 front + 3 back; several monsters at once (pulls, or members on different targets) fill front first.
 const MOB_SLOTS = [[580, BASE + 22], [660, BASE + 22], [740, BASE + 22], [620, BASE - 50], [700, BASE - 50], [780, BASE - 50]];
 // Archers and casters attack from their rank; everyone else steps up to their own target.
 const RANGED = new Set([2, 3, 9, 11, 16, 19, 20, 4003, 4004, 4010, 4012, 4017, 4020, 4021]);
 
-function addEvents(name, events) {
+// Live edge: the server sends a character's log in batches of ~6 s of events, ~1 s after the
+// newest one. Play at server time minus the measured delivery delay (p80 of the last 20
+// batches), so a batch has always landed before the view reaches it, then play smoothly.
+let simOff = null, lates = [], delay = 8000;
+function addEvents(name, events, live = false) {
   const a = pcs.findIndex(p => p.name === name); if (a < 0 || !Array.isArray(events)) return;
+  const walls = events.map(e => e?.wallMs).filter(Number.isFinite);
+  if (live && walls.length) {
+    lates.push(Date.now() - Math.min(...walls)); if (lates.length > 20) lates.shift();
+    const s = [...lates].sort((x, y) => x - y); delay = Math.min(30000, Math.max(1500, s[Math.floor(s.length * .8)] + 500));
+  }
   for (const e of events) {
     if (!e || typeof e.simTime !== 'number' || !e.body) continue;
+    if (Number.isFinite(e.wallMs)) simOff = e.wallMs - e.simTime;
     const k = `${a}:${e.seq}:${e.wallMs}`; if (seen.has(k)) continue; seen.add(k);
     PEV.push({ t: e.simTime, a, b: e.body });
-    if (e.simTime > head) { head = e.simTime; headAt = performance.now(); }
+    if (e.simTime > head) head = e.simTime;
   }
   dirty = true;
 }
@@ -377,7 +387,7 @@ function render(t) {
 
 // ---------- clock: follow the live edge (game state lands in ~3 s batches), or scrub back
 let t = 0, speed = 1, playing = true, live_ = true, last = performance.now();
-const liveEdge = () => Math.min(head, head - LAG + (performance.now() - headAt));
+const liveEdge = () => simOff == null ? head : Math.min(head, Date.now() - simOff - delay);
 $('seek').oninput = () => { t = +$('seek').value; live_ = false; };
 $('time').onclick = () => { live_ = true; playing = true; $('play').textContent = '❚❚'; };
 $('play').onclick = (e) => { playing = !playing; if (!playing) live_ = false; e.currentTarget.textContent = playing ? '❚❚' : '▶'; };
@@ -392,7 +402,7 @@ function loop(now) {
   t = Math.max(T0, t); last = now;
   if (PEV.length) render(t);
   $('seek').min = T0; $('seek').max = Math.max(T0 + 1, edge); $('seek').value = t;
-  $('time').className = live_ ? 'live' : ''; $('time').textContent = live_ ? '● LIVE' : `-${Math.max(0, (edge - t) / 1000).toFixed(1)} s`;
+  $('time').className = live_ ? 'live' : ''; $('time').textContent = live_ ? `● LIVE ${(delay / 1000).toFixed(1)}s` : `-${Math.max(0, (edge - t) / 1000).toFixed(1)} s`;
   requestAnimationFrame(loop);
 }
 
@@ -428,7 +438,7 @@ $('dl').onclick = async () => {
   setInterval(refreshParty, 10000);   // map changes and members joining or leaving
   listen('ro-idle-log', (e) => {
     const p = pcs.find(x => x.profile === e.payload?.profile); if (!p) return;
-    try { addEvents(p.name, JSON.parse(e.payload.data)); } catch {}
+    try { addEvents(p.name, JSON.parse(e.payload.data), true); } catch {}
   });
   ATLASES.forEach(n => loadAtlas(n).catch(() => {}));
   STRS.forEach(n => loadStr(n).catch(() => {}));
