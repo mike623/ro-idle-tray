@@ -144,7 +144,8 @@
     const format = (body,text,character) => {
       body.replaceChildren();
       const lines = text.split('\n'); let follow = [], tip = null, stats = [];
-      const close = () => { if (tip) statButton(tip,stats,character); tip = null; stats = []; };
+      // A block holding only "(無須更動…)"-style asides is no suggestion; drop it.
+      const close = () => { if (tip && !stats.length && [...tip.children].every((c)=>c.className === 'tt' || /^[(（].*[)）]$/.test(c.textContent.trim()))) tip.hidden = true; else if (tip) statButton(tip,stats,character); tip = null; stats = []; };
       if (FOLLOW.test((lines[lines.length - 1] ?? '').trim())) follow = lines.pop().trim().replace(FOLLOW,'').split(/[｜|]/).map((q)=>q.trim()).filter(Boolean).slice(0,2);
       while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
       for (const line of lines) {
@@ -186,13 +187,14 @@
       for (const q of questions) { const b = el('button','',q); b.type = 'button'; b.addEventListener('click',()=>{ input.value = `${name ? `@${name} ` : ''}${q}`; root.querySelector('form').requestSubmit(); }); wrap.append(b); }
       $('messages').append(wrap);
     };
-    // A reply's stat button applies to the character its question named.
+    // A reply's stat button applies to the character its question named, else the last one named before it.
+    let about = null;
     const render = (rows) => {
       $('messages').replaceChildren();
-      let last = null, about = null;
+      let last = null; about = null;
       for (const r of rows) if (!r.message && r.role !== 'summary' && r.text) {
         if (r.event_id) { alertCard(r.text); last = null; }
-        else { if (r.role === 'user') about = mention(r.text); const c = card(r.role,r.text,r.tools,about); last = r.role === 'user' ? null : c; }
+        else { if (r.role === 'user') about = mention(r.text) ?? about; const c = card(r.role,r.text,r.tools,about); last = r.role === 'user' ? null : c; }
       }
       if (!$('messages').childElementCount) { card('assistant','我可以讀取全隊的狀態與戰鬥紀錄。用 @角色 問單一角色。'); starters(STARTERS); }
       else if (last?.follow?.length) starters(last.follow);
@@ -287,7 +289,7 @@
     root.querySelector('form').addEventListener('submit',async(e)=>{
       e.preventDefault(); const text = input.value.trim();
       if (busy || !text) return;
-      const about = mention(text);
+      about = mention(text) ?? about;
       busy = true; $('send').disabled = true; $('new').disabled = true; showError(); $('mentions').replaceChildren();
       input.value = ''; card('user',text); const answer = card('assistant','讀取中…'); let content = '';
       const onEvent = new window.__TAURI__.core.Channel();

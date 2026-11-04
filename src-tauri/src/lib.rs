@@ -75,6 +75,10 @@ const CHARACTER_HOOK: &str = r#"
       // Base stats + the 自動配點 plan, so the chat agent can suggest absolute targets.
       stats: c.stats && typeof c.stats === 'object' ? c.stats : null,
       statsAuto: s.config?.statsAddAuto?.enabled ? s.config.statsAddAuto.list ?? [] : null,
+      // Learned skills {AL_HEAL: 9, ...}, unspent skill points and the auto-skill setup.
+      skills: c.skills && typeof c.skills === 'object' ? c.skills : null,
+      skillPoints: Number.isInteger(c.skillPoints) ? c.skillPoints : 0,
+      skillSetup: Array.isArray(s.config?.skills) ? s.config.skills : null,
       target: s.target && typeof s.target.name === 'string'
         ? { name: s.target.name, lv: num(s.target.lv), hp: num(s.target.hp), maxHp: num(s.target.maxHp) } : null,
     };
@@ -365,6 +369,15 @@ struct CharacterLabel {
     /// 自動配點 targets [{stat, target}] when on.
     #[serde(default)]
     stats_auto: Option<serde_json::Value>,
+    /// Learned skills {skill id: level}, e.g. {"AL_HEAL": 9}.
+    #[serde(default)]
+    skills: Option<serde_json::Value>,
+    /// Unspent skill points.
+    #[serde(default)]
+    skill_points: u32,
+    /// The game's auto-skill rules [{skill, lv, use, percent, ...}].
+    #[serde(default)]
+    skill_setup: Option<serde_json::Value>,
     /// Map name as the game shows it (地圖), e.g. 普隆德拉原野 09.
     map: Option<String>,
     /// Current action as the game shows it (行動), e.g. 戰鬥中.

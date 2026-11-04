@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "src-tauri/src/lib.rs": {
-    "mtime": 1793816359.8222437,
-    "seen": 1793816435.1784298,
-    "ast_hash": "364342339f61a418db147810ad3ac46f",
+    "mtime": 1793818096.9416034,
+    "seen": 1793818131.75673,
+    "ast_hash": "61ff84c8fff010023464a8365f88159e",
     "semantic_hash": ""
   },
   "src-tauri/src/main.rs": {
@@ -258,9 +258,9 @@
     "semantic_hash": ""
   },
   "src-tauri/src/chat.rs": {
-    "mtime": 1793816359.8212924,
-    "seen": 1793816435.178377,
-    "ast_hash": "8ee7cb103872fca851457f908d66c22a",
+    "mtime": 1793818096.9422333,
+    "seen": 1793818131.7566762,
+    "ast_hash": "1c99ed3684ec4dd43bc4a44ac53db538",
     "semantic_hash": ""
   },
   "src-tauri/src/knowledge.rs": {
@@ -300,9 +300,9 @@
     "semantic_hash": ""
   },
   "src/bubble.js": {
-    "mtime": 1793816385.473612,
-    "seen": 1793816435.1785522,
-    "ast_hash": "edae6739f0766f66a6fa8610c9a4ee73",
+    "mtime": 1793818626.3941357,
+    "seen": 1793818642.0552142,
+    "ast_hash": "c01233abe17da7fd70d0058e035b89b9",
     "semantic_hash": ""
   },
   "src/chat.js": {
@@ -330,9 +330,9 @@
     "semantic_hash": ""
   },
   "tests/bubble.test.mjs": {
-    "mtime": 1793816396.0829656,
-    "seen": 1793816435.1786811,
-    "ast_hash": "581426504a0a5dae783e4a53eb458ba2",
+    "mtime": 1793818635.562514,
+    "seen": 1793818642.0553548,
+    "ast_hash": "2529b0531dd6a5240af381eed108db4e",
     "semantic_hash": ""
   },
   "tests/capabilities.test.mjs": {

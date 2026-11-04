@@ -114,11 +114,29 @@ test('stat lines apply to the @character the question named, after two clicks',a
   assert.equal(b.textContent,'✓ 已套用：DEX 40、VIT 25');
 });
 
+test('a follow-up without @ applies stats to the last @character named',async()=>{
+  const e=environment({replies:{apply_stats:()=>[{stat:'agi',target:76}]}});
+  await e.assistant.ask(null);
+  const rows=[{role:'user',text:'@Bob2 build?'},{role:'assistant',text:'先這樣'},{role:'user',text:'points?'},{role:'assistant',text:'> 建議改法\n> AGI 76'}];
+  await e.send('points?',rows);
+  const b=answerBody(e,3).children[0].children.at(-1);
+  assert.equal(b.textContent,'套用到自動配點');
+  await b.onclick(); await b.onclick();
+  assert.equal(e.calls.find((c)=>c.cmd==='apply_stats').args.character,'Bob2');
+});
+
 test('a tip without an @character gets no stat button',async()=>{
   const e=environment();
   await e.assistant.ask(null);
   await e.send('points?',[{role:'user',text:'points?'},{role:'assistant',text:'> 建議改法\n> DEX 40'}]);
   assert.equal(answerBody(e,1).children[0].children.some((c)=>c.textContent==='套用到自動配點'),false);
+});
+
+test('a tip saying nothing changes stays hidden',async()=>{
+  const e=environment();
+  await e.assistant.ask(null);
+  await e.send('gear?',[{role:'user',text:'gear?'},{role:'assistant',text:'先刷拳刃\n> 建議改法\n> (目前為裝備調整階段，無須更動屬性點)'}]);
+  assert.equal(answerBody(e,1).children.find((c)=>c.className==='tip').hidden,true);
 });
 
 test('tool calls fold into one summary line with counts',async()=>{
