@@ -323,6 +323,7 @@ function card(n, info, othersIdling, why) {
     } else b.disabled = true;
   });
   q(".action").textContent = info.action ?? "–";
+  q(".battle-link").addEventListener("click", () => invoke("open_battle", { name: info.name }));
   const t = info.target;
   q(".target").textContent = t ? `${t.name}${t.lv == null ? "" : ` Lv.${t.lv}`}` : "無";
   if (t && t.maxHp) {

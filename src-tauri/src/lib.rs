@@ -1,4 +1,5 @@
 mod api;
+mod battle;
 mod tutorial;
 mod alerts;
 mod memory;
@@ -75,6 +76,9 @@ const CHARACTER_HOOK: &str = r#"
       // Base stats + the 自動配點 plan, so the chat agent can suggest absolute targets.
       stats: c.stats && typeof c.stats === 'object' ? c.stats : null,
       statsAuto: s.config?.statsAddAuto?.enabled ? s.config.statsAddAuto.list ?? [] : null,
+      // Battle view: character look and map for the sprite renderer and map backdrop.
+      look: s.appearance && typeof s.appearance === 'object' ? s.appearance : null,
+      mapId: typeof s.mapId === 'string' ? s.mapId : null,
       target: s.target && typeof s.target.name === 'string'
         ? { name: s.target.name, lv: num(s.target.lv), hp: num(s.target.hp), maxHp: num(s.target.maxHp) } : null,
     };
@@ -367,6 +371,14 @@ struct CharacterLabel {
     stats_auto: Option<serde_json::Value>,
     /// Map name as the game shows it (地圖), e.g. 普隆德拉原野 09.
     map: Option<String>,
+    /// Map id (mjolnir_09) and appearance {sex, hair, hairColor}, for the battle view.
+    #[serde(default)]
+    map_id: Option<String>,
+    #[serde(default)]
+    look: Option<serde_json::Value>,
+    /// The game's job id (thief, lord_knight); `class` holds the display name.
+    #[serde(default)]
+    job_key: String,
     /// Current action as the game shows it (行動), e.g. 戰鬥中.
     action: Option<String>,
     target: Option<Target>,
@@ -627,6 +639,7 @@ fn profile_number(app: &AppHandle, id: &str) -> Option<u8> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .register_asynchronous_uri_scheme_protocol("roasset", battle::protocol)
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
@@ -656,6 +669,9 @@ pub fn run() {
             open_export_folder,
             open_atlas,
             open_classes,
+            battle::open_battle,
+            battle::battle_party,
+            battle::battle_backfill,
             atlas::atlas_characters,
             atlas::move_all,
             atlas::move_selected,
@@ -1656,6 +1672,7 @@ fn character_report(window: tauri::WebviewWindow, app: AppHandle, mut data: Char
         let mut info = data.clone();
         info.name = name.clone();
         info.class = class.clone();
+        info.job_key = data.class.trim().chars().take(40).collect();
         info.updated = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_or(0, |d| d.as_secs());
@@ -1822,4 +1839,19 @@ fn set_all_offline(app: AppHandle, off: bool) {
     for n in ids {
         set_offline(&app, n, off);
     }
+}
+
+/// Every loaded character, for the battle view's party roster.
+pub(crate) fn battle_roster(app: &AppHandle) -> Vec<serde_json::Value> {
+    let profiles = app.state::<Profiles>();
+    let info = profiles.info.lock().unwrap();
+    let mut list: Vec<_> = info.iter().collect();
+    list.sort_by_key(|(n, _)| **n);
+    list.into_iter()
+        .map(|(n, c)| serde_json::json!({
+            "profile": format!("profile-{n}"), "name": c.name, "class": c.class, "jobKey": c.job_key,
+            "base": c.base, "job": c.job, "hp": c.hp, "maxHp": c.max_hp, "sp": c.sp, "maxSp": c.max_sp,
+            "map": c.map, "mapId": c.map_id, "look": c.look,
+        }))
+        .collect()
 }

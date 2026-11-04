@@ -1,0 +1,6 @@
+{
+  "identifier": "battle",
+  "description": "Battle view window: reads the party roster and log, listens for live log events.",
+  "windows": ["battle"],
+  "permissions": ["battle-commands", "core:default"]
+}
