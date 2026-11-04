@@ -204,6 +204,8 @@ function jsCounts(data) {
     }
     if (typ === 'statUp') c.stats[body.stat] = body.value;
     if (typ === 'baseLevelUp') c.baseLv = body.lv;
+    if (typ === 'jobLevelUp') c.jobLv = body.lv; // job bonus stats follow job level
+    if (typ === 'skillUp') c.skills[body.skill] = body.lv;
     const d = derive(snap);
     if (!d) continue;
     const t = d.total;

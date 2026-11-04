@@ -328,6 +328,8 @@ def checks(directory, bundle):
                 snap['buffs'].append({'id': skill, 'lv': matches[0], 'remainingMs': e['simTime'] + body['durationMs'] - snap['time']})
         if typ == 'statUp': c['stats'][body['stat']] = body['value']
         if typ == 'baseLevelUp': c['baseLv'] = body['lv']
+        if typ == 'jobLevelUp': c['jobLv'] = body['lv']  # job bonus stats follow job level
+        if typ == 'skillUp': c['skills'][body['skill']] = body['lv']
         try: b = bonuses(snap, items)
         except ValueError: continue
         t = totals(snap, jobs[c['job']], b)
