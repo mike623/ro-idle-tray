@@ -16,6 +16,7 @@ node server/demo.mjs <characterId> <t> [fights] [http://127.0.0.1:8787]   # scri
 node --test tests/*.test.mjs server/*.test.mjs server/rules/*.test.mjs   # tests
 ```
 
+Seed with the server stopped: seeding rewrites the whole DB row and a running server's next checkpoint would overwrite it.
 Seeding takes, per path, the last `200` GET reply in the capture: `/api/characters/:id` (the view: the twin's
 snapshot is byte-identical to it), `/party` (party record; members = seeded characters only), `/api/kill-event`,
 `/api/storage`. Chat is never imported. `tests/fixtures/server/capture-72397.jsonl` is a 4-record trimmed capture of
@@ -170,7 +171,10 @@ and `NOT_YOURS`; SQLite checkpoint survives a restart.
 ## Gaps (defaults picked, not verified against ro-idle.app)
 
 - Party assist (`targetSwitch`): only the encounter's owner can hit it. Party drops: killer only (`itemShare` ignored).
-- Self buffs (`cast` of a `self` skill) need a live encounter; buffs are not timed down on the snapshot outside fights.
+  EXP share goes to `running` members on the killer's map. Party writes (`POST /:id/party/*`) → 422 GAME_RULE.
+- Self buffs/support (`cast` of a `self` skill, Heal) need a live encounter; buffs are not timed down outside fights.
+- `useItem`/`teleport` have no delay check; AL_TELEPORT costs no SP. No two-hand/shield exclusion on `equip`.
+- SSE never sends `idle`, `superseded` (many viewers allowed) or `restart` (no notice on shutdown).
 - No server-side idle brain: auto sell/buy/storage/stat-up/potion are the client brain's job; `running` is only a flag.
 - Weight warnings (`weight` events), overweight stop, `heldItems`, card/refine bonuses beyond `formulas.derive`.
 - `sessionBase`/`stats` counters: only `stats.kills`, `stats.itemsLooted`, deaths updated.

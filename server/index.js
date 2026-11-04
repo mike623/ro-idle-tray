@@ -21,7 +21,8 @@ export function openStore(path) {
   };
 }
 
-const STUBS = { // captured shapes for features outside phase 1 (social, cosmetics, rankings)
+// ponytail: captured shapes, always empty — social/cosmetics/rankings are outside phase 1; fill when a phase needs them
+const STUBS = {
   '/api/costumes': { costumes: [] },
   '/api/shared-configs': { rows: [] },
   '/api/vending': { shops: [], heldItems: [] },
@@ -52,6 +53,7 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
     const auth = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
     const cookie = req.headers.cookie?.match(/(?:^|;\s*)ro_token=([^;]+)/)?.[1];
     const token = auth ?? cookie ?? url.searchParams.get('token');
+    // ponytail: plain local tokens, linear scan over accounts; hash + index if this ever leaves localhost
     return token ? [...game.accounts.values()].find((a) => a.token === token)?.name : undefined;
   };
 
@@ -94,7 +96,8 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
         case undefined: return send(200, game.view(C));
         case 'events': return send(200, game.events(C, after, Math.min(1000, +(url.searchParams.get('limit') ?? 1000) || 1000)));
         case 'summary': return send(200, game.summary(C, after));
-        case 'party': return send(200, game.partyView(C));
+        case 'party': // the client applies a party write reply as the party view, so writes fail loudly instead
+          return req.method === 'POST' ? fail(422, 'GAME_RULE', '尚未支援隊伍操作') : send(200, game.partyView(C));
         case 'nearby': return send(200, { mapId: C.snapshot.mapId, characters: [] });
         case 'commands': {
           if (req.method !== 'POST' || !body?.command) return fail(400, 'INVALID_REQUEST', 'command required');

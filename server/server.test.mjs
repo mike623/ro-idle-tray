@@ -96,8 +96,12 @@ test('auth: no token is UNAUTHENTICATED; dev-login sets a cookie that works', as
 });
 
 test('commands: allocateStats/equip/selectMap/updateConfig/start/stop reply {ok, view} and bump commandRevision', async (t) => {
-  const { srv, cmd, get } = await boot();
+  const { srv, cmd, get, base, H } = await boot();
   t.after(() => srv.close());
+  // party writes are not supported: a rule error, never a fake party view
+  const pw = await fetch(`${base}/api/characters/${ID}/party/leave`, { method: 'POST', headers: H, body: '{}' });
+  assert.equal(pw.status, 422);
+  assert.equal((await pw.json()).error.code, 'GAME_RULE');
   // seeded char has 0 stat points: rule error carries the view
   let r = await cmd({ type: 'allocateStats', stats: { agi: 1 } });
   assert.equal(r.status, 422);
@@ -121,6 +125,7 @@ test('commands: allocateStats/equip/selectMap/updateConfig/start/stop reply {ok,
   assert.equal(r.body.view.snapshot.derived.hardDef < before.snapshot.derived.hardDef, true);
   r = await cmd({ type: 'equip', uid: before.snapshot.equipment.armor });
   assert.equal(r.body.view.snapshot.equipment.armor, before.snapshot.equipment.armor);
+  assert.equal((await cmd({ type: 'equip', uid: before.snapshot.equipment.accessory1 })).status, 422); // already worn: no second slot
   assert.equal(r.body.view.snapshot.derived.hardDef, before.snapshot.derived.hardDef);
 
   assert.equal((await cmd({ type: 'selectMap', mapId: 'nowhere' })).status, 422);

@@ -68,10 +68,10 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
   }
 
   // ---------- characters ----------
-  g.addCharacter = (view, account, partyId = null) => {
+  g.addCharacter = (view, account) => {
     const s = structuredClone(view.snapshot);
     const C = { id: view.characterId, name: view.name, account, revision: view.revision ?? 0, commandRevision: view.commandRevision ?? 0,
-      lastSeq: view.lastSeq ?? 0, running: view.running ?? false, snapshot: s, partyId, log: [], commands: new Map(),
+      lastSeq: view.lastSeq ?? 0, running: view.running ?? false, snapshot: s, partyId: null, log: [], commands: new Map(),
       simEpoch: now() - (s.time ?? 0), fight: null, regenAt: now() };
     g.chars.set(C.id, C);
     return C;
@@ -153,7 +153,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
 
   function onKill(C, F) {
     F.settled = true;
-    const mob = F.mob, members = party(C).filter((x) => x.snapshot.mapId === C.snapshot.mapId);
+    const mob = F.mob, members = party(C).filter((x) => x === C || (x.running && x.snapshot.mapId === C.snapshot.mapId));
     const dropMult = e.killEventDropMult(g.killEvent, mob.id, now());
     if (g.killEvent.monsterId === mob.id) g.killEvent.progress++;
     const at = C.log.findLast((x) => x.body.type === 'kill' && x.body.uid === F.uid)?.wallMs ?? now(); // rewards land with the kill
@@ -192,7 +192,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     c.hp = fl(s.derived.maxHp / 2); c.sp = fl(s.derived.maxSp / 2);
     const from = s.mapId;
     s.mapId = s.saveMap;
-    if (s.stats) { s.stats.deaths = (s.stats.deaths ?? 0) + 1; s.stats.deathLog?.push({ t: s.time, mapId: from, damage: 0, monsterId: F.mob.id }); }
+    if (s.stats) { s.stats.deaths = (s.stats.deaths ?? 0) + 1; s.stats.deathLog?.push({ t: s.time, mapId: from, damage: 0, monsterId: F.mob.id }); } // ponytail: killing-blow damage not tracked
     C.fight = null;
     s.activity = 'idle';
     const out = emit(C, [{ body: { type: 'mapChange', from, to: s.mapId, cause: 'return' } }]);
@@ -360,8 +360,9 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     },
     equip(C, { uid }) {
       const x = stack(C, uid), it = data.items[x?.itemId], c = C.snapshot.character;
-      rule(it?.slots?.length, '無法裝備');
+      rule(it?.slots?.length && !isEquipped(C, uid), '無法裝備');
       rule((it.equipLevel ?? 0) <= c.baseLv && (it.jobs === 'all' || it.jobs?.includes(c.job)), '無法裝備');
+      // ponytail: no two-hand/shield exclusion; add it with the first two-handed weapon in a seeded character
       const slot = it.slots.find((sl) => !C.snapshot.equipment[sl]) ?? it.slots[0];
       C.snapshot.equipment[slot] = uid;
       rederive(C);
@@ -394,7 +395,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     },
     storageDeposit(C, { items }) {
       const st = storageOf(C), moved = [];
-      payFee(C, st);
+      payFee(C);
       for (const { uid, qty } of items ?? []) {
         rule(!isEquipped(C, uid), '裝備中無法存放');
         const x = takeItem(C, uid, qty);
@@ -408,7 +409,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     },
     storageWithdraw(C, { items }) {
       const st = storageOf(C), moved = [];
-      payFee(C, st);
+      payFee(C);
       for (const { sid, qty } of items ?? []) {
         const y = st.items.find((z) => z.sid === sid);
         rule(y && qty > 0 && y.qty >= qty, '倉庫物品不足');
@@ -429,7 +430,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
       emit(C, [{ body: { type: 'storage', action, items: [], fee: 0, zeny: amount } }]);
     },
   };
-  const payFee = (C, st) => {
+  const payFee = (C) => {
     rule(C.snapshot.character.zeny >= STORAGE_FEE, `Zeny 不足（倉庫費 ${STORAGE_FEE} Zeny）`);
     C.snapshot.character.zeny -= STORAGE_FEE;
   };
@@ -449,9 +450,9 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     if (!Object.hasOwn(commands, command?.type)) {
       res = { status: 422, body: { error: { code: 'GAME_RULE', message: `不支援的指令 ${command?.type}` }, view: g.view(C) } };
     } else {
+      advance(C); // settle due fight events first so a rule rollback cannot undo granted rewards
       const backup = structuredClone({ snapshot: C.snapshot, storage: g.storage.get(C.account) ?? null });
       try {
-        advance(C);
         commands[command.type](C, command);
         C.commandRevision++;
         touch(C);
@@ -477,7 +478,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     const { events, gap } = g.events(C, after, Infinity);
     const sm = { events: events.length, fromSeq: events[0]?.seq ?? after + 1, toSeq: events.at(-1)?.seq ?? after,
       fromWallMs: events[0]?.wallMs ?? now(), toWallMs: events.at(-1)?.wallMs ?? now(), gap, truncated: false,
-      estimatedMs: 0, estimatedZeny: 0, kills: 0, killsByMonster: {}, baseExp: 0, jobExp: 0, baseLevelUps: 0, jobLevelUps: 0,
+      estimatedMs: 0, estimatedZeny: 0, kills: 0, killsByMonster: {}, baseExp: 0, jobExp: 0, baseLevelUps: 0, jobLevelUps: 0, // ponytail: offline rate checkout is #18
       deaths: 0, deathLog: [], stopped: null, looted: {}, autoSold: {}, autoSellZeny: 0, used: {}, autoBuyZeny: 0, unpicked: 0,
       noPotion: 0, rareDrops: [], noIncome: [], noIncomeKills: 0 };
     const inc = (o, k, n = 1) => { o[k] = (o[k] ?? 0) + n; };
@@ -534,7 +535,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
   // ---------- persistence ----------
   g.dump = () => ({
     accounts: [...g.accounts.values()], parties: [...g.parties.values()], storage: [...g.storage], killEvent: g.killEvent, nextUid: g.nextUid,
-    chars: [...g.chars.values()].map(({ fight, commands: _, ...C }) => ({ ...C, snapshot: g.snapshot({ ...C, fight: null, snapshot: C.snapshot }) })),
+    chars: [...g.chars.values()].map(({ fight, commands: _, ...C }) => ({ ...C, snapshot: { ...C.snapshot, time: now() - C.simEpoch } })),
   });
   g.restore = (d) => {
     for (const a of d.accounts ?? []) g.accounts.set(a.name, a);
