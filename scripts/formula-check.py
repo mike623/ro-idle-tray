@@ -366,6 +366,17 @@ def checks(directory, bundle):
             angel_lo = max(1, mon['atk'][0]*(100-d['hardDef'])//100-soft_hi*(100+b['vitDefRate'])//100)
             angel_hi = max(1, mon['atk'][1]*(100-d['hardDef'])//100-soft_lo*(100+b['vitDefRate'])//100)
             envelope('monster_angelus_alternative', angel_lo, angel_hi, body['damage'])
+            # iRO Wiki Classic DEF page: deterministic max(), Angelus multiplies the whole soft DEF.
+            wiki = vit//2 + max(vit*3//10, vit*vit//150 - 1)
+            raw_lo, raw_hi = (a * (100-d['hardDef']) // 100 for a in mon['atk'])
+            envelope('monster_wiki_softdef', max(1, raw_lo-wiki), max(1, raw_hi-wiki), body['damage'])
+            wa = wiki * (100+b['vitDefRate']) // 100
+            envelope('monster_wiki_softdef_angelus', max(1, raw_lo-wa), max(1, raw_hi-wa), body['damage'])
+            # rAthena pre-renewal structure: def2 = VIT (Angelus scales def2), soft = def2/2 + rnd(0..def2*(def2-15)/150-1).
+            for name, def2 in (('monster_def2_softdef', vit), ('monster_def2_softdef_angelus', vit*(100+b['vitDefRate'])//100)):
+                s_lo = def2//2
+                s_hi = s_lo + max(0, def2*(def2-15)//150 - 1)
+                envelope(name, max(1, raw_lo-s_hi), max(1, raw_hi-s_lo), body['damage'])
         if typ == 'skillHit' and body.get('skill') in ('MG_LIGHTNINGBOLT', 'MG_FIREBOLT', 'MG_COLDBOLT') and body['result'] == 'hit':
             if body.get('uid') in changed_targets:
                 result['magic_bolt_damage']['SKIP'] += 1
