@@ -11,8 +11,9 @@ test('battle view only loads art through hosts the roasset:// proxy allows', () 
   for (const host of used) assert.ok(hosts.has(host), `${host} is not an allowed mirror`);
 });
 
-test('battle view is opened from the character detail and bundles no Gravity art', () => {
-  assert.match(read('src/index.html'), /class="map-link battle-link"/);
+test('battle view opens from the ⚔ row button and bundles no Gravity art', () => {
+  assert.match(read('src/index.html'), /class="live"/);
+  assert.doesNotMatch(read('src/index.html'), /battle-link/);
   assert.match(read('src/main.js'), /invoke\("open_battle", \{ name: info\.name \}\)/);
   assert.doesNotMatch(read('src/battle.html') + read('src/battle.js'), /src="ui\/|url\(ui\//);
 });

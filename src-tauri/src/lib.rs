@@ -1822,13 +1822,15 @@ fn auto_offline_tick(app: &AppHandle) {
     // which needs every page) holds it at a full minute.
     let visible = |label: &str| app.get_webview_window(label).is_some_and(|w| w.is_visible().unwrap_or(false));
     let hold_all = visible("items");
+    // The battle view holds the party it is watching online (bypasses auto offline).
+    let watched = battle::held_profiles(app);
     let offline = profiles.offline.lock().unwrap().clone();
     let now = std::time::Instant::now();
     let going: Vec<u8> = {
         let mut at = profiles.active_at.lock().unwrap();
         profiles.ids.lock().unwrap().iter().copied().filter(|n| !offline.contains(n)).filter(|&n| {
             let t = at.entry(n).or_insert(now);
-            if hold_all || visible(&format!("game-profile-{n}")) {
+            if hold_all || watched.contains(&n) || visible(&format!("game-profile-{n}")) {
                 *t = now;
             }
             t.elapsed() >= AUTO_OFFLINE_AFTER
