@@ -125,11 +125,15 @@ pub fn open_battle(app: AppHandle, name: Option<String>) {
 /// same map as `name` (the game has no party list in its snapshot; same map is the party).
 #[tauri::command]
 pub fn battle_party(app: AppHandle, name: String) -> Vec<Value> {
-    let all = crate::battle_roster(&app);
-    let map = all.iter().find(|c| c["name"] == name.as_str()).and_then(|c| c["mapId"].as_str().map(str::to_string));
-    all.into_iter()
-        .filter(|c| c["name"] == name.as_str() || (map.is_some() && c["mapId"].as_str() == map.as_deref()))
-        .collect()
+    same_map(crate::battle_roster(&app), &name)
+}
+
+/// `name` plus everyone on its map: by map id, or by the displayed map name for
+/// snapshots from before the hook sent ids. Characters in town or offline drop out.
+pub(crate) fn same_map(all: Vec<Value>, name: &str) -> Vec<Value> {
+    let key = |c: &Value| c["mapId"].as_str().or(c["map"].as_str()).map(str::to_string);
+    let map = all.iter().find(|c| c["name"] == name).and_then(key);
+    all.into_iter().filter(|c| c["name"] == name || (map.is_some() && key(c) == map)).collect()
 }
 
 /// Bytes read from the end of a log file for the backfill. A minute of a busy party
@@ -183,6 +187,21 @@ mod tests {
         assert!(remote_url("/ro-idle.app/api/characters", None).is_none());
         assert!(remote_url("/evil.com/assets/x", None).is_none());
         assert!(remote_url("/ro-survivors.com/assets/../secret", None).is_none());
+    }
+
+    #[test]
+    fn party_is_everyone_on_the_same_map() {
+        let all = vec![
+            serde_json::json!({"name": "A", "mapId": "mjolnir_09"}),
+            serde_json::json!({"name": "B", "mapId": "mjolnir_09"}),
+            serde_json::json!({"name": "C", "mapId": "prt_fild08"}),
+            serde_json::json!({"name": "D", "map": "普隆德拉原野 08"}),
+            serde_json::json!({"name": "E", "map": "普隆德拉原野 08"}),
+        ];
+        let names = |v: Vec<Value>| v.iter().map(|c| c["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
+        assert_eq!(names(same_map(all.clone(), "A")), ["A", "B"]);
+        assert_eq!(names(same_map(all.clone(), "D")), ["D", "E"]);
+        assert_eq!(names(same_map(all, "Z")), Vec::<String>::new());
     }
 
     #[test]

@@ -1,17 +1,17 @@
 # Graph Report - UI-simulation  (2026-11-04)
 
 ## Corpus Check
-- 66 files · ~105,450 words
+- 66 files · ~105,647 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 7 file(s) not represented in the graph (top: (none) 3, .icns 1, .ico 1)
 
 ## Summary
-- 924 nodes · 1789 edges · 61 communities (38 shown, 23 thin omitted)
+- 927 nodes · 1794 edges · 61 communities (38 shown, 23 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 8 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `df6265a3`
+- Built from commit: `1cdf18c7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -57,7 +57,7 @@
 - capture.test.mjs
 - render
 - run
-- knowledge.rs
+- tutorial.rs
 - Capture gap report (#12)
 - refreshParty
 - battle.js
@@ -156,7 +156,7 @@ Cohesion: 0.09
 Nodes (14): ALLOWED, CALL_TIMEOUT, CONNECT_TIMEOUT, ENDPOINT, failure(), MAX_RESULT_BYTES, raw_text(), reaches_the_hosted_server() (+6 more)
 
 ### Community 19 - "guide.rs"
-Cohesion: 0.13
+Cohesion: 0.12
 Nodes (16): article_text(), BASE, BUDGET, cached(), decode(), excerpt(), fetch(), live_guide_fetches_index_and_a_page() (+8 more)
 
 ### Community 20 - "atlas.rs"
@@ -177,15 +177,15 @@ Nodes (4): environment(), window, source, tick()
 
 ### Community 25 - "secret.rs"
 Cohesion: 0.06
-Nodes (28): asset(), battle_backfill(), battle_party(), cache_file(), MIRRORS, open_battle(), protocol(), remote_url() (+20 more)
+Nodes (29): asset(), battle_backfill(), battle_party(), cache_file(), MIRRORS, open_battle(), protocol(), remote_url() (+21 more)
 
 ### Community 26 - "formula-check.py"
 Cohesion: 0.11
 Nodes (12): atk(), bonuses(), captures(), checks(), equipped(), formula_inventory(), Literal, main() (+4 more)
 
 ### Community 27 - "alerts.rs"
-Cohesion: 0.09
-Nodes (32): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+24 more)
+Cohesion: 0.15
+Nodes (24): acknowledge(), Alert, Alerts, badge(), death_stop_and_supply_halt_are_unique_with_log_causes(), event_text(), ingest(), load() (+16 more)
 
 ### Community 33 - "items.js"
 Cohesion: 0.26
@@ -215,9 +215,9 @@ Nodes (18): auto_offline_tick(), caffeinated(), confirm_remove(), dialog(), expo
 Cohesion: 0.21
 Nodes (11): goals_path(), items_characters(), load_map(), load_nicknames(), nicknames_path(), PanelLayout, PanelWidth, PendingUpdate (+3 more)
 
-### Community 47 - "knowledge.rs"
-Cohesion: 0.38
-Nodes (8): DATA, live_game_lookup_contains_spore_sleep_water_and_attack(), lookup(), lookup_in(), map_monsters(), rank(), rank_in(), ranking_flags_aggressive_damage_and_respects_level_limit_and_bonus()
+### Community 47 - "tutorial.rs"
+Cohesion: 0.16
+Nodes (16): DATA, live_game_lookup_contains_spore_sleep_water_and_attack(), lookup(), lookup_in(), map_monsters(), rank(), rank_in(), ranking_flags_aggressive_damage_and_respects_level_limit_and_bonus() (+8 more)
 
 ### Community 48 - "Capture gap report (#12)"
 Cohesion: 0.40
@@ -229,7 +229,7 @@ Nodes (7): character_report(), job_name(), load_profile_ids(), parse_ids(), set_
 
 ### Community 51 - "battle.js"
 Cohesion: 0.06
-Nodes (30): atl, ATLASES, encounters, fx, ground, ITEMS, JOB_ID, last (+22 more)
+Nodes (31): atl, ATLASES, encounters, fx, ground, ITEMS, JOB_ID, last (+23 more)
 
 ### Community 52 - "render"
 Cohesion: 0.18
@@ -253,7 +253,7 @@ Nodes (4): json(), load(), loadAtlas(), loadStr()
 
 ## Knowledge Gaps
 - **4 isolated node(s):** `@tauri-apps/cli`, `ro-idle-tray`, `Text`, `Tool`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 346 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 348 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **23 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions

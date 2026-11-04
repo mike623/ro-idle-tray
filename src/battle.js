@@ -24,7 +24,7 @@ const JOB_ID = { novice: 0, swordman: 1, mage: 2, archer: 3, acolyte: 4, merchan
 const RANK = { 1: 0, 7: 0, 14: 0, 4008: 0, 4015: 0, 6: 1, 12: 1, 17: 1, 15: 1, 4013: 1, 4018: 1, 4016: 1, 5: 2, 10: 2, 18: 2,
   4011: 2, 4019: 2, 0: 2, 23: 2, 3: 3, 11: 3, 19: 3, 20: 3, 4012: 3, 2: 4, 9: 4, 16: 4, 4010: 4, 4017: 4, 4: 5, 8: 5, 4009: 5 };
 const NPC_SKILLS = { NPC_PIERCINGATT: '穿刺攻擊', NPC_GROUNDATTACK: '地面攻擊', NPC_WINDATTACK: '風屬性攻擊', NPC_FIREATTACK: '火屬性攻擊',
-  NPC_WATERATTACK: '水屬性攻擊', NPC_POISON: '毒攻擊', NPC_STUNATTACK: '暈眩攻擊', NPC_COMBOATTACK: '連續攻擊' };
+  NPC_WATERATTACK: '水屬性攻擊', NPC_POISON: '毒攻擊', NPC_POISONATTACK: '毒屬性攻擊', NPC_STUNATTACK: '暈眩攻擊', NPC_COMBOATTACK: '連續攻擊' };
 
 // ---------- RO window chrome from the client's basic_interface textures
 document.head.append(Object.assign(document.createElement('style'), { textContent: `
@@ -50,7 +50,10 @@ const skillName = (s) => SKILLS[s] || NPC_SKILLS[s] || String(s ?? '').replace(/
 let focus = window.BATTLE_FOCUS || '', pcs = [], PEV = [], seen = new Set(), mapId = null;
 let head = 0, headAt = 0, dirty = true;
 let mobs = {}, uids = [], encounters = [], lures = [], T0 = 0, marchPrefix = [];
-const MOB_SLOTS = [[580, BASE + 22], [660, BASE + 22], [620, BASE - 50], [700, BASE - 50]];
+// 3 front + 3 back; several monsters at once (pulls, or members on different targets) fill front first.
+const MOB_SLOTS = [[580, BASE + 22], [660, BASE + 22], [740, BASE + 22], [620, BASE - 50], [700, BASE - 50], [780, BASE - 50]];
+// Archers and casters attack from their rank; everyone else steps up to their own target.
+const RANGED = new Set([2, 3, 9, 11, 16, 19, 20, 4003, 4004, 4010, 4012, 4017, 4020, 4021]);
 
 function addEvents(name, events) {
   const a = pcs.findIndex(p => p.name === name); if (a < 0 || !Array.isArray(events)) return;
@@ -256,12 +259,17 @@ function render(t) {
   // party
   pcs.forEach(p => {
     if (p.hidden) { p.screen = [p.x, p.y]; p.now = { hpNow: p.hpNow0, spNow: p.spNow0 }; return; }
-    let x = p.x; const y = p.y;
+    let x = p.x, y = p.y;
     const cast = lastBefore(t, e => e.a === p.i && e.b.type === 'skillCast' && e.b.castMs > 0);
     const casting = cast && t < cast.t + cast.b.castMs && !ev(t, cast.b.castMs + 1, e => e.a === p.i && e.b.type === 'skillInterrupt' && e.t > cast.t).length;
     const swing = ev(t, 420, e => e.a === p.i && (e.b.type === 'playerAttack' || (e.b.type === 'skillCast' && !e.b.castMs)));
     const hurt = ev(t, 300, e => e.a === p.i && (e.b.type === 'monsterAttack' || e.b.type === 'mobSkill') && e.b.result === 'hit').length;
-    if (swing.length && swing.at(-1).b.type === 'playerAttack') x += 42 * Math.sin(Math.PI * Math.min(1, (t - swing.at(-1).t) / 320));   // step in and back
+    const hit = swing.at(-1);
+    if (hit?.b.type === 'playerAttack') {   // step in to this member's own target and back
+      const mp = mobPos[hit.b.uid], k = Math.sin(Math.PI * Math.min(1, (t - hit.t) / 380));
+      if (mp && !RANGED.has(p.job)) { x += Math.max(0, mp[0] - 46 - p.x) * k; y += (mp[1] - p.y) * k; }
+      else if (!RANGED.has(p.job)) x += 42 * k;
+    }
     if (hurt) x -= 5;
     const dead = (lastBefore(t, e => e.a === p.i && e.b.me)?.b.me[0] ?? 1) <= 0;
     let act = dead ? 64 : marching ? 8 : casting ? 96 : swing.length ? 40 : hurt ? 48 : 32, face = FACE_R;   // battle idle = standby (stand act 0 cycles head turns)
