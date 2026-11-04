@@ -47,8 +47,16 @@ UI reads triggered by the session: `GET /api/storage`, `/api/maps/population`, `
 
 ## Missing
 
-**Commands:** `storageWithdraw` not captured (withdraw step did not send it), and **no error reply** yet
-(bonus step 11). The other 50 kinds are outside phase 1.
+**Commands:** `storageWithdraw` not captured (withdraw step did not send it). The other 50 kinds are outside phase 1.
+
+**Error reply** — not capturable (the client disables buttons first), taken from the bundle's request helper instead:
+POSTs carry `content-type: application/json` and `x-ro-client: 1`; GET times out at 15 s, POST at 30 s. A non-2xx
+reply is `{error:{code, message}, view?, storage?}` (client applies `view`/`storage` even on error); the server
+also sends `x-request-id`. Codes seen in the bundle: `INVALID_REQUEST`, `CONFIG_INVALID`, `NOT_FOUND`,
+`UNAUTHENTICATED`, `ACCOUNT_NOT_FOUND`, `SERVER_BUSY`, `INVARIANT`, `NO_SUBSCRIPTION`, `SLOT_RENT`,
+`GOOGLE_LINK_REQUIRED`; stop reasons (`DEATH`, `DEATH_LIMIT`, `OVERWEIGHT`, `NO_AMMO`, `CRITICAL_SUPPLY`,
+`LEVEL_REACHED`, `RUN_LIMIT`, `RETURNED_TOWN`, `SWITCH_CHARACTER`, `MANUAL`, `ADMIN`) share the same table.
+GET retries once on network error or 502/503/504; commands retry up to 3× on network error with the same `commandId`.
 
 **Stream events never seen:** `gap`, `idle`, `superseded`, `watchLimit` (edge cases: reconnect, idle viewer,
 too many viewers) and `arena`, `arenaNotice`, `lounge`, `trade` (social features, out of phase 1).
