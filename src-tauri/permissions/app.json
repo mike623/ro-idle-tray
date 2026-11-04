@@ -17,9 +17,9 @@
     },
     {
       "identifier": "game-commands",
-      "description": "Character reports and chat; handlers validate the calling game profile.",
+      "description": "Character reports and the assistant launcher; handlers validate the calling game profile.",
       "commands": {
-        "allow": ["character_report", "chat_character", "chat_history", "chat_memory", "chat_new", "chat_send", "chat_alerts", "chat_alert_open", "chat_alert_ack", "chat_tutorial", "chat_plan", "chat_plan_set"]
+        "allow": ["character_report", "chat_alerts", "chat_tutorial", "chat_open_panel"]
       }
     },
     {

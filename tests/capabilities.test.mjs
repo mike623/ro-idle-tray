@@ -3,11 +3,11 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 
 const read = path => readFileSync(new URL(`../src-tauri/${path}`, import.meta.url), 'utf8');
-test('game origin can report characters and use scoped chat, without tray administration', () => {
+test('game origin can report characters and launch the panel assistant, without chat or tray administration', () => {
   const manifest = JSON.parse(read('permissions/app.json'));
   const remote = JSON.parse(read('capabilities/remote.json'));
   const allowed = remote.permissions.flatMap(id => manifest.permission.find(p => p.identifier === id)?.commands.allow ?? []);
-  assert.deepEqual(allowed.sort(), ['character_report', 'chat_alert_ack', 'chat_alert_open', 'chat_alerts', 'chat_character', 'chat_history', 'chat_memory', 'chat_new', 'chat_plan', 'chat_plan_set', 'chat_send', 'chat_tutorial']);
+  assert.deepEqual(allowed.sort(), ['character_report', 'chat_alerts', 'chat_open_panel', 'chat_tutorial']);
   assert.deepEqual(remote.windows, ['game-*']);
   assert.deepEqual(remote.remote.urls, ['https://ro-idle.app', 'https://ro-idle.app/*']);
 });

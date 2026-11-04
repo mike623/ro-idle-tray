@@ -89,23 +89,8 @@
       </section>
       <div class="stage">
       <div class="list" id="list"></div>
-      <section id="assistant" class="assistant" hidden aria-label="助理">
-        <div id="global-chat" class="global-chat">
-        <div class="chat-head"><span>✦ 助理</span><span class="row"><button type="button" class="btn" id="chat-new">新對話</button><button type="button" class="btn" id="chat-close" title="收起" aria-label="收起助理">—</button></span></div>
-        <details id="chat-roster" class="chat-roster"><summary id="chat-roster-sum" class="dim tiny"></summary><div id="chat-status" class="chat-status" aria-label="角色狀態"></div></details>
-        <div id="chat-messages" class="chat-messages" role="log" aria-label="對話"></div>
-        <div id="chat-suggestions" class="row"></div>
-        <form id="chat-form">
-          <label for="chat-input" class="dim">詢問角色近況 · @ 選擇角色</label>
-          <input id="chat-input" placeholder="今晚怎麼排？" maxlength="2000" autocomplete="off" required />
-            <button type="submit" class="btn" id="chat-send">送出</button>
-        </form>
-        <div id="chat-memory" class="dim tiny" aria-live="polite"></div>
-        <p id="chat-error" role="alert" hidden></p>
-        </div>
-        <!-- One character's chat: the same component as the game window's bubble. -->
-        <div id="char-chat" class="char-chat" hidden></div>
-      </section>
+      <!-- The one assistant (bubble.js); "@角色" scopes a question to that character. -->
+      <section id="assistant" class="assistant" hidden aria-label="助理"></section>
       </div>
       <footer class="foot">
         <button type="button" class="btn" id="recall" title="Send every character back to its save point (回儲存點). Stops idling.">Recall</button>
