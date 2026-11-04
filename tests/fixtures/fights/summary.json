@@ -19,125 +19,145 @@
   "kept": 400
  },
  "strata": {
-  "acolyte|mjolnir_09|1031|kill": {
-   "extracted": 1,
-   "kept": 1
-  },
-  "acolyte|mjolnir_09|1128|kill": {
-   "extracted": 1,
-   "kept": 1
-  },
-  "acolyte|mjolnir_09|1174|kill": {
-   "extracted": 1,
-   "kept": 1
-  },
-  "archer|mjolnir_09|1013|kill": {
-   "extracted": 50,
-   "kept": 17
-  },
-  "archer|mjolnir_09|1031|kill": {
-   "extracted": 50,
-   "kept": 17
-  },
-  "archer|mjolnir_09|1104|kill": {
-   "extracted": 18,
-   "kept": 17
-  },
-  "archer|mjolnir_09|1128|kill": {
-   "extracted": 100,
-   "kept": 17
-  },
-  "archer|mjolnir_09|1174|kill": {
-   "extracted": 62,
-   "kept": 17
-  },
-  "mage|mjolnir_09|1013|kill": {
-   "extracted": 80,
-   "kept": 17
-  },
-  "mage|mjolnir_09|1031|kill": {
-   "extracted": 24,
-   "kept": 17
-  },
-  "mage|mjolnir_09|1104|kill": {
-   "extracted": 35,
-   "kept": 17
-  },
-  "mage|mjolnir_09|1128|kill": {
-   "extracted": 362,
-   "kept": 17
-  },
-  "mage|mjolnir_09|1174|kill": {
-   "extracted": 35,
-   "kept": 17
-  },
-  "merchant|mjolnir_09|1013|kill": {
-   "extracted": 39,
-   "kept": 16
-  },
-  "merchant|mjolnir_09|1031|kill": {
-   "extracted": 56,
-   "kept": 16
-  },
-  "merchant|mjolnir_09|1104|kill": {
-   "extracted": 10,
-   "kept": 10
-  },
-  "merchant|mjolnir_09|1128|kill": {
-   "extracted": 42,
-   "kept": 16
-  },
-  "merchant|mjolnir_09|1174|kill": {
-   "extracted": 43,
-   "kept": 16
-  },
-  "swordman|mjolnir_09|1013|kill": {
-   "extracted": 16,
-   "kept": 16
-  },
-  "swordman|mjolnir_09|1085|kill": {
-   "extracted": 122,
-   "kept": 16
-  },
-  "swordman|mjolnir_09|1104|kill": {
-   "extracted": 3,
-   "kept": 3
-  },
-  "swordman|mjolnir_09|1128|kill": {
-   "extracted": 35,
-   "kept": 16
-  },
-  "swordman|mjolnir_09|1174|kill": {
-   "extracted": 11,
-   "kept": 11
-  },
-  "thief|mjolnir_09|1013|kill": {
+  "72397/thief|mjolnir_09|1013|kill": {
    "extracted": 46,
-   "kept": 16
+   "kept": 14
   },
-  "thief|mjolnir_09|1031|kill": {
+  "72397/thief|mjolnir_09|1031|kill": {
    "extracted": 71,
-   "kept": 16
+   "kept": 14
   },
-  "thief|mjolnir_09|1085|kill": {
+  "72397/thief|mjolnir_09|1085|kill": {
    "extracted": 8,
    "kept": 8
   },
-  "thief|mjolnir_09|1104|kill": {
+  "72397/thief|mjolnir_09|1104|kill": {
    "extracted": 18,
-   "kept": 16
+   "kept": 14
   },
-  "thief|mjolnir_09|1128|kill": {
+  "72397/thief|mjolnir_09|1128|kill": {
    "extracted": 80,
-   "kept": 16
+   "kept": 14
   },
-  "thief|mjolnir_09|1174|kill": {
+  "72397/thief|mjolnir_09|1174|kill": {
    "extracted": 68,
-   "kept": 16
+   "kept": 14
   },
-  "thief|pay_fild01|1014|kill": {
+  "72397/thief|pay_fild01|1014|kill": {
    "extracted": 3,
    "kept": 3
+  },
+  "72468/mage|mjolnir_09|1013|kill": {
+   "extracted": 80,
+   "kept": 14
+  },
+  "72468/mage|mjolnir_09|1031|kill": {
+   "extracted": 24,
+   "kept": 14
+  },
+  "72468/mage|mjolnir_09|1104|kill": {
+   "extracted": 35,
+   "kept": 14
+  },
+  "72468/mage|mjolnir_09|1128|kill": {
+   "extracted": 362,
+   "kept": 14
+  },
+  "72468/mage|mjolnir_09|1174|kill": {
+   "extracted": 35,
+   "kept": 14
+  },
+  "72472/merchant|mjolnir_09|1013|kill": {
+   "extracted": 20,
+   "kept": 14
+  },
+  "72472/merchant|mjolnir_09|1031|kill": {
+   "extracted": 26,
+   "kept": 14
+  },
+  "72472/merchant|mjolnir_09|1104|kill": {
+   "extracted": 5,
+   "kept": 5
+  },
+  "72472/merchant|mjolnir_09|1128|kill": {
+   "extracted": 21,
+   "kept": 14
+  },
+  "72472/merchant|mjolnir_09|1174|kill": {
+   "extracted": 18,
+   "kept": 14
+  },
+  "72688/swordman|mjolnir_09|1013|kill": {
+   "extracted": 16,
+   "kept": 14
+  },
+  "72688/swordman|mjolnir_09|1085|kill": {
+   "extracted": 122,
+   "kept": 14
+  },
+  "72688/swordman|mjolnir_09|1104|kill": {
+   "extracted": 3,
+   "kept": 3
+  },
+  "72688/swordman|mjolnir_09|1128|kill": {
+   "extracted": 35,
+   "kept": 14
+  },
+  "72688/swordman|mjolnir_09|1174|kill": {
+   "extracted": 11,
+   "kept": 11
+  },
+  "74435/merchant|mjolnir_09|1013|kill": {
+   "extracted": 19,
+   "kept": 14
+  },
+  "74435/merchant|mjolnir_09|1031|kill": {
+   "extracted": 30,
+   "kept": 14
+  },
+  "74435/merchant|mjolnir_09|1104|kill": {
+   "extracted": 5,
+   "kept": 5
+  },
+  "74435/merchant|mjolnir_09|1128|kill": {
+   "extracted": 21,
+   "kept": 14
+  },
+  "74435/merchant|mjolnir_09|1174|kill": {
+   "extracted": 25,
+   "kept": 14
+  },
+  "74496/archer|mjolnir_09|1013|kill": {
+   "extracted": 50,
+   "kept": 14
+  },
+  "74496/archer|mjolnir_09|1031|kill": {
+   "extracted": 50,
+   "kept": 14
+  },
+  "74496/archer|mjolnir_09|1104|kill": {
+   "extracted": 18,
+   "kept": 14
+  },
+  "74496/archer|mjolnir_09|1128|kill": {
+   "extracted": 100,
+   "kept": 13
+  },
+  "74496/archer|mjolnir_09|1174|kill": {
+   "extracted": 62,
+   "kept": 13
+  },
+  "74917/acolyte|mjolnir_09|1031|kill": {
+   "extracted": 1,
+   "kept": 1
+  },
+  "74917/acolyte|mjolnir_09|1128|kill": {
+   "extracted": 1,
+   "kept": 1
+  },
+  "74917/acolyte|mjolnir_09|1174|kill": {
+   "extracted": 1,
+   "kept": 1
   }
  },
  "fights": [
@@ -154,7 +174,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 135,
+   "mobHpStart": 145
   },
   {
    "id": "72397:51779",
@@ -169,7 +191,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 180,
+   "mobHpStart": 663
   },
   {
    "id": "72397:51802",
@@ -184,7 +208,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 156,
+   "mobHpStart": 475
   },
   {
    "id": "72397:51803",
@@ -199,7 +225,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 150,
+   "mobHpStart": 613
   },
   {
    "id": "72397:51872",
@@ -214,7 +242,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 156,
+   "mobHpStart": 481
   },
   {
    "id": "72397:51943",
@@ -229,7 +259,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 170,
+   "mobHpStart": 584
   },
   {
    "id": "72397:51981",
@@ -244,7 +276,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 248,
+   "mobHpStart": 705
   },
   {
    "id": "72397:51995",
@@ -259,7 +293,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 156,
+   "mobHpStart": 447
   },
   {
    "id": "72397:52064",
@@ -274,7 +310,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 182,
+   "mobHpStart": 633
   },
   {
    "id": "72397:52070",
@@ -289,7 +327,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 217,
+   "mobHpStart": 868
   },
   {
    "id": "72397:52074",
@@ -304,7 +344,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 258,
+   "mobHpStart": 492
   },
   {
    "id": "72397:52083",
@@ -319,7 +361,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 90,
+   "mobHpStart": 175
   },
   {
    "id": "72397:52095",
@@ -334,7 +378,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 145,
+   "mobHpStart": 375
   },
   {
    "id": "72397:52124",
@@ -349,7 +395,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 180,
+   "mobHpStart": 743
   },
   {
    "id": "72397:52135",
@@ -364,7 +412,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 155,
+   "mobHpStart": 709
   },
   {
    "id": "72397:52149",
@@ -379,7 +429,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 87,
+   "mobHpStart": 203
   },
   {
    "id": "72397:52159",
@@ -394,7 +446,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 150,
+   "mobHpStart": 594
   },
   {
    "id": "72397:52223",
@@ -409,7 +463,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 172,
+   "mobHpStart": 492
   },
   {
    "id": "72397:52235",
@@ -424,7 +480,9 @@
    "hitsLanded": 4,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 155,
+   "mobHpStart": 661
   },
   {
    "id": "72397:52239",
@@ -439,7 +497,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 202,
+   "mobHpStart": 441
   },
   {
    "id": "72397:52268",
@@ -454,7 +514,9 @@
    "hitsLanded": 3,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 172,
+   "mobHpStart": 401
   },
   {
    "id": "72397:52275",
@@ -469,7 +531,9 @@
    "hitsLanded": 4,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 182,
+   "mobHpStart": 510
   },
   {
    "id": "72397:52301",
@@ -484,7 +548,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 68,
+   "mobHpStart": 658
   },
   {
    "id": "72397:52340",
@@ -499,22 +565,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72397:52412",
-   "charId": 72397,
-   "job": "thief",
-   "mapId": "mjolnir_09",
-   "mobId": 1104,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 0,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 180,
+   "mobHpStart": 782
   },
   {
    "id": "72397:52428",
@@ -529,7 +582,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 86,
+   "mobHpStart": 273
   },
   {
    "id": "72397:52435",
@@ -544,7 +599,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 186,
+   "mobHpStart": 828
   },
   {
    "id": "72397:52441",
@@ -559,7 +616,9 @@
    "hitsLanded": 6,
    "attacksMade": 6,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 300,
+   "mobHpStart": 782
   },
   {
    "id": "72397:52468",
@@ -574,7 +633,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 90,
+   "mobHpStart": 90
   },
   {
    "id": "72397:52477",
@@ -589,7 +650,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 248,
+   "mobHpStart": 869
   },
   {
    "id": "72397:52516",
@@ -604,22 +667,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72397:52534",
-   "charId": 72397,
-   "job": "thief",
-   "mapId": "mjolnir_09",
-   "mobId": 1174,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 652,
-   "damageTaken": 0,
-   "hitsLanded": 2,
-   "attacksMade": 2,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 90,
+   "mobHpStart": 90
   },
   {
    "id": "72397:52562",
@@ -634,7 +684,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 136,
+   "mobHpStart": 803
   },
   {
    "id": "72397:52573",
@@ -649,7 +701,9 @@
    "hitsLanded": 6,
    "attacksMade": 6,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 248,
+   "mobHpStart": 919
   },
   {
    "id": "72397:52589",
@@ -664,7 +718,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 156,
+   "mobHpStart": 551
   },
   {
    "id": "72397:52591",
@@ -679,7 +735,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 135,
+   "mobHpStart": 104
   },
   {
    "id": "72397:52605",
@@ -694,7 +752,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 52,
+   "mobHpStart": 52
   },
   {
    "id": "72397:52609",
@@ -709,22 +769,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72397:52637",
-   "charId": 72397,
-   "job": "thief",
-   "mapId": "mjolnir_09",
-   "mobId": 1013,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1956,
-   "damageTaken": 0,
-   "hitsLanded": 4,
-   "attacksMade": 4,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 240,
+   "mobHpStart": 598
   },
   {
    "id": "72397:52666",
@@ -739,7 +786,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 43,
+   "mobHpStart": 43
   },
   {
    "id": "72397:52736",
@@ -754,7 +803,9 @@
    "hitsLanded": 9,
    "attacksMade": 9,
    "hitsReceived": 0,
-   "attacksReceived": 3
+   "attacksReceived": 3,
+   "ownDamage": 512,
+   "mobHpStart": 510
   },
   {
    "id": "72397:52738",
@@ -769,7 +820,9 @@
    "hitsLanded": 10,
    "attacksMade": 10,
    "hitsReceived": 0,
-   "attacksReceived": 3
+   "attacksReceived": 3,
+   "ownDamage": 512,
+   "mobHpStart": 510
   },
   {
    "id": "72397:52741",
@@ -784,37 +837,9 @@
    "hitsLanded": 11,
    "attacksMade": 11,
    "hitsReceived": 0,
-   "attacksReceived": 3
-  },
-  {
-   "id": "72397:52868",
-   "charId": 72397,
-   "job": "thief",
-   "mapId": "mjolnir_09",
-   "mobId": 1031,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 652,
-   "damageTaken": 0,
-   "hitsLanded": 2,
-   "attacksMade": 2,
-   "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72397:52877",
-   "charId": 72397,
-   "job": "thief",
-   "mapId": "mjolnir_09",
-   "mobId": 1013,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 3260,
-   "damageTaken": 0,
-   "hitsLanded": 6,
-   "attacksMade": 6,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 3,
+   "ownDamage": 544,
+   "mobHpStart": 510
   },
   {
    "id": "72397:52885",
@@ -829,22 +854,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72397:52936",
-   "charId": 72397,
-   "job": "thief",
-   "mapId": "mjolnir_09",
-   "mobId": 1104,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1956,
-   "damageTaken": 0,
-   "hitsLanded": 4,
-   "attacksMade": 4,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 136,
+   "mobHpStart": 582
   },
   {
    "id": "72397:53000",
@@ -859,7 +871,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 217,
+   "mobHpStart": 869
   },
   {
    "id": "72397:53013",
@@ -874,7 +888,9 @@
    "hitsLanded": 1,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 68,
+   "mobHpStart": 268
   },
   {
    "id": "72397:53021",
@@ -889,22 +905,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72397:53033",
-   "charId": 72397,
-   "job": "thief",
-   "mapId": "mjolnir_09",
-   "mobId": 1174,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 652,
-   "damageTaken": 0,
-   "hitsLanded": 2,
-   "attacksMade": 2,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 86,
+   "mobHpStart": 86
   },
   {
    "id": "72397:53051",
@@ -919,7 +922,9 @@
    "hitsLanded": 6,
    "attacksMade": 6,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 182,
+   "mobHpStart": 617
   },
   {
    "id": "72397:53075",
@@ -934,7 +939,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 155,
+   "mobHpStart": 748
   },
   {
    "id": "72397:53102",
@@ -949,22 +956,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72397:53119",
-   "charId": 72397,
-   "job": "thief",
-   "mapId": "mjolnir_09",
-   "mobId": 1128,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 2624,
-   "damageTaken": 0,
-   "hitsLanded": 5,
-   "attacksMade": 5,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 301,
+   "mobHpStart": 492
   },
   {
    "id": "72397:53133",
@@ -979,7 +973,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 141,
+   "mobHpStart": 344
   },
   {
    "id": "72397:53138",
@@ -994,7 +990,9 @@
    "hitsLanded": 1,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 90,
+   "mobHpStart": 218
   },
   {
    "id": "72397:53142",
@@ -1009,7 +1007,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 156,
+   "mobHpStart": 486
   },
   {
    "id": "72397:53143",
@@ -1024,7 +1024,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 186,
+   "mobHpStart": 830
   },
   {
    "id": "72397:53161",
@@ -1039,7 +1041,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 180,
+   "mobHpStart": 227
   },
   {
    "id": "72397:53215",
@@ -1054,7 +1058,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 129,
+   "mobHpStart": 244
   },
   {
    "id": "72397:53226",
@@ -1069,7 +1075,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 300,
+   "mobHpStart": 752
   },
   {
    "id": "72397:53241",
@@ -1084,7 +1092,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 210,
+   "mobHpStart": 471
   },
   {
    "id": "72397:53258",
@@ -1099,7 +1109,9 @@
    "hitsLanded": 5,
    "attacksMade": 6,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 252,
+   "mobHpStart": 671
   },
   {
    "id": "72397:53265",
@@ -1114,7 +1126,9 @@
    "hitsLanded": 4,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 180,
+   "mobHpStart": 711
   },
   {
    "id": "72397:53283",
@@ -1129,22 +1143,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72397:53317",
-   "charId": 72397,
-   "job": "thief",
-   "mapId": "mjolnir_09",
-   "mobId": 1031,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 0,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 52,
+   "mobHpStart": 52
   },
   {
    "id": "72397:53398",
@@ -1159,7 +1160,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 90,
+   "mobHpStart": 109
   },
   {
    "id": "72397:53405",
@@ -1174,7 +1177,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 208,
+   "mobHpStart": 583
   },
   {
    "id": "72397:53472",
@@ -1189,7 +1194,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 155,
+   "mobHpStart": 607
   },
   {
    "id": "72397:53538",
@@ -1204,7 +1211,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 29,
+   "mobHpStart": 29
   },
   {
    "id": "72397:53611",
@@ -1219,7 +1228,9 @@
    "hitsLanded": 1,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 90,
+   "mobHpStart": 60
   },
   {
    "id": "72397:53627",
@@ -1234,7 +1245,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 360,
+   "mobHpStart": 344
   },
   {
    "id": "72397:53641",
@@ -1249,22 +1262,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 2
-  },
-  {
-   "id": "72397:53657",
-   "charId": 72397,
-   "job": "thief",
-   "mapId": "mjolnir_09",
-   "mobId": 1031,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 148,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 2,
+   "ownDamage": 344,
+   "mobHpStart": 538
   },
   {
    "id": "72397:53658",
@@ -1279,7 +1279,26 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 180,
+   "mobHpStart": 344
+  },
+  {
+   "id": "72397:53657",
+   "charId": 72397,
+   "job": "thief",
+   "mapId": "mjolnir_09",
+   "mobId": 1031,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 148,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 45,
+   "mobHpStart": 45
   },
   {
    "id": "72397:53668",
@@ -1294,22 +1313,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72397:53678",
-   "charId": 72397,
-   "job": "thief",
-   "mapId": "mjolnir_09",
-   "mobId": 1128,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1944,
-   "damageTaken": 0,
-   "hitsLanded": 4,
-   "attacksMade": 4,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 45,
+   "mobHpStart": 45
   },
   {
    "id": "72397:53693",
@@ -1324,7 +1330,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 28,
+   "mobHpStart": 15
   },
   {
    "id": "72397:53709",
@@ -1339,7 +1347,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 42,
+   "mobHpStart": 15
   },
   {
    "id": "72397:53714",
@@ -1354,7 +1364,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 240,
+   "mobHpStart": 629
   },
   {
    "id": "72397:53720",
@@ -1369,7 +1381,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 172,
+   "mobHpStart": 368
   },
   {
    "id": "72397:53766",
@@ -1384,7 +1398,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 78,
+   "mobHpStart": 15
   },
   {
    "id": "72397:53775",
@@ -1399,7 +1415,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 42,
+   "mobHpStart": 15
   },
   {
    "id": "72397:53777",
@@ -1414,7 +1432,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 135,
+   "mobHpStart": 344
   },
   {
    "id": "72397:53810",
@@ -1429,7 +1449,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 180,
+   "mobHpStart": 344
   },
   {
    "id": "72397:53825",
@@ -1444,7 +1466,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 42,
+   "mobHpStart": 15
   },
   {
    "id": "72397:53842",
@@ -1459,7 +1483,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 42,
+   "mobHpStart": 15
   },
   {
    "id": "72397:53861",
@@ -1474,7 +1500,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 234,
+   "mobHpStart": 659
   },
   {
    "id": "72397:53867",
@@ -1489,7 +1517,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 42,
+   "mobHpStart": 15
   },
   {
    "id": "72397:53869",
@@ -1504,7 +1534,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 28,
+   "mobHpStart": 28
   },
   {
    "id": "72468:51752",
@@ -1519,22 +1551,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:51773",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1013,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 264,
+   "mobHpStart": 264
   },
   {
    "id": "72468:51778",
@@ -1549,7 +1568,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 280,
+   "mobHpStart": 280
   },
   {
    "id": "72468:51791",
@@ -1564,7 +1585,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 196,
+   "mobHpStart": 196
   },
   {
    "id": "72468:51801",
@@ -1579,22 +1602,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:51820",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1174,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 296,
+   "mobHpStart": 296
   },
   {
    "id": "72468:51830",
@@ -1609,7 +1619,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 200,
+   "mobHpStart": 200
   },
   {
    "id": "72468:51842",
@@ -1624,7 +1636,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 660,
+   "mobHpStart": 660
   },
   {
    "id": "72468:51876",
@@ -1639,7 +1653,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 140,
+   "mobHpStart": 140
   },
   {
    "id": "72468:51880",
@@ -1654,7 +1670,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 616,
+   "mobHpStart": 616
   },
   {
    "id": "72468:51885",
@@ -1669,7 +1687,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 176,
+   "mobHpStart": 176
   },
   {
    "id": "72468:51897",
@@ -1684,7 +1704,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 360,
+   "mobHpStart": 360
   },
   {
    "id": "72468:51901",
@@ -1699,7 +1721,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 296,
+   "mobHpStart": 296
   },
   {
    "id": "72468:51936",
@@ -1714,7 +1738,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 520,
+   "mobHpStart": 520
   },
   {
    "id": "72468:51950",
@@ -1729,7 +1755,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 716,
+   "mobHpStart": 716
   },
   {
    "id": "72468:51994",
@@ -1744,7 +1772,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 368,
+   "mobHpStart": 368
   },
   {
    "id": "72468:51999",
@@ -1759,7 +1789,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 184,
+   "mobHpStart": 184
   },
   {
    "id": "72468:52006",
@@ -1774,7 +1806,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 204,
+   "mobHpStart": 204
   },
   {
    "id": "72468:52012",
@@ -1789,7 +1823,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 264,
+   "mobHpStart": 264
   },
   {
    "id": "72468:52024",
@@ -1804,7 +1840,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 364,
+   "mobHpStart": 364
   },
   {
    "id": "72468:52132",
@@ -1819,7 +1857,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 304,
+   "mobHpStart": 304
   },
   {
    "id": "72468:52143",
@@ -1834,7 +1874,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 668,
+   "mobHpStart": 668
   },
   {
    "id": "72468:52151",
@@ -1849,7 +1891,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 320,
+   "mobHpStart": 320
   },
   {
    "id": "72468:52163",
@@ -1864,7 +1908,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 372,
+   "mobHpStart": 372
   },
   {
    "id": "72468:52167",
@@ -1879,7 +1925,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 180,
+   "mobHpStart": 180
   },
   {
    "id": "72468:52168",
@@ -1894,7 +1942,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 744,
+   "mobHpStart": 744
   },
   {
    "id": "72468:52177",
@@ -1909,7 +1959,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 332,
+   "mobHpStart": 332
   },
   {
    "id": "72468:52179",
@@ -1924,7 +1976,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 284,
+   "mobHpStart": 284
   },
   {
    "id": "72468:52204",
@@ -1939,7 +1993,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 652,
+   "mobHpStart": 652
   },
   {
    "id": "72468:52213",
@@ -1954,7 +2010,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 184,
+   "mobHpStart": 184
   },
   {
    "id": "72468:52227",
@@ -1969,7 +2027,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 256,
+   "mobHpStart": 256
   },
   {
    "id": "72468:52238",
@@ -1984,7 +2044,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 300,
+   "mobHpStart": 300
   },
   {
    "id": "72468:52244",
@@ -1999,22 +2061,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:52262",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1031,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 308,
+   "mobHpStart": 308
   },
   {
    "id": "72468:52276",
@@ -2029,7 +2078,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 656,
+   "mobHpStart": 656
   },
   {
    "id": "72468:52279",
@@ -2044,7 +2095,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 216,
+   "mobHpStart": 216
   },
   {
    "id": "72468:52283",
@@ -2059,7 +2112,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 300,
+   "mobHpStart": 300
   },
   {
    "id": "72468:52326",
@@ -2074,22 +2129,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:52329",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1104,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 180,
+   "mobHpStart": 180
   },
   {
    "id": "72468:52351",
@@ -2104,22 +2146,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:52355",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1128,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 264,
+   "mobHpStart": 264
   },
   {
    "id": "72468:52358",
@@ -2134,7 +2163,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 208,
+   "mobHpStart": 208
   },
   {
    "id": "72468:52364",
@@ -2149,22 +2180,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:52383",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1174,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 324,
+   "mobHpStart": 324
   },
   {
    "id": "72468:52407",
@@ -2179,22 +2197,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:52427",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1104,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 360,
+   "mobHpStart": 360
   },
   {
    "id": "72468:52440",
@@ -2209,7 +2214,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 500,
+   "mobHpStart": 500
   },
   {
    "id": "72468:52442",
@@ -2224,7 +2231,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 260,
+   "mobHpStart": 260
   },
   {
    "id": "72468:52444",
@@ -2239,22 +2248,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:52463",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1013,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 252,
+   "mobHpStart": 252
   },
   {
    "id": "72468:52503",
@@ -2269,22 +2265,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:52539",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1104,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 260,
+   "mobHpStart": 260
   },
   {
    "id": "72468:52548",
@@ -2299,7 +2282,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 284,
+   "mobHpStart": 284
   },
   {
    "id": "72468:52566",
@@ -2314,7 +2299,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 380,
+   "mobHpStart": 380
   },
   {
    "id": "72468:52569",
@@ -2329,7 +2316,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 384,
+   "mobHpStart": 384
   },
   {
    "id": "72468:52611",
@@ -2344,7 +2333,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 540,
+   "mobHpStart": 540
   },
   {
    "id": "72468:52622",
@@ -2359,22 +2350,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:52700",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1031,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 248,
+   "mobHpStart": 248
   },
   {
    "id": "72468:52712",
@@ -2389,7 +2367,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 264,
+   "mobHpStart": 264
   },
   {
    "id": "72468:52731",
@@ -2404,7 +2384,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 368,
+   "mobHpStart": 368
   },
   {
    "id": "72468:52733",
@@ -2419,22 +2401,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:52762",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1128,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 760,
+   "mobHpStart": 760
   },
   {
    "id": "72468:52768",
@@ -2449,7 +2418,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 188,
+   "mobHpStart": 188
   },
   {
    "id": "72468:52789",
@@ -2464,7 +2435,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 208,
+   "mobHpStart": 208
   },
   {
    "id": "72468:52797",
@@ -2479,7 +2452,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 720,
+   "mobHpStart": 720
   },
   {
    "id": "72468:52840",
@@ -2494,7 +2469,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 300,
+   "mobHpStart": 300
   },
   {
    "id": "72468:52844",
@@ -2509,22 +2486,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:52882",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1174,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 392,
+   "mobHpStart": 392
   },
   {
    "id": "72468:52922",
@@ -2539,22 +2503,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:52923",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1128,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 136,
+   "mobHpStart": 136
   },
   {
    "id": "72468:52935",
@@ -2569,22 +2520,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72468:52938",
-   "charId": 72468,
-   "job": "mage",
-   "mapId": "mjolnir_09",
-   "mobId": 1031,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1978,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 272,
+   "mobHpStart": 272
   },
   {
    "id": "72468:52939",
@@ -2599,7 +2537,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 716,
+   "mobHpStart": 716
   },
   {
    "id": "72468:52945",
@@ -2614,7 +2554,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 384,
+   "mobHpStart": 384
   },
   {
    "id": "72468:52979",
@@ -2629,7 +2571,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 188,
+   "mobHpStart": 188
   },
   {
    "id": "72468:52985",
@@ -2644,7 +2588,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 320,
+   "mobHpStart": 320
   },
   {
    "id": "72468:52992",
@@ -2659,7 +2605,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 308,
+   "mobHpStart": 308
   },
   {
    "id": "72468:52997",
@@ -2674,7 +2622,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 340,
+   "mobHpStart": 340
   },
   {
    "id": "72468:53006",
@@ -2689,7 +2639,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 348,
+   "mobHpStart": 348
   },
   {
    "id": "72468:53023",
@@ -2704,7 +2656,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 332,
+   "mobHpStart": 332
   },
   {
    "id": "72468:53062",
@@ -2719,7 +2673,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 352,
+   "mobHpStart": 352
   },
   {
    "id": "72468:53282",
@@ -2734,7 +2690,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 396,
+   "mobHpStart": 396
   },
   {
    "id": "72468:53287",
@@ -2749,7 +2707,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 312,
+   "mobHpStart": 312
   },
   {
    "id": "72468:53853",
@@ -2764,22 +2724,26 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 644,
+   "mobHpStart": 644
   },
   {
-   "id": "72468:53854",
-   "charId": 72468,
-   "job": "mage",
+   "id": "72472:51761",
+   "charId": 72472,
+   "job": "merchant",
    "mapId": "mjolnir_09",
-   "mobId": 1013,
+   "mobId": 1174,
    "start": "assist",
    "outcome": "kill",
-   "durationMs": 1941,
+   "durationMs": 1172,
    "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
+   "hitsLanded": 2,
+   "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 82,
+   "mobHpStart": 336
   },
   {
    "id": "72472:51781",
@@ -2794,7 +2758,43 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 104,
+   "mobHpStart": 607
+  },
+  {
+   "id": "72472:51795",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1128,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 1168,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 76,
+   "mobHpStart": 302
+  },
+  {
+   "id": "72472:51858",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1031,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 63,
+   "mobHpStart": 63
   },
   {
    "id": "72472:51887",
@@ -2809,7 +2809,43 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 54,
+   "mobHpStart": 54
+  },
+  {
+   "id": "72472:51894",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1174,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 38,
+   "mobHpStart": 38
+  },
+  {
+   "id": "72472:51954",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1031,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 1168,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 111,
+   "mobHpStart": 280
   },
   {
    "id": "72472:51963",
@@ -2824,7 +2860,26 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 83,
+   "mobHpStart": 705
+  },
+  {
+   "id": "72472:51973",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1031,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 53,
+   "mobHpStart": 53
   },
   {
    "id": "72472:51985",
@@ -2839,7 +2894,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 85,
+   "mobHpStart": 597
   },
   {
    "id": "72472:51987",
@@ -2854,7 +2911,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 83,
+   "mobHpStart": 284
   },
   {
    "id": "72472:52031",
@@ -2869,7 +2928,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 87,
+   "mobHpStart": 655
   },
   {
    "id": "72472:52032",
@@ -2884,7 +2945,43 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 187,
+   "mobHpStart": 918
+  },
+  {
+   "id": "72472:52054",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1174,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2344,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 3,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 126,
+   "mobHpStart": 492
+  },
+  {
+   "id": "72472:52077",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1128,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 1196,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 76,
+   "mobHpStart": 312
   },
   {
    "id": "72472:52099",
@@ -2899,7 +2996,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 115,
+   "mobHpStart": 696
   },
   {
    "id": "72472:52107",
@@ -2914,7 +3013,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 117,
+   "mobHpStart": 585
   },
   {
    "id": "72472:52114",
@@ -2929,7 +3030,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 169,
+   "mobHpStart": 869
   },
   {
    "id": "72472:52119",
@@ -2944,7 +3047,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 59,
+   "mobHpStart": 59
   },
   {
    "id": "72472:52185",
@@ -2959,7 +3064,43 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 67,
+   "mobHpStart": 533
+  },
+  {
+   "id": "72472:52219",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1031,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 58,
+   "mobHpStart": 58
+  },
+  {
+   "id": "72472:52225",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1128,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2220,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 77,
+   "mobHpStart": 546
   },
   {
    "id": "72472:52270",
@@ -2974,7 +3115,43 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 138,
+   "mobHpStart": 829
+  },
+  {
+   "id": "72472:52325",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1128,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2336,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 3,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 115,
+   "mobHpStart": 617
+  },
+  {
+   "id": "72472:52327",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1013,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2336,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 3,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 128,
+   "mobHpStart": 869
   },
   {
    "id": "72472:52357",
@@ -2989,7 +3166,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 77,
+   "mobHpStart": 444
   },
   {
    "id": "72472:52394",
@@ -3004,7 +3183,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 52,
+   "mobHpStart": 52
   },
   {
    "id": "72472:52408",
@@ -3019,7 +3200,26 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 56,
+   "mobHpStart": 56
+  },
+  {
+   "id": "72472:52437",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1128,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 44,
+   "mobHpStart": 44
   },
   {
    "id": "72472:52451",
@@ -3034,7 +3234,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 78,
+   "mobHpStart": 440
   },
   {
    "id": "72472:52458",
@@ -3049,7 +3251,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 112,
+   "mobHpStart": 280
   },
   {
    "id": "72472:52471",
@@ -3064,7 +3268,9 @@
    "hitsLanded": 2,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 74,
+   "mobHpStart": 559
   },
   {
    "id": "72472:52502",
@@ -3079,7 +3285,43 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 123,
+   "mobHpStart": 807
+  },
+  {
+   "id": "72472:52505",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1128,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2344,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 3,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 116,
+   "mobHpStart": 517
+  },
+  {
+   "id": "72472:52549",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1174,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 1168,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 83,
+   "mobHpStart": 311
   },
   {
    "id": "72472:52571",
@@ -3094,7 +3336,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 136,
+   "mobHpStart": 856
   },
   {
    "id": "72472:52583",
@@ -3109,7 +3353,43 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 117,
+   "mobHpStart": 637
+  },
+  {
+   "id": "72472:52645",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1031,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 57,
+   "mobHpStart": 57
+  },
+  {
+   "id": "72472:52692",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1174,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 1168,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 87,
+   "mobHpStart": 401
   },
   {
    "id": "72472:52702",
@@ -3124,7 +3404,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 134,
+   "mobHpStart": 869
   },
   {
    "id": "72472:52735",
@@ -3139,7 +3421,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 130,
+   "mobHpStart": 509
   },
   {
    "id": "72472:52737",
@@ -3154,7 +3438,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 104,
+   "mobHpStart": 573
   },
   {
    "id": "72472:52757",
@@ -3169,7 +3455,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 83,
+   "mobHpStart": 249
   },
   {
    "id": "72472:52758",
@@ -3184,7 +3472,26 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 92,
+   "mobHpStart": 662
+  },
+  {
+   "id": "72472:52770",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1031,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 62,
+   "mobHpStart": 62
   },
   {
    "id": "72472:52837",
@@ -3199,7 +3506,43 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 141,
+   "mobHpStart": 704
+  },
+  {
+   "id": "72472:52843",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1031,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 59,
+   "mobHpStart": 59
+  },
+  {
+   "id": "72472:52848",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1013,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 1168,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 88,
+   "mobHpStart": 669
   },
   {
    "id": "72472:52856",
@@ -3214,7 +3557,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 94,
+   "mobHpStart": 781
   },
   {
    "id": "72472:52895",
@@ -3229,7 +3574,60 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 124,
+   "mobHpStart": 559
+  },
+  {
+   "id": "72472:52910",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1128,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2336,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 3,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 115,
+   "mobHpStart": 515
+  },
+  {
+   "id": "72472:52931",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1031,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 56,
+   "mobHpStart": 56
+  },
+  {
+   "id": "72472:52949",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1174,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2336,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 3,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 121,
+   "mobHpStart": 492
   },
   {
    "id": "72472:52955",
@@ -3244,7 +3642,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 100,
+   "mobHpStart": 371
   },
   {
    "id": "72472:52991",
@@ -3259,7 +3659,26 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 121,
+   "mobHpStart": 488
+  },
+  {
+   "id": "72472:52994",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1174,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 43,
+   "mobHpStart": 43
   },
   {
    "id": "72472:53005",
@@ -3274,7 +3693,43 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 62,
+   "mobHpStart": 62
+  },
+  {
+   "id": "72472:53010",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1174,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 41,
+   "mobHpStart": 41
+  },
+  {
+   "id": "72472:53020",
+   "charId": 72472,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1174,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 1168,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 79,
+   "mobHpStart": 492
   },
   {
    "id": "72472:53052",
@@ -3289,7 +3744,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 35,
+   "mobHpStart": 35
   },
   {
    "id": "72472:53054",
@@ -3304,7 +3761,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 109,
+   "mobHpStart": 617
   },
   {
    "id": "72688:51763",
@@ -3319,7 +3778,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 1,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 126,
+   "mobHpStart": 659
   },
   {
    "id": "72688:51787",
@@ -3334,7 +3795,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 1,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 126,
+   "mobHpStart": 659
   },
   {
    "id": "72688:51790",
@@ -3349,7 +3812,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 1,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 92,
+   "mobHpStart": 538
   },
   {
    "id": "72688:51792",
@@ -3364,7 +3829,9 @@
    "hitsLanded": 15,
    "attacksMade": 15,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 15,
+   "mobHpStart": 15
   },
   {
    "id": "72688:51821",
@@ -3379,7 +3846,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 2,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 103,
+   "mobHpStart": 919
   },
   {
    "id": "72688:51892",
@@ -3394,7 +3863,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 1,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 150,
+   "mobHpStart": 919
   },
   {
    "id": "72688:51966",
@@ -3409,7 +3880,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 3,
-   "attacksReceived": 4
+   "attacksReceived": 4,
+   "ownDamage": 153,
+   "mobHpStart": 919
   },
   {
    "id": "72688:52027",
@@ -3424,7 +3897,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 1,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 126,
+   "mobHpStart": 659
   },
   {
    "id": "72688:52069",
@@ -3439,7 +3914,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 3,
-   "attacksReceived": 3
+   "attacksReceived": 3,
+   "ownDamage": 150,
+   "mobHpStart": 919
   },
   {
    "id": "72688:52081",
@@ -3454,7 +3931,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 1,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 126,
+   "mobHpStart": 659
   },
   {
    "id": "72688:52089",
@@ -3469,22 +3948,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 2,
-   "attacksReceived": 2
-  },
-  {
-   "id": "72688:52110",
-   "charId": 72688,
-   "job": "swordman",
-   "mapId": "mjolnir_09",
-   "mobId": 1085,
-   "start": "found",
-   "outcome": "kill",
-   "durationMs": 13708,
-   "damageTaken": 0,
-   "hitsLanded": 4,
-   "attacksMade": 4,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 2,
+   "ownDamage": 106,
+   "mobHpStart": 378
   },
   {
    "id": "72688:52126",
@@ -3499,7 +3965,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 2,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 150,
+   "mobHpStart": 919
   },
   {
    "id": "72688:52139",
@@ -3514,7 +3982,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 1,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 138,
+   "mobHpStart": 538
   },
   {
    "id": "72688:52157",
@@ -3529,7 +3999,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 18,
+   "mobHpStart": 15
   },
   {
    "id": "72688:52176",
@@ -3544,7 +4016,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 92,
+   "mobHpStart": 659
   },
   {
    "id": "72688:52182",
@@ -3559,7 +4033,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 1,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 92,
+   "mobHpStart": 538
   },
   {
    "id": "72688:52234",
@@ -3574,7 +4050,9 @@
    "hitsLanded": 15,
    "attacksMade": 15,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 20,
+   "mobHpStart": 15
   },
   {
    "id": "72688:52266",
@@ -3589,7 +4067,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 2,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 126,
+   "mobHpStart": 659
   },
   {
    "id": "72688:52267",
@@ -3604,7 +4084,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 2,
-   "attacksReceived": 3
+   "attacksReceived": 3,
+   "ownDamage": 150,
+   "mobHpStart": 919
   },
   {
    "id": "72688:52289",
@@ -3619,7 +4101,9 @@
    "hitsLanded": 0,
    "attacksMade": 0,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 0,
+   "mobHpStart": null
   },
   {
    "id": "72688:52294",
@@ -3634,7 +4118,9 @@
    "hitsLanded": 2,
    "attacksMade": 3,
    "hitsReceived": 1,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 78,
+   "mobHpStart": 669
   },
   {
    "id": "72688:52390",
@@ -3649,7 +4135,9 @@
    "hitsLanded": 15,
    "attacksMade": 15,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 15,
+   "mobHpStart": 15
   },
   {
    "id": "72688:52438",
@@ -3664,7 +4152,9 @@
    "hitsLanded": 15,
    "attacksMade": 16,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 15,
+   "mobHpStart": 15
   },
   {
    "id": "72688:52445",
@@ -3679,7 +4169,9 @@
    "hitsLanded": 5,
    "attacksMade": 6,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 15,
+   "mobHpStart": 15
   },
   {
    "id": "72688:52453",
@@ -3694,22 +4186,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 3,
-   "attacksReceived": 3
-  },
-  {
-   "id": "72688:52455",
-   "charId": 72688,
-   "job": "swordman",
-   "mapId": "mjolnir_09",
-   "mobId": 1085,
-   "start": "found",
-   "outcome": "kill",
-   "durationMs": 11104,
-   "damageTaken": 0,
-   "hitsLanded": 3,
-   "attacksMade": 3,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 3,
+   "ownDamage": 150,
+   "mobHpStart": 919
   },
   {
    "id": "72688:52476",
@@ -3724,7 +4203,9 @@
    "hitsLanded": 14,
    "attacksMade": 14,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 19,
+   "mobHpStart": 15
   },
   {
    "id": "72688:52490",
@@ -3739,22 +4220,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 3,
-   "attacksReceived": 3
-  },
-  {
-   "id": "72688:52506",
-   "charId": 72688,
-   "job": "swordman",
-   "mapId": "mjolnir_09",
-   "mobId": 1128,
-   "start": "found",
-   "outcome": "kill",
-   "durationMs": 4716,
-   "damageTaken": 2,
-   "hitsLanded": 3,
-   "attacksMade": 3,
-   "hitsReceived": 2,
-   "attacksReceived": 2
+   "attacksReceived": 3,
+   "ownDamage": 150,
+   "mobHpStart": 919
   },
   {
    "id": "72688:52518",
@@ -3769,7 +4237,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 92,
+   "mobHpStart": 538
   },
   {
    "id": "72688:52526",
@@ -3784,7 +4254,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 1,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 92,
+   "mobHpStart": 538
   },
   {
    "id": "72688:52528",
@@ -3799,7 +4271,9 @@
    "hitsLanded": 6,
    "attacksMade": 7,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 16,
+   "mobHpStart": 15
   },
   {
    "id": "72688:52546",
@@ -3814,7 +4288,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 1,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 92,
+   "mobHpStart": 538
   },
   {
    "id": "72688:52590",
@@ -3829,22 +4305,9 @@
    "hitsLanded": 7,
    "attacksMade": 9,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72688:52597",
-   "charId": 72688,
-   "job": "swordman",
-   "mapId": "mjolnir_09",
-   "mobId": 1013,
-   "start": "found",
-   "outcome": "kill",
-   "durationMs": 5008,
-   "damageTaken": 1,
-   "hitsLanded": 2,
-   "attacksMade": 2,
-   "hitsReceived": 1,
-   "attacksReceived": 1
+   "attacksReceived": 0,
+   "ownDamage": 17,
+   "mobHpStart": 15
   },
   {
    "id": "72688:52624",
@@ -3859,7 +4322,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 1,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 92,
+   "mobHpStart": 538
   },
   {
    "id": "72688:52630",
@@ -3874,7 +4339,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 1,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 90,
+   "mobHpStart": 630
   },
   {
    "id": "72688:52642",
@@ -3889,7 +4356,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 18,
+   "mobHpStart": 15
   },
   {
    "id": "72688:52647",
@@ -3904,7 +4373,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 2,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 150,
+   "mobHpStart": 919
   },
   {
    "id": "72688:52648",
@@ -3919,7 +4390,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 1,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 138,
+   "mobHpStart": 538
   },
   {
    "id": "72688:52715",
@@ -3934,7 +4407,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 1,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 138,
+   "mobHpStart": 538
   },
   {
    "id": "72688:52719",
@@ -3949,7 +4424,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 117,
+   "mobHpStart": 706
   },
   {
    "id": "72688:52766",
@@ -3964,7 +4441,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 1,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 126,
+   "mobHpStart": 659
   },
   {
    "id": "72688:52784",
@@ -3979,7 +4458,9 @@
    "hitsLanded": 7,
    "attacksMade": 7,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 17,
+   "mobHpStart": 15
   },
   {
    "id": "72688:52795",
@@ -3994,7 +4475,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 1,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 126,
+   "mobHpStart": 659
   },
   {
    "id": "72688:52858",
@@ -4009,7 +4492,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 3,
-   "attacksReceived": 3
+   "attacksReceived": 3,
+   "ownDamage": 150,
+   "mobHpStart": 919
   },
   {
    "id": "72688:52887",
@@ -4024,7 +4509,9 @@
    "hitsLanded": 15,
    "attacksMade": 18,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 15,
+   "mobHpStart": 15
   },
   {
    "id": "72688:52906",
@@ -4039,7 +4526,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 2,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 150,
+   "mobHpStart": 919
   },
   {
    "id": "72688:52967",
@@ -4054,7 +4543,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 140,
+   "mobHpStart": 817
   },
   {
    "id": "72688:52975",
@@ -4069,7 +4560,9 @@
    "hitsLanded": 9,
    "attacksMade": 9,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 19,
+   "mobHpStart": 15
   },
   {
    "id": "72688:52978",
@@ -4084,7 +4577,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 2,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 126,
+   "mobHpStart": 659
   },
   {
    "id": "72688:53002",
@@ -4099,22 +4594,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "72688:53026",
-   "charId": 72688,
-   "job": "swordman",
-   "mapId": "mjolnir_09",
-   "mobId": 1013,
-   "start": "found",
-   "outcome": "kill",
-   "durationMs": 4266,
-   "damageTaken": 2,
-   "hitsLanded": 2,
-   "attacksMade": 2,
-   "hitsReceived": 2,
-   "attacksReceived": 2
+   "attacksReceived": 0,
+   "ownDamage": 18,
+   "mobHpStart": 15
   },
   {
    "id": "72688:53029",
@@ -4129,7 +4611,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 2,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 150,
+   "mobHpStart": 919
   },
   {
    "id": "72688:53035",
@@ -4144,7 +4628,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 2,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 126,
+   "mobHpStart": 659
   },
   {
    "id": "72688:53042",
@@ -4159,7 +4645,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 2,
-   "attacksReceived": 2
+   "attacksReceived": 2,
+   "ownDamage": 87,
+   "mobHpStart": 659
   },
   {
    "id": "72688:53047",
@@ -4174,22 +4662,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 1,
-   "attacksReceived": 1
-  },
-  {
-   "id": "72688:53299",
-   "charId": 72688,
-   "job": "swordman",
-   "mapId": "mjolnir_09",
-   "mobId": 1128,
-   "start": "found",
-   "outcome": "kill",
-   "durationMs": 4716,
-   "damageTaken": 2,
-   "hitsLanded": 3,
-   "attacksMade": 3,
-   "hitsReceived": 2,
-   "attacksReceived": 2
+   "attacksReceived": 1,
+   "ownDamage": 92,
+   "mobHpStart": 538
   },
   {
    "id": "72688:53305",
@@ -4204,7 +4679,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 1,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 126,
+   "mobHpStart": 659
   },
   {
    "id": "72688:53310",
@@ -4219,7 +4696,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 1
+   "attacksReceived": 1,
+   "ownDamage": 126,
+   "mobHpStart": 659
   },
   {
    "id": "72688:53320",
@@ -4234,7 +4713,26 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 92,
+   "mobHpStart": 538
+  },
+  {
+   "id": "74435:51750",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1013,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2232,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 3,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 117,
+   "mobHpStart": 680
   },
   {
    "id": "74435:51759",
@@ -4249,7 +4747,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 632
   },
   {
    "id": "74435:51765",
@@ -4264,7 +4764,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 244
   },
   {
    "id": "74435:51834",
@@ -4279,7 +4781,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 48,
+   "mobHpStart": 48
   },
   {
    "id": "74435:51853",
@@ -4294,7 +4798,26 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 477
+  },
+  {
+   "id": "74435:51903",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1013,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2607,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 42,
+   "mobHpStart": 42
   },
   {
    "id": "74435:51930",
@@ -4309,7 +4832,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 380
   },
   {
    "id": "74435:51980",
@@ -4324,7 +4849,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 106,
+   "mobHpStart": 280
   },
   {
    "id": "74435:51989",
@@ -4339,7 +4866,26 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 114,
+   "mobHpStart": 755
+  },
+  {
+   "id": "74435:52000",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1031,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 1116,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 106,
+   "mobHpStart": 179
   },
   {
    "id": "74435:52025",
@@ -4354,7 +4900,9 @@
    "hitsLanded": 1,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 48,
+   "mobHpStart": 299
   },
   {
    "id": "74435:52052",
@@ -4369,7 +4917,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 70,
+   "mobHpStart": 478
   },
   {
    "id": "74435:52073",
@@ -4384,7 +4934,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 106,
+   "mobHpStart": 235
   },
   {
    "id": "74435:52080",
@@ -4399,7 +4951,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 286
   },
   {
    "id": "74435:52127",
@@ -4414,7 +4968,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 106,
+   "mobHpStart": 86
   },
   {
    "id": "74435:52130",
@@ -4429,7 +4985,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 126,
+   "mobHpStart": 798
   },
   {
    "id": "74435:52142",
@@ -4444,7 +5002,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 106,
+   "mobHpStart": 280
   },
   {
    "id": "74435:52170",
@@ -4459,7 +5019,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 317
   },
   {
    "id": "74435:52199",
@@ -4474,7 +5036,26 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 76,
+   "mobHpStart": 624
+  },
+  {
+   "id": "74435:52211",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1013,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2232,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 3,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 117,
+   "mobHpStart": 684
   },
   {
    "id": "74435:52230",
@@ -4489,7 +5070,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 53,
+   "mobHpStart": 53
   },
   {
    "id": "74435:52233",
@@ -4504,7 +5087,26 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 156,
+   "mobHpStart": 751
+  },
+  {
+   "id": "74435:52252",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1031,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 53,
+   "mobHpStart": 53
   },
   {
    "id": "74435:52264",
@@ -4519,7 +5121,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 506
   },
   {
    "id": "74435:52287",
@@ -4534,7 +5138,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 84,
+   "mobHpStart": 433
   },
   {
    "id": "74435:52347",
@@ -4549,7 +5155,26 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 617
+  },
+  {
+   "id": "74435:52371",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1128,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 1120,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 64,
+   "mobHpStart": 318
   },
   {
    "id": "74435:52386",
@@ -4564,7 +5189,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 106,
+   "mobHpStart": 280
   },
   {
    "id": "74435:52431",
@@ -4579,7 +5206,26 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 99,
+   "mobHpStart": 504
+  },
+  {
+   "id": "74435:52432",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1013,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2240,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 3,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 117,
+   "mobHpStart": 823
   },
   {
    "id": "74435:52482",
@@ -4594,7 +5240,94 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 84,
+   "mobHpStart": 476
+  },
+  {
+   "id": "74435:52486",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1031,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 53,
+   "mobHpStart": 53
+  },
+  {
+   "id": "74435:52488",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1128,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2682,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 70,
+   "mobHpStart": 556
+  },
+  {
+   "id": "74435:52535",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1174,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 1116,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 291
+  },
+  {
+   "id": "74435:52545",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1013,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 3511,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 3,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 126,
+   "mobHpStart": 839
+  },
+  {
+   "id": "74435:52547",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1013,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2232,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 3,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 117,
+   "mobHpStart": 837
   },
   {
    "id": "74435:52554",
@@ -4609,7 +5342,26 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 450
+  },
+  {
+   "id": "74435:52594",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1128,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2232,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 3,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 565
   },
   {
    "id": "74435:52613",
@@ -4624,7 +5376,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 144,
+   "mobHpStart": 492
   },
   {
    "id": "74435:52638",
@@ -4639,7 +5393,26 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 53,
+   "mobHpStart": 53
+  },
+  {
+   "id": "74435:52681",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1174,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 1116,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 367
   },
   {
    "id": "74435:52693",
@@ -4654,7 +5427,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 48,
+   "mobHpStart": 48
   },
   {
    "id": "74435:52726",
@@ -4669,7 +5444,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 35,
+   "mobHpStart": 35
   },
   {
    "id": "74435:52765",
@@ -4684,7 +5461,26 @@
    "hitsLanded": 1,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 35,
+   "mobHpStart": 475
+  },
+  {
+   "id": "74435:52790",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1128,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 32,
+   "mobHpStart": 32
   },
   {
    "id": "74435:52825",
@@ -4699,7 +5495,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 117,
+   "mobHpStart": 745
   },
   {
    "id": "74435:52833",
@@ -4714,7 +5512,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 53,
+   "mobHpStart": 53
   },
   {
    "id": "74435:52894",
@@ -4729,7 +5529,43 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 106,
+   "mobHpStart": 280
+  },
+  {
+   "id": "74435:52901",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1013,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 1446,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 39,
+   "mobHpStart": 39
+  },
+  {
+   "id": "74435:52907",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1013,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 3360,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 4,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 117,
+   "mobHpStart": 838
   },
   {
    "id": "74435:52924",
@@ -4744,7 +5580,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 53,
+   "mobHpStart": 53
   },
   {
    "id": "74435:52968",
@@ -4759,7 +5597,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 144,
+   "mobHpStart": 492
   },
   {
    "id": "74435:52973",
@@ -4774,7 +5614,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 156,
+   "mobHpStart": 828
   },
   {
    "id": "74435:52987",
@@ -4789,7 +5631,43 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 117,
+   "mobHpStart": 595
+  },
+  {
+   "id": "74435:53008",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1013,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2314,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 42,
+   "mobHpStart": 42
+  },
+  {
+   "id": "74435:53046",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1031,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 0,
+   "damageTaken": 0,
+   "hitsLanded": 1,
+   "attacksMade": 1,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 53,
+   "mobHpStart": 53
   },
   {
    "id": "74435:53061",
@@ -4804,7 +5682,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 293
   },
   {
    "id": "74435:53285",
@@ -4819,7 +5699,60 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 451
+  },
+  {
+   "id": "74435:53297",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1174,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 1120,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 96,
+   "mobHpStart": 384
+  },
+  {
+   "id": "74435:53302",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1013,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2240,
+   "damageTaken": 0,
+   "hitsLanded": 3,
+   "attacksMade": 3,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 117,
+   "mobHpStart": 796
+  },
+  {
+   "id": "74435:53335",
+   "charId": 74435,
+   "job": "merchant",
+   "mapId": "mjolnir_09",
+   "mobId": 1128,
+   "start": "assist",
+   "outcome": "kill",
+   "durationMs": 2999,
+   "damageTaken": 0,
+   "hitsLanded": 2,
+   "attacksMade": 2,
+   "hitsReceived": 0,
+   "attacksReceived": 0,
+   "ownDamage": 70,
+   "mobHpStart": 340
   },
   {
    "id": "74496:51762",
@@ -4834,7 +5767,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 218,
+   "mobHpStart": 401
   },
   {
    "id": "74496:51808",
@@ -4849,7 +5784,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 356,
+   "mobHpStart": 807
   },
   {
    "id": "74496:51812",
@@ -4864,7 +5801,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 402,
+   "mobHpStart": 344
   },
   {
    "id": "74496:51822",
@@ -4879,7 +5818,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 273,
+   "mobHpStart": 280
   },
   {
    "id": "74496:51833",
@@ -4894,7 +5835,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 229,
+   "mobHpStart": 751
   },
   {
    "id": "74496:51889",
@@ -4909,7 +5852,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 303,
+   "mobHpStart": 585
   },
   {
    "id": "74496:51923",
@@ -4924,7 +5869,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 118,
+   "mobHpStart": 118
   },
   {
    "id": "74496:51927",
@@ -4939,22 +5886,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:51931",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1174,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1134,
-   "damageTaken": 0,
-   "hitsLanded": 2,
-   "attacksMade": 2,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 318,
+   "mobHpStart": 525
   },
   {
    "id": "74496:51932",
@@ -4969,37 +5903,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:51946",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1013,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1134,
-   "damageTaken": 0,
-   "hitsLanded": 2,
-   "attacksMade": 2,
-   "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:51952",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1031,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 0,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 224,
+   "mobHpStart": 711
   },
   {
    "id": "74496:51960",
@@ -5014,7 +5920,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 354,
+   "mobHpStart": 817
   },
   {
    "id": "74496:51990",
@@ -5029,7 +5937,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 337,
+   "mobHpStart": 492
   },
   {
    "id": "74496:52003",
@@ -5044,7 +5954,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 215,
+   "mobHpStart": 359
   },
   {
    "id": "74496:52005",
@@ -5059,7 +5971,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 299,
+   "mobHpStart": 585
   },
   {
    "id": "74496:52021",
@@ -5074,7 +5988,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 345,
+   "mobHpStart": 538
   },
   {
    "id": "74496:52026",
@@ -5089,7 +6005,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 123,
+   "mobHpStart": 123
   },
   {
    "id": "74496:52047",
@@ -5104,7 +6022,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 244,
+   "mobHpStart": 671
   },
   {
    "id": "74496:52055",
@@ -5119,7 +6039,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 309,
+   "mobHpStart": 659
   },
   {
    "id": "74496:52072",
@@ -5134,22 +6056,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52090",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1174,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1134,
-   "damageTaken": 0,
-   "hitsLanded": 2,
-   "attacksMade": 2,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 351,
+   "mobHpStart": 790
   },
   {
    "id": "74496:52123",
@@ -5164,7 +6073,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 229,
+   "mobHpStart": 404
   },
   {
    "id": "74496:52154",
@@ -5179,7 +6090,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 290,
+   "mobHpStart": 590
   },
   {
    "id": "74496:52155",
@@ -5194,7 +6107,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 247,
+   "mobHpStart": 666
   },
   {
    "id": "74496:52158",
@@ -5209,7 +6124,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 236,
+   "mobHpStart": 444
   },
   {
    "id": "74496:52160",
@@ -5224,22 +6141,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52162",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1104,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 2280,
-   "damageTaken": 0,
-   "hitsLanded": 3,
-   "attacksMade": 3,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 230,
+   "mobHpStart": 401
   },
   {
    "id": "74496:52187",
@@ -5254,7 +6158,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 323,
+   "mobHpStart": 717
   },
   {
    "id": "74496:52243",
@@ -5269,22 +6175,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52309",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1128,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1134,
-   "damageTaken": 0,
-   "hitsLanded": 2,
-   "attacksMade": 2,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 324,
+   "mobHpStart": 743
   },
   {
    "id": "74496:52317",
@@ -5299,37 +6192,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52389",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1104,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 2280,
-   "damageTaken": 0,
-   "hitsLanded": 3,
-   "attacksMade": 3,
-   "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52409",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1013,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 0,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 102,
+   "mobHpStart": 102
   },
   {
    "id": "74496:52415",
@@ -5344,7 +6209,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 306,
+   "mobHpStart": 581
   },
   {
    "id": "74496:52416",
@@ -5359,7 +6226,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 334,
+   "mobHpStart": 782
   },
   {
    "id": "74496:52424",
@@ -5374,7 +6243,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 393,
+   "mobHpStart": 344
   },
   {
    "id": "74496:52426",
@@ -5389,22 +6260,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52462",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1128,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 1140,
-   "damageTaken": 0,
-   "hitsLanded": 2,
-   "attacksMade": 2,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 142,
+   "mobHpStart": 142
   },
   {
    "id": "74496:52465",
@@ -5419,7 +6277,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 364,
+   "mobHpStart": 869
   },
   {
    "id": "74496:52478",
@@ -5434,22 +6294,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52496",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1174,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 2280,
-   "damageTaken": 0,
-   "hitsLanded": 3,
-   "attacksMade": 3,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 359,
+   "mobHpStart": 919
   },
   {
    "id": "74496:52508",
@@ -5464,7 +6311,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 368,
+   "mobHpStart": 344
   },
   {
    "id": "74496:52555",
@@ -5479,37 +6328,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52558",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1128,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 2268,
-   "damageTaken": 0,
-   "hitsLanded": 3,
-   "attacksMade": 3,
-   "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52574",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1031,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 2280,
-   "damageTaken": 0,
-   "hitsLanded": 3,
-   "attacksMade": 3,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 321,
+   "mobHpStart": 781
   },
   {
    "id": "74496:52576",
@@ -5524,7 +6345,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 314,
+   "mobHpStart": 559
   },
   {
    "id": "74496:52578",
@@ -5539,7 +6362,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 333,
+   "mobHpStart": 585
   },
   {
    "id": "74496:52598",
@@ -5554,7 +6379,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 130,
+   "mobHpStart": 130
   },
   {
    "id": "74496:52607",
@@ -5569,7 +6396,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 305,
+   "mobHpStart": 585
   },
   {
    "id": "74496:52614",
@@ -5584,22 +6413,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52623",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1174,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 2268,
-   "damageTaken": 0,
-   "hitsLanded": 3,
-   "attacksMade": 3,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 141,
+   "mobHpStart": 141
   },
   {
    "id": "74496:52632",
@@ -5614,7 +6430,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 310,
+   "mobHpStart": 565
   },
   {
    "id": "74496:52634",
@@ -5629,7 +6447,9 @@
    "hitsLanded": 4,
    "attacksMade": 4,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 470,
+   "mobHpStart": 869
   },
   {
    "id": "74496:52650",
@@ -5644,7 +6464,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 233,
+   "mobHpStart": 492
   },
   {
    "id": "74496:52665",
@@ -5659,7 +6481,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 130,
+   "mobHpStart": 130
   },
   {
    "id": "74496:52677",
@@ -5674,7 +6498,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 201,
+   "mobHpStart": 592
   },
   {
    "id": "74496:52683",
@@ -5689,7 +6515,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 338,
+   "mobHpStart": 782
   },
   {
    "id": "74496:52703",
@@ -5704,7 +6532,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 237,
+   "mobHpStart": 358
   },
   {
    "id": "74496:52740",
@@ -5719,22 +6549,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52753",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1013,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 3402,
-   "damageTaken": 0,
-   "hitsLanded": 4,
-   "attacksMade": 4,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 353,
+   "mobHpStart": 755
   },
   {
    "id": "74496:52756",
@@ -5749,7 +6566,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 250,
+   "mobHpStart": 651
   },
   {
    "id": "74496:52759",
@@ -5764,22 +6583,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52761",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1104,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 2268,
-   "damageTaken": 0,
-   "hitsLanded": 3,
-   "attacksMade": 3,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 350,
+   "mobHpStart": 715
   },
   {
    "id": "74496:52779",
@@ -5794,7 +6600,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 130,
+   "mobHpStart": 130
   },
   {
    "id": "74496:52793",
@@ -5809,7 +6617,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 204,
+   "mobHpStart": 592
   },
   {
    "id": "74496:52794",
@@ -5824,7 +6634,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 138,
+   "mobHpStart": 138
   },
   {
    "id": "74496:52818",
@@ -5839,22 +6651,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52851",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1031,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 0,
-   "damageTaken": 0,
-   "hitsLanded": 1,
-   "attacksMade": 1,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 192,
+   "mobHpStart": 475
   },
   {
    "id": "74496:52859",
@@ -5869,7 +6668,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 136,
+   "mobHpStart": 136
   },
   {
    "id": "74496:52873",
@@ -5884,7 +6685,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 265,
+   "mobHpStart": 280
   },
   {
    "id": "74496:52879",
@@ -5899,22 +6702,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
-  },
-  {
-   "id": "74496:52898",
-   "charId": 74496,
-   "job": "archer",
-   "mapId": "mjolnir_09",
-   "mobId": 1128,
-   "start": "assist",
-   "outcome": "kill",
-   "durationMs": 2268,
-   "damageTaken": 0,
-   "hitsLanded": 2,
-   "attacksMade": 3,
-   "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 219,
+   "mobHpStart": 401
   },
   {
    "id": "74496:52913",
@@ -5929,7 +6719,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 238,
+   "mobHpStart": 767
   },
   {
    "id": "74496:52972",
@@ -5944,7 +6736,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 357,
+   "mobHpStart": 868
   },
   {
    "id": "74496:53044",
@@ -5959,7 +6753,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 296,
+   "mobHpStart": 659
   },
   {
    "id": "74496:53048",
@@ -5974,7 +6770,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 216,
+   "mobHpStart": 657
   },
   {
    "id": "74496:53050",
@@ -5989,7 +6787,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 348,
+   "mobHpStart": 731
   },
   {
    "id": "74496:53058",
@@ -6004,7 +6804,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 215,
+   "mobHpStart": 404
   },
   {
    "id": "74496:53067",
@@ -6019,7 +6821,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 313,
+   "mobHpStart": 534
   },
   {
    "id": "74496:53300",
@@ -6034,7 +6838,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 219,
+   "mobHpStart": 404
   },
   {
    "id": "74496:53306",
@@ -6049,7 +6855,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 339,
+   "mobHpStart": 817
   },
   {
    "id": "74496:53319",
@@ -6064,7 +6872,9 @@
    "hitsLanded": 1,
    "attacksMade": 1,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 131,
+   "mobHpStart": 131
   },
   {
    "id": "74496:53322",
@@ -6079,7 +6889,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 245,
+   "mobHpStart": 364
   },
   {
    "id": "74496:53865",
@@ -6094,7 +6906,9 @@
    "hitsLanded": 3,
    "attacksMade": 3,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 361,
+   "mobHpStart": 812
   },
   {
    "id": "74917:52420",
@@ -6109,7 +6923,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 8,
+   "mobHpStart": 257
   },
   {
    "id": "74917:52515",
@@ -6124,7 +6940,9 @@
    "hitsLanded": 2,
    "attacksMade": 2,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 18,
+   "mobHpStart": 161
   },
   {
    "id": "74917:52826",
@@ -6139,7 +6957,9 @@
    "hitsLanded": 5,
    "attacksMade": 5,
    "hitsReceived": 0,
-   "attacksReceived": 0
+   "attacksReceived": 0,
+   "ownDamage": 5,
+   "mobHpStart": 520
   }
  ]
 }

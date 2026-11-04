@@ -30,32 +30,42 @@ are merged and deduped by `seq`, then walked in `seq` order:
 | `id` | `"<charId>:<mob uid>"`, unique per fight |
 | `charId`, `mobId`, `mapId` | our character, monster id (`src/game-data.json`), map at fight start (snapshot `mapId`, overridden by a later `mapChange`/`teleport`) |
 | `start`, `outcome` | see above |
+| `startSimTime` | absolute sim time of the opening event (event `t` values are relative to it) |
+| `mobHpStart` | mob HP when we first hit it (`hpLeft + damage`), or `null`; below the mob's max HP (`src/game-data.json`) means the party had already hit it |
 | `partyIds` | the user's other captured characters whose latest snapshot at fight start is on the same map |
-| `buffs` | `[{id, lv, remainingMs}]` at fight start: snapshot buffs aged to the start, then `buffStart`/`buffEnd` up to it (`lv` unknown for buffs started after the snapshot) |
-| `charSnapshot` | latest snapshot at or before the start: `character` (minus `skills`), `derived`, `equipment` (`slot → {itemId, refine, cards}` resolved from inventory), `skills`, `mapId`, `snapshotAgeMs` |
+| `buffs` | `[{id, lv, remainingMs}]` at fight start: snapshot buffs aged to the start, then `buffStart`/`buffEnd` up to it (`lv` from the latest own `skillCast` or ally `support` of that skill; can still be missing) |
+| `charSnapshot` | latest snapshot at or before the start: `character` (minus `skills` and `name`), `derived`, `equipment` (`slot → {itemId, refine, cards}` resolved from inventory), `skills`, `mapId`, `snapshotAgeMs` |
 | `events[]` | combat events only, `t` = ms since fight start (sim time) |
 
 Kept event types: `found targetSwitch playerAttack skillHit skillCast skillInterrupt skillHeal monsterAttack mobSkill
 mobSkillCast statusStart statusResist ailmentStart ailmentEnd useItem buffStart buffEnd kill death`.
 Kept scalar fields: `damage result hits skill lv hpLeft castMs status ailment durationMs itemId buffId approachMs reason`.
 `result` is `hit|miss|crit|perfectDodge|...` as recorded. `hpLeft` is the **mob's** HP after `playerAttack`/`skillHit`
-and the **player's** after `monsterAttack`/`mobSkill`. `otherMob: <monsterId>` marks an event against a second aggressor.
+and the **player's** after `monsterAttack`/`mobSkill`. `otherMob: <monsterId>` (or `true` when the event has no monster id) marks an event against a second aggressor.
 Chat, exp/drop/support events, ally names and config (which holds other players' names) are never copied.
 
 ## `summary.json`
 
-- `captures`, `totals` (`opened kill death abandoned noSnapshot extracted kept`), `strata` (`job|map|mob|outcome → {extracted, kept}`).
+- `captures`, `totals` (`opened kill death abandoned noSnapshot extracted kept`), `strata` (`charId/job|map|mob|outcome → {extracted, kept}`).
 - `fights[]`: L2 observables per kept fight: `durationMs` (start → last event, includes approach),
   `damageTaken` (sum over `monsterAttack`/`mobSkill`, all aggressors), `hitsLanded`/`attacksMade`
   (own `playerAttack`/`skillHit` on the target, damage > 0 / all), `hitsReceived`/`attacksReceived` (damage > 0 / all).
+  `ownDamage` (sum of own damage on the target) and `mobHpStart` let L2 pick or weight solo fights.
   Counts are events; multi-hit (`hits`) is not expanded.
 
 ## Sampling
 
-At most `--max` (400) fights, round-robin over `job|map|mob|outcome` strata in a fixed sha1(id) order, so every
+At most `--max` (400) fights, round-robin over `charId/job|map|mob|outcome` strata in a fixed sha1(id) order, so every
 stratum is kept before any gets a second fight. Deterministic for the same captures.
 
 ## Known limits (2026-11-04 captures)
+
+- **Most kills are shared with the party.** The stream only emits `kill` for our own last hit, so kept fights are the
+  ones we finished, often after allies hurt the mob (0 ms fights = a `targetSwitch` straight into a killing blow).
+  A solo engine replay over-predicts duration and hit counts for these: compare against `ownDamage`/`mobHpStart`,
+  or restrict to fights where `mobHpStart` equals the mob's max HP.
+- `partyIds` are co-located captured characters, not confirmed party membership; their own stats are not in the fixture
+  (take them from their own fights' snapshots).
 
 - 0 deaths in the 2-hour capture window (historical deaths exist only as `stats.deathLog` summaries without events).
 - Maps: almost all `mjolnir_09`, 3 fights on `pay_fild01`. More maps/mobs need new captures.

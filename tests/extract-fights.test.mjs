@@ -38,6 +38,9 @@ test('one found→kill fight carries snapshot, mob, map, trimmed events', () => 
   assert.equal(f.mapId, 'pay_fild01');
   assert.equal(f.outcome, 'kill');
   assert.equal(f.charSnapshot.character.job, 'swordman');
+  assert.equal(f.charSnapshot.character.name, undefined);
+  assert.equal(f.startSimTime, 2000);
+  assert.equal(f.mobHpStart, 50);
   assert.deepEqual(f.charSnapshot.skills, {SM_BASH: 5});
   assert.deepEqual(f.charSnapshot.equipment, {weapon: {itemId: 1101, refine: 4, cards: []}});
   assert.equal(f.charSnapshot.derived.maxHp, 300);
@@ -50,7 +53,7 @@ test('one found→kill fight carries snapshot, mob, map, trimmed events', () => 
     {type: 'skillHit', t: 900, damage: 30, result: 'hit', skill: 'SM_BASH', hpLeft: 0},
     {type: 'kill', t: 900},
   ]);
-  assert.doesNotMatch(JSON.stringify(f), /Other Player|secret/);
+  assert.doesNotMatch(JSON.stringify(f), /Other Player|secret|"Me"/);
 });
 
 test('death ends a fight; abandoned fights are counted not emitted; replays dedupe; party = own chars on same map', () => {
@@ -102,16 +105,16 @@ test('observe: duration, damage taken, hits landed/received from trimmed events'
     ev(8, 2600, {type: 'kill', uid: 9}),
   ])]).fights;
   assert.deepEqual(observe(f), {id: '1:9', charId: 1, job: 'swordman', mapId: 'pay_fild01', mobId: 1085, start: 'found', outcome: 'kill',
-    durationMs: 600, damageTaken: 10, hitsLanded: 2, attacksMade: 3, hitsReceived: 2, attacksReceived: 3});
+    durationMs: 600, damageTaken: 10, hitsLanded: 2, attacksMade: 3, hitsReceived: 2, attacksReceived: 3, ownDamage: 60, mobHpStart: null});
 });
 
-test('stratify takes every job|map|mob|outcome stratum before a second fight from any', () => {
-  const mk = (i, job, mobId, outcome) => ({id: `x:${i}`, mobId, mapId: 'm', outcome, charSnapshot: {character: {job}}});
-  const fights = [...Array(10)].map((_, i) => mk(i, 'mage', 1, 'kill')).concat([mk(20, 'thief', 1, 'kill'), mk(21, 'mage', 2, 'kill'), mk(22, 'mage', 1, 'death')]);
-  const picked = stratify(fights, 5);
-  assert.equal(picked.length, 5);
-  assert.deepEqual(picked.filter(f => Number(f.id.slice(2)) >= 20).map(f => f.id).sort(), ['x:20', 'x:21', 'x:22']);
-  assert.deepEqual(stratify(fights, 99).length, 13);
+test('stratify takes every char/job|map|mob|outcome stratum before a second fight from any', () => {
+  const mk = (i, job, mobId, outcome, charId = 1) => ({id: `x:${i}`, charId, mobId, mapId: 'm', outcome, charSnapshot: {character: {job}}});
+  const fights = [...Array(10)].map((_, i) => mk(i, 'mage', 1, 'kill')).concat([mk(20, 'thief', 1, 'kill'), mk(21, 'mage', 2, 'kill'), mk(22, 'mage', 1, 'death'), mk(23, 'mage', 1, 'kill', 2)]);
+  const picked = stratify(fights, 6);
+  assert.equal(picked.length, 6);
+  assert.deepEqual(picked.filter(f => Number(f.id.slice(2)) >= 20).map(f => f.id).sort(), ['x:20', 'x:21', 'x:22', 'x:23']);
+  assert.deepEqual(stratify(fights, 99).length, 14);
 });
 
 test('CLI writes fights.jsonl + summary.json from capture files', () => {
@@ -129,4 +132,22 @@ test('CLI writes fights.jsonl + summary.json from capture files', () => {
     assert.deepEqual(summary.fights.map(f => [f.id, f.durationMs]), [['1:9', 600]]);
     assert.match(r.stdout, /1 fights/);
   } finally { fs.rmSync(dir, {recursive: true, force: true}); }
+});
+
+test('buffs started after the snapshot take lv from the matching skillCast/support', () => {
+  const [f] = extractFights([snap(1, 1000, {buffs: []}), sse(1, [
+    ev(1, 1200, {type: 'support', from: 'Other Player', skill: 'AL_INCAGI', lv: 3}),
+    ev(2, 1200, {type: 'buffStart', buffId: 'AL_INCAGI', durationMs: 60000}),
+    ev(3, 1300, {type: 'skillCast', skill: 'SM_ENDURE', lv: 2}),
+    ev(4, 1300, {type: 'buffStart', buffId: 'SM_ENDURE', durationMs: 10000}),
+    ev(5, 2000, {type: 'found', uid: 9, monsterId: 1085}),
+    ev(6, 2100, {type: 'kill', uid: 9}),
+  ])]).fights;
+  assert.deepEqual(f.buffs, [{id: 'AL_INCAGI', lv: 3, remainingMs: 59200}, {id: 'SM_ENDURE', lv: 2, remainingMs: 9300}]);
+});
+
+test('CLI rejects a --max without a number', () => {
+  const r = spawnSync(process.execPath, [new URL('../scripts/extract-fights.mjs', import.meta.url).pathname, 'x.jsonl', '--out', 'o', '--max'], {encoding: 'utf8'});
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /usage/);
 });
