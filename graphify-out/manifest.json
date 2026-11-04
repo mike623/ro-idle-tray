@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793807561.2035582,
-    "seen": 1793811976.145547,
-    "ast_hash": "020470f008cdb7fefd74dac2706113c0",
+    "mtime": 1793812661.664089,
+    "seen": 1793813496.973475,
+    "ast_hash": "e5e1991050ef29497e1872f04f6f3d8d",
     "semantic_hash": ""
   },
   "src/atlas.html": {
@@ -438,15 +438,15 @@
     "semantic_hash": ""
   },
   "src/capture.js": {
-    "mtime": 1793803596.9246888,
-    "seen": 1793811976.145515,
-    "ast_hash": "b96c19e555e84c116421439997c9e549",
+    "mtime": 1793813476.047887,
+    "seen": 1793813496.972926,
+    "ast_hash": "49a7799881485cd90e22ae7cf56052bd",
     "semantic_hash": ""
   },
   "tests/capture.test.mjs": {
-    "mtime": 1793803687.1985042,
-    "seen": 1793811976.145531,
-    "ast_hash": "7e30a9c670f2188c06e100603e068f46",
+    "mtime": 1793813476.9492476,
+    "seen": 1793813496.973223,
+    "ast_hash": "1fce22acec259a8d6223d57b7b74b6e2",
     "semantic_hash": ""
   },
   "scripts/capture-gaps.py": {
@@ -456,15 +456,15 @@
     "semantic_hash": ""
   },
   "scripts/formula-check.py": {
-    "mtime": 1793808365.8037903,
-    "seen": 1793811976.1454668,
-    "ast_hash": "05212a69ff285ce710d7dce1824198dd",
+    "mtime": 1793812619.4996922,
+    "seen": 1793813496.97218,
+    "ast_hash": "4f86238ce30d37117b803ed7160c2890",
     "semantic_hash": ""
   },
   "docs/offline-backend/formulas.md": {
-    "mtime": 1793808623.8909779,
-    "seen": 1793811976.145552,
-    "ast_hash": "7bdaaf77b5c0cedc9ca6659df547cde5",
+    "mtime": 1793812650.8481426,
+    "seen": 1793813496.9735491,
+    "ast_hash": "608d23da8af20dced1adbe59fc01fd43",
     "semantic_hash": ""
   },
   "docs/offline-backend/gaps.md": {
