@@ -397,9 +397,12 @@ function card(n, info, othersIdling, why) {
   const detail = q(".detail");
   lvl.title = "Show details";
   lvl.setAttribute("aria-label", `Base Lv ${info.base ?? "–"}, Job Lv ${info.job ?? "–"}. ${lvl.title}`);
+  const host = $("popover");
   const show = (open) => {
     expanded = open ? n : expanded === n ? null : expanded;
     detail.hidden = !open;
+    if (open) host.replaceChildren(detail);
+    else if (detail.parentNode === host) host.replaceChildren();
     section.classList.toggle("peek", open);
     lvl.setAttribute("aria-expanded", String(open));
     if (open) requestAnimationFrame(() => placePopup(section, detail));
@@ -407,12 +410,15 @@ function card(n, info, othersIdling, why) {
   show(isOpen);
   // Short grace period so the pointer can cross the gap into the popup (a child of the card).
   let hideTimer;
+  const inside = (node) => section.contains(node) || detail.contains(node);
+  const hovered = () => section.matches(":hover") || detail.matches(":hover");
+  const later = () => { hideTimer = setTimeout(() => { if (!inside(document.activeElement) && !hovered()) show(false); }, 150); };
   section.addEventListener("mouseenter", () => { clearTimeout(hideTimer); show(true); });
-  section.addEventListener("mouseleave", () => {
-    hideTimer = setTimeout(() => { if (!section.contains(document.activeElement)) show(false); }, 150);
-  });
+  section.addEventListener("mouseleave", later);
+  detail.addEventListener("mouseenter", () => clearTimeout(hideTimer));
+  detail.addEventListener("mouseleave", later);
   section.addEventListener("focusin", () => show(true));
-  section.addEventListener("focusout", (e) => { if (!section.contains(e.relatedTarget) && !section.matches(":hover")) show(false); });
+  for (const el of [section, detail]) el.addEventListener("focusout", (e) => { if (!inside(e.relatedTarget) && !hovered()) show(false); });
   return tpl;
 }
 
@@ -430,15 +436,14 @@ function markOffline(box) {
   box.querySelectorAll(".idle, .enter, .char-list button").forEach((b) => { b.disabled = true; });
 }
 
-// Fixed position escapes the scrolling column; prefer the card's right side, else left.
+// The panel is too narrow to sit beside a row, so the popup goes under it (above if no room), right-aligned.
 function placePopup(card, pop) {
   const r = card.getBoundingClientRect();
-  const w = pop.offsetWidth, h = pop.offsetHeight, gap = 6;
-  let left = r.right + gap;
-  if (left + w > innerWidth - 4) left = r.left - gap - w;
-  left = Math.max(4, Math.min(left, innerWidth - w - 4));
+  const w = pop.offsetWidth, h = pop.offsetHeight, gap = 4;
+  const left = Math.max(4, Math.min(r.right - w, innerWidth - w - 4));
+  const top = r.bottom + gap + h <= innerHeight - 4 ? r.bottom + gap : r.top - gap - h;
   pop.style.left = `${left}px`;
-  pop.style.top = `${Math.max(4, Math.min(r.top, innerHeight - h - 4))}px`;
+  pop.style.top = `${Math.max(4, top)}px`;
 }
 
 function setBar(node, value) {
@@ -454,6 +459,8 @@ async function refresh() {
   const live = state.profiles.filter((p) => !p.offline);
   const idling = live.filter((p) => p.info?.running).length;
   const scroll = list.scrollTop;
+  // Popups belong to the rows being replaced; the expanded row puts its own back.
+  $("popover").replaceChildren();
   const o = overview(state.profiles);
   lastOrder = state.profiles.map((p) => p.n);
   const listed = state.profiles.filter((p) => shown(p, filter, o.reasons));

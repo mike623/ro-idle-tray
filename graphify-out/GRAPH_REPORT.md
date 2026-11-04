@@ -1,7 +1,7 @@
 # Graph Report - ro-idle-tray  (2026-11-04)
 
 ## Corpus Check
-- 52 files · ~75,320 words
+- 52 files · ~75,406 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 5 file(s) not represented in the graph (top: (none) 2, .icns 1, .ico 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `97f25cef`
+- Built from commit: `96b3c650`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
