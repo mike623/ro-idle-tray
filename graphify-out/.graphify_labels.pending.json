@@ -25,7 +25,7 @@
   "23": "bubble.test.mjs",
   "24": "triage-labels.md",
   "25": "secret.rs",
-  "26": ".on_dispatch",
+  "26": "formula-check.py",
   "27": "alerts.rs",
   "28": "storage.rs",
   "29": "move.js",
@@ -33,9 +33,9 @@
   "31": "refresh",
   "32": "bubble.js",
   "33": "items.js",
-  "34": "items_characters",
+  "34": "CharacterLabel",
   "35": "run",
-  "36": "run",
+  "36": "write_panel_geometry",
   "37": "character_report",
   "38": "open_profile",
   "39": "ref_node_assert",
@@ -45,5 +45,7 @@
   "43": "capture.test.mjs",
   "44": "panel.test.mjs",
   "45": "capture.js",
-  "46": "set_nickname"
+  "46": "run",
+  "47": "knowledge.rs",
+  "48": "Capture gap report (#12)"
 }

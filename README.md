@@ -17,6 +17,9 @@ Game sources used by the tray, the assistant, and the offline-backend work:
 - Game bundle `https://ro-idle.app/assets/index-*.js` — static data literal (monsters, maps, skills, items) extracted by `scripts/extract-maps.mjs` into `src/game-data.json` / `src/item-info.json`; also the client API surface (`/api/characters/:id/{commands,stream,events,...}`).
 - [ned-lin-9527.github.io/Ragnarok](https://ned-lin-9527.github.io/Ragnarok/) ([repo](https://github.com/ned-lin-9527/Ragnarok)) — player guides and dated skill-tree / equipment data dumps; read live by `src-tauri/src/guide.rs`.
 - [nba9001-sys/ro-idle](https://github.com/nba9001-sys/ro-idle) — a different, client-only RO idle game (諸神放置錄). Not ro-idle.app; useful only as a reference simulation engine.
+- [Ragnarok Research Lab](https://ragnarokresearchlab.github.io/community-projects/) — index of RO server emulators. They speak the original RO packet protocol, not ro-idle.app's HTTP/SSE API, so they are formula references only (damage pipeline order, DEF, rounding); always verify against captures, since ro-idle.app says its rules differ from other RO versions.
+  - [rAthena](https://github.com/rathena/rathena) / [Hercules](https://github.com/HerculesWS/Hercules) — GPL-3.0: read for reference, don't copy code.
+  - [rust-ro](https://github.com/nmeylan/rust-ro) — MIT, Rust; battle/status code can be reused with attribution.
 - Dev builds record raw API traffic to `<app config>/capture/*.jsonl` (`src/capture.js`) for building an offline backend against real payloads.
 
 ## Install
