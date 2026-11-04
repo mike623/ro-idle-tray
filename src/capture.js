@@ -20,7 +20,8 @@
     const path = url.replace(/^https?:\/\/[^/]+/, '');
     const method = (init?.method || input?.method || 'GET').toUpperCase();
     if (!path.startsWith('/api/') || SKIP.test(path)) return p;
-    if (method === 'GET' && !fresh(method + path.split('?')[0])) return p;
+    // Query is part of the key (pages, filters); polling cursors are not.
+    if (method === 'GET' && !fresh(method + path.replace(/([?&](?:after|chatAfter)=)[^&]*/g, '$1'))) return p;
     const body = typeof init?.body === 'string' ? init.body : null;
     p.then(r => r.clone().text().then(text => emit({ kind: 'http', method, path, body, status: r.status, resp: text })))
       .catch(e => emit({ kind: 'http', method, path, body, error: String(e) }));

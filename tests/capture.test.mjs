@@ -18,6 +18,10 @@ test('records api traffic, skips auth, throttles repeated GETs and snapshots', a
   await window.fetch('/api/auth/login', { method: 'POST', body: '{"password":"x"}' });
   await window.fetch('/api/characters/c1?deferCatchup=1');
   await window.fetch('/api/characters/c1?deferCatchup=1');
+  await window.fetch('/api/shared-configs?page=1');
+  await window.fetch('/api/shared-configs?page=2');
+  await window.fetch('/api/characters/c1/events?after=5');
+  await window.fetch('/api/characters/c1/events?after=9');
   await window.fetch('/api/characters/c1/commands', { method: 'POST', body: '{"command":{"type":"equip"}}' });
   await window.fetch('/assets/x.js');
   const es = new window.EventSource('/api/characters/c1/stream?after=0');
@@ -28,10 +32,13 @@ test('records api traffic, skips auth, throttles repeated GETs and snapshots', a
   const kinds = recs.map(r => r.kind === 'http' ? `${r.method} ${r.path}` : `${r.kind}:${r.name ?? ''}`);
   assert.deepEqual(kinds, [
     'GET /api/characters/c1?deferCatchup=1',
+    'GET /api/shared-configs?page=1',
+    'GET /api/shared-configs?page=2',
+    'GET /api/characters/c1/events?after=5',
     'POST /api/characters/c1/commands',
     'sse-open:', 'sse:snapshot', 'sse:events',
   ]);
-  assert.equal(recs[1].body, '{"command":{"type":"equip"}}');
-  assert.equal(recs[1].resp, '{"ok":1}');
+  assert.equal(recs[4].body, '{"command":{"type":"equip"}}');
+  assert.equal(recs[4].resp, '{"ok":1}');
   assert.ok(!JSON.stringify(recs).includes('password'));
 });
