@@ -40,7 +40,7 @@ const BUFFS = {
   AL_ANGELUS: (o, lv) => { o.vitDefRate += 5 * lv; },
 };
 
-const counter = () => new Proxy({}, { get: (o, k) => (k in o ? o[k] : 0) });
+const counter = () => new Proxy({}, { get: (o, k) => (k in o || typeof k === 'symbol' ? o[k] : 0) });
 const lookup = (arr, lv) => (arr?.length ? arr[Math.min(lv, arr.length) - 1] : 0);
 export const uniformInt = (lo, hi, rng = Math.random) => lo + fl(rng() * (hi - lo + 1));
 
@@ -58,7 +58,7 @@ export function bonuses(state, items) {
     for (const src of [item, ...(stack.cards ?? []).map((c) => items[c])]) {
       const b = src.byRefine?.[String(stack.refine ?? 0)] ?? src.bonuses ?? {};
       for (const [k, v] of Object.entries(b)) {
-        if (typeof v === 'number') out[k] += v;
+        if (typeof v === 'number' || typeof v === 'boolean') out[k] += +v; // bool counts as 1, like the oracle
         else if (k === 'stats') for (const [s, n] of Object.entries(v)) out['stat.' + s] += n;
         else throw new Error(`unsupported equipment bonus ${k}`);
       }
@@ -96,7 +96,7 @@ export function matk(int, b = counter()) {
 export function maxPool(job, field, baseLv, stat, flat = 0, rate = 0) {
   const table = field === 'maxHp' ? job.baseHp : job.baseSp;
   let base = table[Math.min(baseLv, table.length) - 1];
-  if (job.id.endsWith('_high') || REBORN.has(job.id)) base = fl(base * 125 / 100); // reborn: unverified
+  if (job.id.endsWith('_high') || REBORN.has(job.id)) base = fl(base * 125 / 100); // ponytail: reborn ×1.25 unverified (no reborn captures)
   return Math.max(1, fl((fl(base * (100 + stat) / 100) + flat) * (100 + rate) / 100));
 }
 
@@ -112,11 +112,15 @@ export const castMs = (skill, lv, dex) => fl(lookup(skill.castMs, lv) * Math.max
 export const skillDelayMs = (skill, lv) => lookup(skill.delayMs, lv);
 export const refineAtk = (refineTable, weaponLevel = 1, refine = 0) =>
   refine ? fl(refineTable.weapon[String(weaponLevel)][refine - 1].bonus / 100) : 0;
-export const elementMod = (attack, defense, defenseLv) =>
-  ELEMENT_TABLE[defenseLv - 1][ELEMENTS.indexOf(attack)][ELEMENTS.indexOf(defense)];
+/** attack/defense are element names; a skill element of `weapon` must be resolved by the caller first. */
+export function elementMod(attack, defense, defenseLv) {
+  const a = ELEMENTS.indexOf(attack), d = ELEMENTS.indexOf(defense);
+  if (a < 0 || d < 0 || !ELEMENT_TABLE[defenseLv - 1]) throw new Error(`unknown element ${attack}→${defense} Lv${defenseLv}`);
+  return ELEMENT_TABLE[defenseLv - 1][a][d];
+}
 export const sizeMod = (wt, size) => SIZE_TABLE[wt][size];
 
-/** Full stat panel (snapshot `derived` field names). data: { job, items, refine? }. */
+/** Full stat panel (snapshot `derived` field names). data: { job, items, refine } (refine table needed for refined weapons). */
 export function derive(state, { job, items, refine }) {
   const c = state.character;
   const b = bonuses(state, items);
@@ -184,7 +188,7 @@ export function rollPlayerDamage(o, rng = Math.random) {
   return playerDamage(physicalArgs(o, r, uniformInt(...r.weapon, rng), uniformInt(...r.arrow, rng), uniformInt(...r.soft, rng)));
 }
 
-/** Player soft DEF range (rAthena pre-renewal structure, fitted 873/4): def2 = VIT scaled by Angelus. */
+/** Player soft DEF range, fitted to captures (same shape as rAthena pre-renewal; see formulas.md for counts): def2 = VIT scaled by Angelus. */
 export function playerSoftDefRange(vit, vitDefRate = 0) {
   const def2 = fl(vit * (100 + vitDefRate) / 100);
   const lo = fl(def2 / 2);
@@ -206,12 +210,12 @@ export function magicDamage({ matkRoll, monster, elementMod = 100, hits = 1 }) {
   return Math.max(1, fl(dmg * elementMod / 100)) * hits;
 }
 
-/** Even share per eligible member. ponytail: share mode / level-gap eligibility left to the caller. */
+/** Even share per eligible member. ponytail: only n=8 verified; share mode / level-gap eligibility left to the caller. */
 export function partyExpShare({ baseExp, jobExp }, members) {
   const pct = 100 + Math.min(100, 20 * (members - 1));
   return { base: fl(baseExp * pct / (100 * members)), job: fl(jobExp * pct / (100 * members)) };
 }
 
-/** Base EXP lost on death (mechanics page; floor is our rounding choice, unverified). */
+/** Base EXP lost on death (mechanics page). ponytail: floor + novice exemption unverified (no deaths captured). */
 export const deathPenalty = ({ baseExp, baseExpNext, job }) =>
   job === 'novice' ? 0 : Math.min(baseExp, fl(baseExpNext / 100));

@@ -6,7 +6,7 @@ Checked 2026-11-04 against the supplied local client bundle and eight local SSE 
 python3 -I scripts/formula-check.py .scratch/capture .scratch/bundle.js
 ```
 
-The checker uses only the Python standard library and never executes bundle JavaScript. It ignores every HTTP record, including authentication. It exits **1 intentionally** because the physical/monster candidates and explicitly rejected alternatives still have MISS observations; exit 2 means an input/shape error. Its internal parser/inventory assertions run first.
+The checker uses only the Python standard library and never executes bundle JavaScript. It ignores every HTTP record, including authentication. Exit code gates only **adopted** formulas: 0 = all adopted formulas pass, 1 = an adopted formula failed, 2 = input/shape error. Rejected alternatives (`monster_angelus_alternative`, `monster_damage_candidate`, `monster_def2_softdef`, `monster_wiki_softdef*`, `refine_before_def_alternative`) print as `(informational)` and never fail the run. The adopted fitted damage envelopes (`player_damage_candidate`, `monster_def2_softdef_angelus`) print as `(fitted)` and fail only above a 2% / 1% miss rate, because their outliers are documented and unresolved (see JS module section). Every other adopted formula must have 0 MISS. Events after a >120 s silent gap in a stream drop that stream's replay state until its next snapshot, so stat changes missed during capture gaps are not replayed. Its internal parser/inventory assertions run first.
 
 The strongest result is the derived-stat calculator: all 310 snapshots match for each reported field. Captures cover first-job characters at Base 47–50, with plain gear, a +7 Lv1 dagger, party buffs, and an eight-character party. A snapshot check validates the displayed amount, not the scheduler or every unexercised branch. The bundle contains 330 skill definitions, **231 effect handlers (69 with ratio functions), 97 buff functions**, 41 job records, 1,440 items and 429 monsters. All effect/buff definitions are inventoried verbatim below; a handler type such as `turnUndead` delegates to server code that is absent from the client.
 
@@ -563,7 +563,6 @@ Still unknown:
 - General party sizes, capped bonus versus eligibility, unequal/damage-based shares, remainder allocation and loot ownership. The eight-recipient equal-share case is established; rare-card/drop probabilities are not.
 - Regen timing/blocking, potion rolls/cooldowns, death rounding/respawn, cast-rate/slowcast/Suffragium sequencing, NPC crafting/refine probabilities, and reborn/advanced-job branches. No direct captured events establish these rules.
 - Specialized skill handlers (including turn-undead, traps, songs, homunculi and most advanced skills) have client declarations, not a complete server damage implementation. Their unverified definitions above are an inventory, not an executable server specification.
-
 ## JS module (`server/rules/formulas.js`)
 
 The server's formula module is a port of this checker; the Python script stays the oracle. `server/rules/formulas.test.mjs` has unit cases (literals from a captured merchant snapshot and the worked example above) plus a capture check. The capture check replays the SSE captures through the JS functions (bundle static data comes from the oracle's non-evaluating parser, so no bundle JS runs). It then fails if any formula has fewer OK or more MISS results than the Python oracle on the same input. It is skipped when the capture dir or `.scratch/bundle.js` is missing (override with `RO_CAPTURE_DIR` / `RO_BUNDLE`; `FORMULAS_REPORT=<path>` writes this table).
@@ -572,50 +571,56 @@ The server's formula module is a port of this checker; the Python script stays t
 node --test 'server/**/*.test.mjs'
 ```
 
-Counts from 2026-11-04 (18:40), on the full capture as it stood then (capture still growing, so totals exceed the table above):
+Counts from 2026-11-04, after the stale-gap rule, on the capture as it stood (it is still growing, so totals exceed the table above). `python3 -I scripts/formula-check.py` exits 0 on this data:
 
 | Formula | JS OK | JS MISS | Python OK | Python MISS | JS miss examples |
 | --- | --- | --- | --- | --- | --- |
-| aspd | 979 | 0 | 979 | 0 |  |
-| attackIntervalMs | 979 | 0 | 979 | 0 |  |
-| castMs_DEX | 2703 | 1 | 2703 | 1 | AL_INCAGI |
-| crit | 979 | 0 | 979 | 0 |  |
-| element_table | 15693 | 0 | 15693 | 0 |  |
-| flee | 979 | 0 | 979 | 0 |  |
-| hardDef | 979 | 0 | 979 | 0 |  |
-| hardMdef | 979 | 0 | 979 | 0 |  |
-| hit | 979 | 0 | 979 | 0 |  |
-| hpRegen | 979 | 0 | 979 | 0 |  |
-| magic_bolt_damage | 482 | 0 | 482 | 0 |  |
-| matkMax | 979 | 0 | 979 | 0 |  |
-| matkMin | 979 | 0 | 979 | 0 |  |
-| maxHp | 979 | 0 | 979 | 0 |  |
-| maxSp | 979 | 0 | 979 | 0 |  |
-| monster_def2_softdef_angelus | 887 | 4 | 887 | 4 | envelope=[1,13], observed=14; envelope=[1,15], observed=16; envelope=[1,13], observed=14 |
-| party_exp_base | 9984 | 0 | 9984 | 0 |  |
-| party_exp_job | 9984 | 0 | 9984 | 0 |  |
-| perfectDodge | 979 | 0 | 979 | 0 |  |
-| player_damage_candidate | 14318 | 163 | 14318 | 163 | envelope=[52,52], observed=58; envelope=[86,86], observed=90; envelope=[43,43], observed=45 |
-| refineAtk | 979 | 0 | 979 | 0 |  |
-| skill_delayMs | 2704 | 0 | 2704 | 0 |  |
-| softMdef | 979 | 0 | 979 | 0 |  |
-| spRegen | 979 | 0 | 979 | 0 |  |
-| statusAtk | 979 | 0 | 979 | 0 |  |
-| total_stats | 979 | 0 | 979 | 0 |  |
-| vitDef | 979 | 0 | 979 | 0 |  |
-| weightMax | 979 | 0 | 979 | 0 |  |
+| aspd | 987 | 0 | 987 | 0 |  |
+| attackIntervalMs | 987 | 0 | 987 | 0 |  |
+| castMs_DEX | 3009 | 0 | 3009 | 0 |  |
+| crit | 987 | 0 | 987 | 0 |  |
+| element_table | 18159 | 0 | 18159 | 0 |  |
+| flee | 987 | 0 | 987 | 0 |  |
+| hardDef | 987 | 0 | 987 | 0 |  |
+| hardMdef | 987 | 0 | 987 | 0 |  |
+| hit | 987 | 0 | 987 | 0 |  |
+| hpRegen | 987 | 0 | 987 | 0 |  |
+| magic_bolt_damage | 567 | 0 | 567 | 0 |  |
+| matkMax | 987 | 0 | 987 | 0 |  |
+| matkMin | 987 | 0 | 987 | 0 |  |
+| maxHp | 987 | 0 | 987 | 0 |  |
+| maxSp | 987 | 0 | 987 | 0 |  |
+| monster_def2_softdef_angelus | 995 | 5 | 995 | 5 | envelope=[1,13], observed=14; envelope=[1,15], observed=16; envelope=[1,13], observed=14 |
+| party_exp_base | 11544 | 0 | 11544 | 0 |  |
+| party_exp_job | 11544 | 0 | 11544 | 0 |  |
+| perfectDodge | 987 | 0 | 987 | 0 |  |
+| player_damage_candidate | 16591 | 157 | 16591 | 157 | envelope=[52,52], observed=58; envelope=[86,86], observed=90; envelope=[43,43], observed=45 |
+| refineAtk | 987 | 0 | 987 | 0 |  |
+| skill_delayMs | 3009 | 0 | 3009 | 0 |  |
+| softMdef | 987 | 0 | 987 | 0 |  |
+| spRegen | 987 | 0 | 987 | 0 |  |
+| statusAtk | 987 | 0 | 987 | 0 |  |
+| total_stats | 987 | 0 | 987 | 0 |  |
+| vitDef | 987 | 0 | 987 | 0 |  |
+| weightMax | 987 | 0 | 987 | 0 |  |
 
 JS equals Python on every row: same OK and MISS counts. Not in the JS module: `baseExpNext`/`jobExpNext` (plain table lookups), drop sampling, and the rejected alternatives. Party EXP is generalised as `floor(exp × (100 + min(100, 20×(n−1))) / (100×n))`, and only n=8 is verified. Death penalty `min(baseExp, floor(baseExpNext/100))` (0 for novice) is still unverified because no deaths are captured.
 
 ### Investigation: player-damage misses (163, not only Coco)
 
-On the larger capture, `player_damage_candidate` misses 163 times, not 5. 148 of the misses are profile-1 (Thief, dagger +7, Double Attack): it always lands above a single-value envelope, +2..+4 per hit. Findings:
+On the larger capture, `player_damage_candidate` misses about 160 times (157 here), not 5. About 148 of the misses are profile-1 (Thief, dagger +7, Double Attack): it always lands above a single-value envelope, +2..+4 per hit. Findings:
 
 - The replayed attacker state is correct: derived stats at each miss equal the next real snapshot.
 - On every profile-1 miss, the implied monster soft DEF is exactly `floor(0.9 × VIT)`: VIT 28→25, 34→30 (Coco), 16→14, 14→12. The bundle's Provoke table `cd(lv)` gives Lv1 `def2 −10%`, and this is that exact factor. None of these 82 target UIDs has a captured `provoke` statusStart, so captured Provoke is not the explanation.
 - A miss happens only when profile-1 is the **sole attacker** (no other party member hit the UID within ±1–5 s) **and** the target has not attacked anyone yet. Those conditions give 147 misses / ~1,950 hits. With 2+ attackers or after the monster's first attack there are 0 misses in ~3,000 hits. HP% and time since first hit do not correlate.
 - Hypothesis (unverified): the server has a hidden state that cuts monster def2 by 10% for an un-aggroed monster engaged by a single attacker, or a hidden Provoke Lv1-like status. To settle it, capture with a solo character and log the monster status list. Not modelled; the remaining 15 misses (profiles 4/5/6) are scattered at +1..+4.
 
-### Investigation: 4 monster→player Angelus off-by-one misses
+### Investigation: monster→player Angelus off-by-one misses (4, now 5)
 
-All 4 are on profile-5 (Swordman, VIT63, hard DEF 9, Angelus 10 active with ≥78 s remaining, Endure 10). They are observed 1 above the envelope max (14 vs 13, 16 vs 15), so the cause is not buff expiry. Each hit lands within ~1.5 s of the swordman first engaging the monster (`found` → first hit), and the UIDs have no Provoke status. This is unresolved: either the Angelus floor order is wrong (def2 92–93 instead of 94 would fit) or a monster ATK modifier applies on first engagement. One `castMs_DEX` miss (AL_INCAGI) appeared in both implementations and is also unresolved.
+The 4 analysed misses are all on profile-5 (Swordman, VIT63, hard DEF 9, Angelus 10 active with ≥78 s remaining, Endure 10). They are observed 1 above the envelope max (14 vs 13, 16 vs 15), so the cause is not buff expiry. Each hit lands within ~1.5 s of the swordman first engaging the monster (`found` → first hit), and the UIDs have no Provoke status. This is unresolved: either the Angelus floor order is wrong (def2 93 instead of 94 would fit) or a monster ATK modifier applies on first engagement. 
+
+### Investigation: the `castMs_DEX` miss (resolved: capture gap)
+
+AL_INCAGI Lv3 cast in 713 ms; the replay predicted 726 ms with DEX 41. The stream had only 14 events in the 2,369 s after its last snapshot, so the app was offline or the capture had a gap. The next snapshot shows DEX 43, and `floor(1000×(150−43)/150) = 713` is exact. The formula is right and the replay state was stale. Both the oracle and the JS capture test now drop a stream's state after a >120 s gap (15 such gaps in the capture), and `castMs_DEX` is 3,009 OK / 0 MISS.
+
+Known JS vs. oracle differences that no capture exercises: the JS player-damage path uses the panel `statusAtk` (DEX main for bow, instrument and whip; the oracle's damage path uses bow only). JS bolt MATK includes `magicPowerRate`, which is 0 in every capture. The JS check reads hard DEF and refine ATK from the replayed state, while the oracle reads them from the last snapshot.

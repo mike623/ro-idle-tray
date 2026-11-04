@@ -1,6 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as f from './formulas.js';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { homedir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 
 // Trimmed from the user's own merchant (capture profile-6, 2026-11-04) plus bundle job/item rows.
 const merchantJob = {
@@ -95,29 +100,27 @@ test('death penalty: 1% of next-level EXP, never below zero, none for novices', 
 });
 
 // ---- Capture check: replay the user's SSE captures through this module and compare with the Python oracle.
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
-import { isDeepStrictEqual } from 'node:util';
 
 const CAPTURE = process.env.RO_CAPTURE_DIR ?? join(homedir(), 'Library/Application Support/com.mikewong.ro-idle-tray/capture');
-const BUNDLE = process.env.RO_BUNDLE ?? '.scratch/bundle.js';
+const ROOT = resolve(import.meta.dirname, '../..');
+const BUNDLE = resolve(ROOT, process.env.RO_BUNDLE ?? '.scratch/bundle.js');
+const ORACLE = join(ROOT, 'scripts/formula-check.py');
+const STALE_GAP_MS = 120_000; // mirrors the oracle: drop replay state after a capture gap
 const haveInputs = existsSync(CAPTURE) && existsSync(BUNDLE);
 
 // Static bundle data via the oracle's non-evaluating parser (no bundle JS is executed).
 const bundleData = () => JSON.parse(execFileSync('python3', ['-I', '-c', `
 import json, runpy, sys
 from pathlib import Path
-d = runpy.run_path('scripts/formula-check.py')['static_data'](Path(sys.argv[1]).read_text())
-print(json.dumps({k: d[k] for k in ('items', 'jobs', 'skills', 'monsters', 'summons', 'refine')}))`, BUNDLE], { maxBuffer: 1 << 28 }));
+d = runpy.run_path(sys.argv[2])['static_data'](Path(sys.argv[1]).read_text())
+print(json.dumps({k: d[k] for k in ('items', 'jobs', 'skills', 'monsters', 'summons', 'refine')}))`, BUNDLE, ORACLE], { maxBuffer: 1 << 28 }));
 
 function oracleCounts() {
   let out;
-  try { out = execFileSync('python3', ['-I', 'scripts/formula-check.py', CAPTURE, BUNDLE], { maxBuffer: 1 << 26 }); }
-  catch (e) { if (e.status !== 1) throw e; out = e.stdout; } // exit 1 = some MISS rows, by design
+  try { out = execFileSync('python3', ['-I', ORACLE, CAPTURE, BUNDLE], { maxBuffer: 1 << 26 }); }
+  catch (e) { if (e.status !== 1) throw e; out = e.stdout; } // exit 1 = an adopted formula failed; still compare
   const rows = {};
-  for (const m of String(out).matchAll(/^(\w+)\s+(\d+)\s+(\d+)\s+(\d+)$/gm)) rows[m[1]] = { OK: +m[2], MISS: +m[3], SKIP: +m[4] };
+  for (const m of String(out).matchAll(/^(\w+)\s+(\d+)\s+(\d+)\s+(\d+)(?: \(\w+\))?$/gm)) rows[m[1]] = { OK: +m[2], MISS: +m[3], SKIP: +m[4] };
   return rows;
 }
 
@@ -155,12 +158,13 @@ function jsCounts(data) {
   const envelope = (name, { min, max }, v) => check(name, min <= v && v <= max, `envelope=[${min},${max}], observed=${v}`);
   const records = captureRecords();
   const changed = new Set(records.filter(([, k, e]) => k === 'event' && e.body.type === 'statusStart' && 'monsterId' in e.body).map(([, , e]) => e.body.uid));
-  const state = {}, groups = new Map();
+  const state = {}, lastSeen = {}, groups = new Map();
   const derive = (s) => { try { return f.derive(s, { job: jobs[s.character.job], items, refine: data.refine }); } catch { return null; } };
 
   for (const [stream, kind, s] of records) {
     if (kind === 'snapshot') {
       state[stream] = s;
+      lastSeen[stream] = s.time;
       const d = derive(s);
       if (!d) { bump('unsupported_snapshot', 'SKIP'); continue; }
       check('total_stats', isDeepStrictEqual(d.total, s.derived.total), 'total');
@@ -170,6 +174,8 @@ function jsCounts(data) {
     const body = s.body;
     if (!groups.has(s.wallMs)) groups.set(s.wallMs, []);
     groups.get(s.wallMs).push([stream, body]);
+    if (s.simTime - (lastSeen[stream] ?? s.simTime) > STALE_GAP_MS) delete state[stream];
+    lastSeen[stream] = s.simTime;
     const snap = state[stream];
     if (!snap) continue;
     const c = snap.character;
@@ -233,4 +239,8 @@ test('capture check: JS module matches captures at least as well as the Python o
     assert.ok(py[k], `oracle has no row ${k}`);
     assert.ok(res[k].OK >= py[k].OK && res[k].MISS <= py[k].MISS, `${k}: JS ${res[k].OK}/${res[k].MISS} worse than Python ${py[k].OK}/${py[k].MISS}`);
   }
+});
+
+test('elementMod rejects unknown elements instead of returning undefined', () => {
+  assert.throws(() => f.elementMod('weapon', 'earth', 1), /unknown element/);
 });
