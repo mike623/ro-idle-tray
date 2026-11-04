@@ -1,0 +1,932 @@
+{
+ "L1": {
+  "rows": [
+   {
+    "name": "aspd",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "attackIntervalMs",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "baseExpNext",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "castMs_DEX",
+    "ok": 6317,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "crit",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "drops_4sigma",
+    "ok": 26,
+    "miss": 0,
+    "skip": 31,
+    "tag": ""
+   },
+   {
+    "name": "drops_known_outlier",
+    "ok": 1,
+    "miss": 0,
+    "skip": 0,
+    "tag": "(informational)"
+   },
+   {
+    "name": "element_table",
+    "ok": 40454,
+    "miss": 0,
+    "skip": 4608,
+    "tag": ""
+   },
+   {
+    "name": "event_without_snapshot",
+    "ok": 0,
+    "miss": 0,
+    "skip": 24182,
+    "tag": ""
+   },
+   {
+    "name": "flee",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "hardDef",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "hardMdef",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "hit",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "hpRegen",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "interval_from_aspd",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "jobExpNext",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "magic_bolt_damage",
+    "ok": 1220,
+    "miss": 0,
+    "skip": 236,
+    "tag": ""
+   },
+   {
+    "name": "magic_bolt_hits",
+    "ok": 1220,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "matkMax",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "matkMin",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "maxHp",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "maxSp",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "monster_angelus_alternative",
+    "ok": 1673,
+    "miss": 477,
+    "skip": 0,
+    "tag": "(informational)"
+   },
+   {
+    "name": "monster_damage_candidate",
+    "ok": 2105,
+    "miss": 45,
+    "skip": 306,
+    "tag": "(informational)"
+   },
+   {
+    "name": "monster_def2_softdef",
+    "ok": 1404,
+    "miss": 746,
+    "skip": 0,
+    "tag": "(informational)"
+   },
+   {
+    "name": "monster_def2_softdef_angelus",
+    "ok": 2132,
+    "miss": 18,
+    "skip": 0,
+    "tag": "(fitted)"
+   },
+   {
+    "name": "monster_wiki_softdef",
+    "ok": 1911,
+    "miss": 239,
+    "skip": 0,
+    "tag": "(informational)"
+   },
+   {
+    "name": "monster_wiki_softdef_angelus",
+    "ok": 1671,
+    "miss": 479,
+    "skip": 0,
+    "tag": "(informational)"
+   },
+   {
+    "name": "party_exp_base",
+    "ok": 28232,
+    "miss": 0,
+    "skip": 4368,
+    "tag": ""
+   },
+   {
+    "name": "party_exp_job",
+    "ok": 28232,
+    "miss": 0,
+    "skip": 4368,
+    "tag": ""
+   },
+   {
+    "name": "perfectDodge",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "player_damage_candidate",
+    "ok": 37150,
+    "miss": 250,
+    "skip": 4155,
+    "tag": "(fitted)"
+   },
+   {
+    "name": "refineAtk",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "refine_before_def_alternative",
+    "ok": 2070,
+    "miss": 3965,
+    "skip": 0,
+    "tag": "(informational)"
+   },
+   {
+    "name": "skill_delayMs",
+    "ok": 6317,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "softMdef",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "spRegen",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "statusAtk",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "total_stats",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "unsupported_snapshot",
+    "ok": 0,
+    "miss": 0,
+    "skip": 20,
+    "tag": ""
+   },
+   {
+    "name": "vitDef",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   },
+   {
+    "name": "weightMax",
+    "ok": 1322,
+    "miss": 0,
+    "skip": 0,
+    "tag": ""
+   }
+  ],
+  "failing": "none",
+  "code": 0
+ },
+ "L2": {
+  "own": {
+   "n": 153,
+   "pass": 141
+  },
+  "solo": {
+   "n": 25,
+   "pass": 21
+  },
+  "helped": {
+   "n": 247,
+   "pass": 2
+  },
+  "all": {
+   "n": 400,
+   "pass": 143
+  },
+  "worst": [
+   {
+    "id": "72468:52844",
+    "solo": false,
+    "own": true,
+    "mobId": 1104,
+    "job": "mage",
+    "pass": false,
+    "metrics": {
+     "durationMs": {
+      "real": 1978,
+      "p5": 5556,
+      "p50": 5556,
+      "p95": 5556,
+      "ok": false
+     },
+     "damageTaken": {
+      "real": 0,
+      "p5": 0,
+      "p50": 63,
+      "p95": 127,
+      "ok": true
+     },
+     "hitsLanded": {
+      "real": 1,
+      "p5": 2,
+      "p50": 2,
+      "p95": 2,
+      "ok": false
+     }
+    },
+    "miss": [
+     [
+      "durationMs",
+      {
+       "real": 1978,
+       "p5": 5556,
+       "p50": 5556,
+       "p95": 5556,
+       "ok": false
+      }
+     ],
+     [
+      "hitsLanded",
+      {
+       "real": 1,
+       "p5": 2,
+       "p50": 2,
+       "p95": 2,
+       "ok": false
+      }
+     ]
+    ]
+   },
+   {
+    "id": "72472:52437",
+    "solo": false,
+    "own": true,
+    "mobId": 1128,
+    "job": "merchant",
+    "pass": false,
+    "metrics": {
+     "durationMs": {
+      "real": 0,
+      "p5": 1172,
+      "p50": 1172,
+      "p95": 2344,
+      "ok": false
+     },
+     "damageTaken": {
+      "real": 0,
+      "p5": 0,
+      "p50": 54,
+      "p95": 65,
+      "ok": true
+     },
+     "hitsLanded": {
+      "real": 1,
+      "p5": 2,
+      "p50": 2,
+      "p95": 2,
+      "ok": false
+     }
+    },
+    "miss": [
+     [
+      "durationMs",
+      {
+       "real": 0,
+       "p5": 1172,
+       "p50": 1172,
+       "p95": 2344,
+       "ok": false
+      }
+     ],
+     [
+      "hitsLanded",
+      {
+       "real": 1,
+       "p5": 2,
+       "p50": 2,
+       "p95": 2,
+       "ok": false
+      }
+     ]
+    ]
+   },
+   {
+    "id": "72688:52157",
+    "solo": true,
+    "own": true,
+    "mobId": 1085,
+    "job": "swordman",
+    "pass": false,
+    "metrics": {
+     "durationMs": {
+      "real": 12406,
+      "p5": 12424,
+      "p50": 26812,
+      "p95": 29428,
+      "ok": false
+     },
+     "damageTaken": {
+      "real": 0,
+      "p5": 0,
+      "p50": 0,
+      "p95": 0,
+      "ok": true
+     },
+     "hitsLanded": {
+      "real": 3,
+      "p5": 4,
+      "p50": 15,
+      "p95": 15,
+      "ok": false
+     }
+    },
+    "miss": [
+     [
+      "durationMs",
+      {
+       "real": 12406,
+       "p5": 12424,
+       "p50": 26812,
+       "p95": 29428,
+       "ok": false
+      }
+     ],
+     [
+      "hitsLanded",
+      {
+       "real": 3,
+       "p5": 4,
+       "p50": 15,
+       "p95": 15,
+       "ok": false
+      }
+     ]
+    ]
+   },
+   {
+    "id": "74435:51903",
+    "solo": false,
+    "own": true,
+    "mobId": 1013,
+    "job": "merchant",
+    "pass": false,
+    "metrics": {
+     "durationMs": {
+      "real": 2607,
+      "p5": 1116,
+      "p50": 1116,
+      "p95": 2232,
+      "ok": false
+     },
+     "damageTaken": {
+      "real": 0,
+      "p5": 0,
+      "p50": 11,
+      "p95": 25,
+      "ok": true
+     },
+     "hitsLanded": {
+      "real": 1,
+      "p5": 2,
+      "p50": 2,
+      "p95": 2,
+      "ok": false
+     }
+    },
+    "miss": [
+     [
+      "durationMs",
+      {
+       "real": 2607,
+       "p5": 1116,
+       "p50": 1116,
+       "p95": 2232,
+       "ok": false
+      }
+     ],
+     [
+      "hitsLanded",
+      {
+       "real": 1,
+       "p5": 2,
+       "p50": 2,
+       "p95": 2,
+       "ok": false
+      }
+     ]
+    ]
+   },
+   {
+    "id": "74435:53008",
+    "solo": false,
+    "own": true,
+    "mobId": 1013,
+    "job": "merchant",
+    "pass": false,
+    "metrics": {
+     "durationMs": {
+      "real": 2314,
+      "p5": 1116,
+      "p50": 1116,
+      "p95": 2232,
+      "ok": false
+     },
+     "damageTaken": {
+      "real": 0,
+      "p5": 0,
+      "p50": 11,
+      "p95": 25,
+      "ok": true
+     },
+     "hitsLanded": {
+      "real": 1,
+      "p5": 2,
+      "p50": 2,
+      "p95": 2,
+      "ok": false
+     }
+    },
+    "miss": [
+     [
+      "durationMs",
+      {
+       "real": 2314,
+       "p5": 1116,
+       "p50": 1116,
+       "p95": 2232,
+       "ok": false
+      }
+     ],
+     [
+      "hitsLanded",
+      {
+       "real": 1,
+       "p5": 2,
+       "p50": 2,
+       "p95": 2,
+       "ok": false
+      }
+     ]
+    ]
+   },
+   {
+    "id": "72472:51858",
+    "solo": false,
+    "own": true,
+    "mobId": 1031,
+    "job": "merchant",
+    "pass": false,
+    "metrics": {
+     "durationMs": {
+      "real": 0,
+      "p5": 1168,
+      "p50": 1168,
+      "p95": 2336,
+      "ok": false
+     },
+     "damageTaken": {
+      "real": 0,
+      "p5": 0,
+      "p50": 0,
+      "p95": 65,
+      "ok": true
+     },
+     "hitsLanded": {
+      "real": 1,
+      "p5": 1,
+      "p50": 2,
+      "p95": 2,
+      "ok": true
+     }
+    },
+    "miss": [
+     [
+      "durationMs",
+      {
+       "real": 0,
+       "p5": 1168,
+       "p50": 1168,
+       "p95": 2336,
+       "ok": false
+      }
+     ]
+    ]
+   },
+   {
+    "id": "72472:53052",
+    "solo": false,
+    "own": true,
+    "mobId": 1128,
+    "job": "merchant",
+    "pass": false,
+    "metrics": {
+     "durationMs": {
+      "real": 1620,
+      "p5": 0,
+      "p50": 0,
+      "p95": 1168,
+      "ok": false
+     },
+     "damageTaken": {
+      "real": 0,
+      "p5": 0,
+      "p50": 0,
+      "p95": 62,
+      "ok": true
+     },
+     "hitsLanded": {
+      "real": 1,
+      "p5": 1,
+      "p50": 1,
+      "p95": 2,
+      "ok": true
+     }
+    },
+    "miss": [
+     [
+      "durationMs",
+      {
+       "real": 1620,
+       "p5": 0,
+       "p50": 0,
+       "p95": 1168,
+       "ok": false
+      }
+     ]
+    ]
+   },
+   {
+    "id": "72688:52642",
+    "solo": true,
+    "own": true,
+    "mobId": 1085,
+    "job": "swordman",
+    "pass": false,
+    "metrics": {
+     "durationMs": {
+      "real": 12406,
+      "p5": 12406,
+      "p50": 26728,
+      "p95": 29332,
+      "ok": true
+     },
+     "damageTaken": {
+      "real": 0,
+      "p5": 0,
+      "p50": 0,
+      "p95": 0,
+      "ok": true
+     },
+     "hitsLanded": {
+      "real": 3,
+      "p5": 4,
+      "p50": 15,
+      "p95": 15,
+      "ok": false
+     }
+    },
+    "miss": [
+     [
+      "hitsLanded",
+      {
+       "real": 3,
+       "p5": 4,
+       "p50": 15,
+       "p95": 15,
+       "ok": false
+      }
+     ]
+    ]
+   }
+  ]
+ },
+ "sessions": [
+  {
+   "id": 72397,
+   "job": "thief",
+   "baseLv": 50,
+   "mapId": "mjolnir_09",
+   "activeMs": 22587928,
+   "counts": {
+    "kills": 1307,
+    "baseExp": 177671,
+    "zeny": -46936,
+    "deaths": 0,
+    "potions": 1,
+    "drops": 785
+   }
+  },
+  {
+   "id": 72444,
+   "job": "acolyte",
+   "baseLv": 48,
+   "mapId": "mjolnir_09",
+   "activeMs": 17783175,
+   "counts": {
+    "kills": 0,
+    "baseExp": 141751,
+    "zeny": 16396,
+    "deaths": 0,
+    "potions": 0,
+    "drops": 620
+   }
+  },
+  {
+   "id": 72468,
+   "job": "mage",
+   "baseLv": 49,
+   "mapId": "mjolnir_09",
+   "activeMs": 17908052,
+   "counts": {
+    "kills": 1120,
+    "baseExp": 143281,
+    "zeny": 23542,
+    "deaths": 0,
+    "potions": 0,
+    "drops": 633
+   }
+  },
+  {
+   "id": 72472,
+   "job": "merchant",
+   "baseLv": 48,
+   "mapId": "mjolnir_09",
+   "activeMs": 17648312,
+   "counts": {
+    "kills": 284,
+    "baseExp": 140150,
+    "zeny": 0,
+    "deaths": 0,
+    "potions": 0,
+    "drops": 654
+   }
+  },
+  {
+   "id": 72688,
+   "job": "swordman",
+   "baseLv": 48,
+   "mapId": "mjolnir_09",
+   "activeMs": 19154686,
+   "counts": {
+    "kills": 346,
+    "baseExp": 158049,
+    "zeny": 24320,
+    "deaths": 0,
+    "potions": 1,
+    "drops": 679
+   }
+  },
+  {
+   "id": 74435,
+   "job": "merchant",
+   "baseLv": 48,
+   "mapId": "mjolnir_09",
+   "activeMs": 17835354,
+   "counts": {
+    "kills": 294,
+    "baseExp": 139104,
+    "zeny": 0,
+    "deaths": 0,
+    "potions": 0,
+    "drops": 613
+   }
+  },
+  {
+   "id": 74496,
+   "job": "archer",
+   "baseLv": 48,
+   "mapId": "mjolnir_09",
+   "activeMs": 17787330,
+   "counts": {
+    "kills": 798,
+    "baseExp": 140679,
+    "zeny": -337,
+    "deaths": 0,
+    "potions": 0,
+    "drops": 601
+   }
+  },
+  {
+   "id": 74917,
+   "job": "acolyte",
+   "baseLv": 47,
+   "mapId": "mjolnir_09",
+   "activeMs": 17638884,
+   "counts": {
+    "kills": 8,
+    "baseExp": 140878,
+    "zeny": 0,
+    "deaths": 0,
+    "potions": 0,
+    "drops": 637
+   }
+  }
+ ],
+ "run": {
+  "simMs": 17890554,
+  "wallMs": 298272.666417,
+  "twins": [
+   {
+    "id": 72397,
+    "counts": {
+     "kills": 0,
+     "baseExp": 14642,
+     "zeny": 0,
+     "deaths": 0,
+     "potions": 0,
+     "drops": 0
+    }
+   },
+   {
+    "id": 72444,
+    "counts": {
+     "kills": 0,
+     "baseExp": 14642,
+     "zeny": 0,
+     "deaths": 0,
+     "potions": 0,
+     "drops": 0
+    }
+   },
+   {
+    "id": 72468,
+    "counts": {
+     "kills": 0,
+     "baseExp": 14642,
+     "zeny": 0,
+     "deaths": 0,
+     "potions": 0,
+     "drops": 0
+    }
+   },
+   {
+    "id": 72472,
+    "counts": {
+     "kills": 0,
+     "baseExp": 14642,
+     "zeny": 0,
+     "deaths": 0,
+     "potions": 0,
+     "drops": 0
+    }
+   },
+   {
+    "id": 72688,
+    "counts": {
+     "kills": 368,
+     "baseExp": 14642,
+     "zeny": 11616,
+     "deaths": 0,
+     "potions": 70,
+     "drops": 471
+    }
+   },
+   {
+    "id": 74435,
+    "counts": {
+     "kills": 0,
+     "baseExp": 14642,
+     "zeny": 0,
+     "deaths": 0,
+     "potions": 0,
+     "drops": 0
+    }
+   },
+   {
+    "id": 74496,
+    "counts": {
+     "kills": 0,
+     "baseExp": 14642,
+     "zeny": 0,
+     "deaths": 0,
+     "potions": 0,
+     "drops": 0
+    }
+   },
+   {
+    "id": 74917,
+    "counts": {
+     "kills": 0,
+     "baseExp": 14642,
+     "zeny": 0,
+     "deaths": 0,
+     "potions": 0,
+     "drops": 0
+    }
+   }
+  ]
+ }
+}
