@@ -358,3 +358,35 @@ test('an engine bug in the server tick is logged and the server keeps ticking an
   assert.ok(errors.length >= 2, `tick errors logged: ${errors.length}`);
   assert.equal((await get(`/api/characters/${ID}?deferCatchup=1`)).status, 200);
 });
+
+test('admin dashboard: state, log backlog with HTTP errors and WS rejects, page', async (t) => {
+  const { srv, base, get } = await boot();
+  t.after(() => srv.close());
+  await get('/api/characters', {}); // 401 → logged
+  const c = connect(base);
+  t.after(() => c.ws.close());
+  await c.open;
+  await c.send({ type: 'attack', uid: 'nope' }); // rejected → logged
+  const s = await get('/admin/state', {});
+  assert.equal(s.status, 200);
+  const me = s.body.characters.find((x) => x.id === ID);
+  assert.equal(me.driven, true);
+  assert.equal(me.account, 'mike');
+  assert.ok(s.body.uptimeMs >= 0 && s.body.rssMb > 0);
+  assert.ok(s.body.counters.http >= 2 && s.body.counters.wsActions >= 1);
+
+  const ac = new AbortController();
+  const r = await fetch(`${base}/admin/log`, { signal: ac.signal });
+  assert.match(r.headers.get('content-type'), /event-stream/);
+  const reader = r.body.getReader();
+  let text = '';
+  while (!/\n\n[\s\S]*\n\n/.test(text)) text += new TextDecoder().decode((await reader.read()).value);
+  ac.abort();
+  assert.match(text, /401 GET \/api\/characters/);
+  assert.match(text, /72397.*attack.*rejected/);
+
+  const page = await fetch(`${base}/admin`);
+  assert.match(page.headers.get('content-type'), /text\/html/);
+  assert.match(await page.text(), /Own server/);
+  assert.equal(me.driverUa, 'none'); // who runs the brain: the ws test client sends no user-agent
+});

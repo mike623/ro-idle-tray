@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Own server</title>
+<style>
+  :root { --bg:#f6f7f9; --fg:#1d2330; --muted:#6b7280; --card:#fff; --line:#e3e6ec; --ok:#15803d; --bad:#b91c1c; --warn:#b45309; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111418; --fg:#e6e8ec; --muted:#9aa3af; --card:#1a1e24; --line:#2a3039; --ok:#4ade80; --bad:#f87171; --warn:#fbbf24; } }
+  body { margin:0; font:14px/1.4 -apple-system, system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  header { padding:12px 16px; display:flex; gap:16px; align-items:baseline; flex-wrap:wrap; border-bottom:1px solid var(--line); }
+  h1 { font-size:16px; margin:0; }
+  .stat { color:var(--muted); } .stat b { color:var(--fg); font-variant-numeric:tabular-nums; }
+  main { padding:16px; display:grid; gap:16px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  h2 { font-size:13px; margin:0; padding:8px 12px; border-bottom:1px solid var(--line); display:flex; gap:8px; align-items:center; }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  th, td { text-align:left; padding:6px 12px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--muted); font-weight:500; font-size:12px; }
+  .wrap { overflow-x:auto; }
+  .yes { color:var(--ok); font-weight:600; } .no { color:var(--muted); }
+  .ua { color:var(--muted); font-size:12px; max-width:320px; overflow:hidden; text-overflow:ellipsis; }
+  #log { height:50vh; overflow:auto; font:12px/1.5 ui-monospace, Menlo, monospace; padding:8px 12px; margin:0; }
+  #log .e { color:var(--bad); } #log .w { color:var(--warn); } #log .t { color:var(--muted); }
+  input { font:inherit; padding:2px 6px; border:1px solid var(--line); border-radius:4px; background:var(--bg); color:var(--fg); }
+  label { font-weight:400; color:var(--muted); margin-left:auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Own server</h1>
+  <span class="stat">uptime <b id="up">–</b></span>
+  <span class="stat">RSS <b id="rss">–</b> MB</span>
+  <span class="stat">brains <b id="drv">–</b></span>
+  <span class="stat">viewers <b id="view">–</b></span>
+  <span class="stat">HTTP <b id="http">–</b> (<b id="herr">–</b> err)</span>
+  <span class="stat">WS actions <b id="ws">–</b> (<b id="wsr">–</b> rejected)</span>
+  <span class="stat">events <b id="ev">–</b> (<b id="evs">–</b>/s)</span>
+</header>
+<main>
+  <section>
+    <h2>Characters</h2>
+    <div class="wrap"><table>
+      <thead><tr><th>ID</th><th>Name</th><th>Account</th><th>Job</th><th>Lv</th><th>Map</th><th>HP</th><th>Zeny</th><th>Activity</th><th>Running</th><th>Brain</th><th>Brain runs in</th></tr></thead>
+      <tbody id="chars"></tbody>
+    </table></div>
+  </section>
+  <section>
+    <h2>Log <label>filter <input id="q" placeholder="char id, type, 401…"></label></h2>
+    <pre id="log"></pre>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+const dur = (ms) => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 3600)}h ${Math.floor(s / 60) % 60}m ${s % 60}s`; };
+// Webview UA = brain runs in the Beta client; node = a Node bot/script.
+const where = (ua) => !ua ? '' : /AppleWebKit|Mozilla/.test(ua) ? 'client (webview)' : /node|undici/i.test(ua) ? 'Node script' : ua;
+let lastEv = null, lastT = 0;
+async function refresh() {
+  try {
+    const s = await (await fetch('/admin/state')).json();
+    $('up').textContent = dur(s.uptimeMs); $('rss').textContent = s.rssMb; $('drv').textContent = s.drivers; $('view').textContent = s.viewers;
+    $('http').textContent = s.counters.http; $('herr').textContent = s.counters.httpErrors;
+    $('ws').textContent = s.counters.wsActions; $('wsr').textContent = s.counters.wsRejected; $('ev').textContent = s.counters.events;
+    const now = Date.now();
+    if (lastEv != null) $('evs').textContent = ((s.counters.events - lastEv) * 1000 / (now - lastT)).toFixed(1);
+    lastEv = s.counters.events; lastT = now;
+    $('chars').innerHTML = s.characters.map((c) => `<tr><td>${c.id}</td><td>${esc(c.name)}</td><td>${esc(c.account)}</td><td>${esc(c.job)}</td>
+      <td>${c.baseLv}/${c.jobLv}</td><td>${esc(c.mapId)}</td><td>${c.hp ?? ''}/${c.maxHp ?? ''}</td><td>${c.zeny ?? ''}</td><td>${esc(c.activity)}</td>
+      <td class="${c.running ? 'yes' : 'no'}">${c.running ? 'yes' : 'no'}</td><td class="${c.driven ? 'yes' : 'no'}">${c.driven ? 'connected' : 'none'}</td>
+      <td class="ua" title="${esc(c.driverUa)}">${esc(where(c.driverUa))}</td></tr>`).join('');
+  } catch {}
+}
+const lines = [];
+function draw() {
+  const q = $('q').value.trim().toLowerCase();
+  const el = $('log'), atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+  el.innerHTML = lines.filter((r) => !q || r.line.toLowerCase().includes(q)).map((r) => {
+    const cls = /^(5\d\d|4\d\d)|rejected|refused|error/i.test(r.line) ? (/^5|refused/.test(r.line) ? 'e' : 'w') : '';
+    return `<span class="t">${new Date(r.t).toLocaleTimeString()}</span> <span class="${cls}">${esc(r.line)}</span>`;
+  }).join('\n');
+  if (atBottom) el.scrollTop = el.scrollHeight;
+}
+new EventSource('/admin/log').onmessage = (e) => { lines.push(JSON.parse(e.data)); if (lines.length > 1000) lines.shift(); draw(); };
+$('q').oninput = draw;
+refresh(); setInterval(refresh, 2000);
+</script>
+</body>
+</html>

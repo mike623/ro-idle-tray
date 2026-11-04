@@ -53,6 +53,26 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
   const drivers = new Map(); // charId → ws
   const viewers = new Set(); // open SSE streams { account, res }
 
+  // Admin dashboard (/admin): ring buffer of log lines + live tail. Localhost only (server binds 127.0.0.1).
+  const started = Date.now();
+  const counters = { http: 0, httpErrors: 0, wsActions: 0, wsRejected: 0, events: 0 };
+  const logRing = [];
+  const tails = new Set();
+  const log = (line, toConsole = logErrors) => {
+    const rec = { t: Date.now(), line };
+    logRing.push(rec);
+    if (logRing.length > 1000) logRing.shift();
+    for (const w of tails) w(rec);
+    if (toConsole) console.log(line);
+  };
+  const QUIET = new Set(['playerAttack', 'monsterAttack', 'mobSkill', 'searching', 'found']); // per-hit noise stays out of the log
+  const prevEmit = game.onEmit;
+  game.onEmit = (C, out) => {
+    prevEmit?.(C, out);
+    counters.events += out.length;
+    for (const e of out) if (!QUIET.has(e.body.type)) log(`${C.id} ${C.name} ${e.body.type} ${brief(e.body)}`, false);
+  };
+
   const accountOf = (req, url) => {
     const auth = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
     const cookie = req.headers.cookie?.match(/(?:^|;\s*)ro_token=([^;]+)/)?.[1];
@@ -63,18 +83,23 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
 
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x');
+    counters.http++;
     const send = (status, body, headers = {}) => {
       res.writeHead(status, { 'content-type': 'application/json', 'x-request-id': randomUUID(), ...headers });
       res.end(JSON.stringify(body));
     };
     const fail = (status, code, message, extra) => {
-      if (logErrors) console.log(`[${status}] ${req.method} ${url.pathname} ${code}`); // shape mismatches the real client hits
+      counters.httpErrors++;
+      log(`${status} ${req.method} ${url.pathname} ${code}`); // shape mismatches the real client hits
       send(status, { error: { code, message }, ...extra });
     };
     try {
       const body = req.method === 'POST' ? await readJson(req) : undefined;
       const p = url.pathname;
       if (req.method === 'GET' && p.startsWith('/brain/')) return serveBrain(res, p);
+      if (p === '/admin') return raw(res, 200, TYPES['.html'], readFileSync(new URL('./admin.html', import.meta.url)));
+      if (p === '/admin/state') return send(200, adminState());
+      if (p === '/admin/log') return adminLog(req, res);
       if (req.method === 'GET' && !p.startsWith('/api/')) return await serveClient(res, p);
       if (p === '/api/auth/config') return send(200, { authMode: 'dev', google: false });
       if (p === '/api/auth/dev-login' && req.method === 'POST') {
@@ -126,9 +151,30 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
     } catch (err) {
       if (err instanceof SyntaxError) return fail(400, 'INVALID_REQUEST', 'bad json');
       console.error(err);
+      log(`500 ${req.method} ${url.pathname} ${err.message}`, false);
       fail(500, 'INVARIANT', String(err.message));
     }
   });
+
+  function adminState() {
+    return {
+      uptimeMs: Date.now() - started, rssMb: Math.round(process.memoryUsage().rss / 1e5) / 10, counters,
+      drivers: drivers.size, viewers: viewers.size,
+      characters: [...game.chars.values()].map((C) => {
+        const c = C.snapshot.character;
+        return { id: C.id, name: C.name, account: C.account, job: c.job, baseLv: c.baseLv, jobLv: c.jobLv, mapId: C.snapshot.mapId,
+          hp: c.hp, maxHp: C.snapshot.derived?.maxHp ?? c.maxHp, zeny: c.zeny, activity: C.snapshot.activity ?? null,
+          running: C.running, driven: drivers.has(C.id), driverUa: drivers.get(C.id)?.ua ?? null, lastSeq: C.lastSeq };
+      }),
+    };
+  }
+  function adminLog(req, res) {
+    res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
+    const w = (rec) => res.write(`data: ${JSON.stringify(rec)}\n\n`);
+    logRing.forEach(w);
+    tails.add(w);
+    req.on('close', () => tails.delete(w));
+  }
 
   function serveBrain(res, p) {
     const name = p.slice('/brain/'.length);
@@ -145,7 +191,7 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
     const type = TYPES[extname(file)] ?? 'application/octet-stream';
     if (existsSync(file)) return raw(res, 200, type, readFileSync(file));
     const up = await fetch(upstream + p, { redirect: 'follow' }).catch(() => null);
-    if (!up?.ok) { if (logErrors) console.log(`[404] GET ${p} (upstream ${up?.status ?? 'unreachable'})`); return raw(res, 404, 'text/plain', 'not found'); }
+    if (!up?.ok) { log(`404 GET ${p} (upstream ${up?.status ?? 'unreachable'})`); return raw(res, 404, 'text/plain', 'not found'); }
     const bytes = Buffer.from(await up.arrayBuffer());
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, bytes);
@@ -178,13 +224,15 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
     const out = (x) => ws.readyState === ws.OPEN && ws.send(JSON.stringify(x));
     const account = accountOf(req, url);
     const C = game.chars.get(+url.searchParams.get('character'));
-    if (!account || !C || C.account !== account) return ws.close(4401, 'UNAUTHENTICATED');
+    if (!account || !C || C.account !== account) { log(`ws refused ${url.searchParams.get('character')} UNAUTHENTICATED`); return ws.close(4401, 'UNAUTHENTICATED'); }
     const prev = drivers.get(C.id);
     const driven = [...drivers.keys()].filter((id) => game.chars.get(id).account === account && id !== C.id);
     if (driven.length >= game.maxDrivers) { out({ type: 'error', error: 'DRIVER_LIMIT', limit: game.maxDrivers }); return ws.close(4001, 'DRIVER_LIMIT'); }
     if (prev) { prev.send(JSON.stringify({ type: 'superseded' })); prev.close(4000, 'superseded'); }
+    ws.ua = req.headers['user-agent'] ?? 'none'; // shows on the dashboard: who runs the brain (Beta webview, Node bot…)
     drivers.set(C.id, ws);
     game.driverOn(C.id);
+    log(`${C.id} ${C.name} brain connected from ${req.socket.remoteAddress} ua="${req.headers['user-agent'] ?? 'none'}"`, false);
     const off = game.subscribe(C.id, (type, data) => out(type === 'events' ? { type, events: data } : { type, ...data }));
     out({ type: 'snapshot', ...game.streamHello(C) });
     ws.on('message', (raw) => {
@@ -195,11 +243,13 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
         console.error(err);
         r = { ok: false, error: 'INVARIANT' };
       }
+      counters.wsActions++;
+      if (!r.ok) { counters.wsRejected++; log(`${C.id} ${C.name} ${a.type} rejected ${r.error ?? ''}`, false); }
       out({ type: 'result', id: a.id, ...r });
     });
     ws.on('close', () => {
       off();
-      if (drivers.get(C.id) === ws) { drivers.delete(C.id); game.driverOff(C.id); }
+      if (drivers.get(C.id) === ws) { drivers.delete(C.id); game.driverOff(C.id); log(`${C.id} ${C.name} brain disconnected`, false); }
       checkpoint();
     });
   }
@@ -234,6 +284,9 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
   '.jpg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.bmp': 'image/bmp', '.ico': 'image/x-icon',
   '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav',
   '.txt': 'text/plain; charset=utf-8' };
+// One-line summary of an event body for the admin log: scalar fields only.
+const brief = (b) => Object.entries(b).filter(([k, v]) => k !== 'type' && v !== null && typeof v !== 'object').slice(0, 6)
+  .map(([k, v]) => `${k}=${v}`).join(' ');
 const raw = (res, status, type, body) => { res.writeHead(status, { 'content-type': type }); res.end(body); };
 
 async function readJson(req) {
