@@ -1,0 +1,109 @@
+{
+ "scenario": "s6",
+ "steps": [
+  {
+   "bots": 500,
+   "wallS": 120.5,
+   "fightP50": 0.018,
+   "fightP99": 0.421,
+   "fights": 83587,
+   "actP99": 0.458,
+   "tickP99": 15.459,
+   "checkoutP50": 0.003,
+   "checkoutP99": 0.045,
+   "checkouts": 3023,
+   "cpuPct": 12.1,
+   "rssMB": 244,
+   "heapMB": 49.8,
+   "loopP99Ms": 83.427327,
+   "eventsPerS": 908,
+   "dbWritesPerS": 0.033,
+   "checkpointMsMax": 453.858208,
+   "dbBytes": 40361984,
+   "invariants": 0,
+   "acts": {
+    "search:ok": 11174,
+    "sit:ok": 21,
+    "attack:ok": 20085,
+    "skip:ok": 4266,
+    "cast:TOO_EARLY": 3423,
+    "skip:ENGAGED": 1831,
+    "cast:ok": 4538,
+    "attack:NO_TARGET": 29614,
+    "pickup:ok": 781,
+    "useItem:ok": 4251,
+    "attack:TOO_EARLY": 25109,
+    "search:IN_FIGHT": 4151,
+    "search:NO_MONSTERS": 243,
+    "cast:NO_TARGET": 427,
+    "cast:CASTING": 60,
+    "cast:NO_SP": 225,
+    "teleport:ok": 13,
+    "attack:NOT_YOURS": 106
+   },
+   "rttP50": 0.995,
+   "rttP99": 26.803,
+   "rtts": 51602,
+   "cmdRttP99": 65.515,
+   "cmds": 5997,
+   "wsBytesPerCharS": 3219.8,
+   "wsInBytesPerCharS": 3184.1,
+   "loadGenCpuPct": 13.8,
+   "cheaters": 25,
+   "rssPerCharKB": 402.8
+  }
+ ],
+ "machine": {
+  "cpus": 10,
+  "model": "Apple M4",
+  "memGB": 24,
+  "node": "v22.23.4"
+ },
+ "speed": 1,
+ "seed": 1,
+ "population": {
+  "chars": 512,
+  "configSources": {
+   "shared": 506,
+   "archetype": 6
+  }
+ },
+ "startedAt": "2026-11-04T23:09:29.939Z",
+ "idle": {
+  "bots": 0,
+  "wallS": 6,
+  "fightP50": null,
+  "fightP99": null,
+  "fights": 0,
+  "actP99": null,
+  "tickP99": 2.11,
+  "checkoutP50": null,
+  "checkoutP99": null,
+  "checkouts": 0,
+  "cpuPct": 0.4,
+  "rssMB": 47.3,
+  "heapMB": 22.5,
+  "loopP99Ms": 15.171583,
+  "eventsPerS": 0,
+  "dbWritesPerS": 0,
+  "checkpointMsMax": 0,
+  "dbBytes": 0,
+  "invariants": 0,
+  "acts": {}
+ },
+ "cheats": {
+  "speed:ok": 1538,
+  "speed:TOO_EARLY": 30240,
+  "forge:NO_TARGET": 34081,
+  "speed:NO_MONSTERS": 292,
+  "speed:NO_TARGET": 303,
+  "minSwingGapVsAspd": 0.986,
+  "speed:IN_FIGHT": 4676,
+  "forge:NOT_YOURS": 126,
+  "multiboxCloses": {
+   "1005": 483,
+   "4001": 4
+  }
+ },
+ "finishedAt": "2026-11-04T23:12:03.623Z"
+}

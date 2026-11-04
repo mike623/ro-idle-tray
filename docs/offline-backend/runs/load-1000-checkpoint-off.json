@@ -1,0 +1,92 @@
+{
+ "scenario": "s1",
+ "steps": [
+  {
+   "bots": 1000,
+   "wallS": 90.2,
+   "fightP50": 0.024,
+   "fightP99": 0.697,
+   "fights": 44008,
+   "actP99": 0.361,
+   "tickP99": 38.546,
+   "checkoutP50": 0.003,
+   "checkoutP99": 0.033,
+   "checkouts": 4221,
+   "cpuPct": 16.2,
+   "rssMB": 150.7,
+   "heapMB": 86.2,
+   "loopP99Ms": 49.086463,
+   "eventsPerS": 1803.1,
+   "dbWritesPerS": 0,
+   "checkpointMsMax": 0,
+   "dbBytes": 0,
+   "invariants": 0,
+   "acts": {
+    "attack:ok": 28886,
+    "cast:ok": 7126,
+    "cast:TOO_EARLY": 5222,
+    "search:ok": 16136,
+    "pickup:ok": 1442,
+    "cast:NO_TARGET": 626,
+    "attack:TOO_EARLY": 332,
+    "useItem:ok": 7490,
+    "attack:NO_TARGET": 1501,
+    "skip:ENGAGED": 2672,
+    "skip:ok": 5974,
+    "cast:NO_SP": 249,
+    "sit:ok": 44,
+    "teleport:ok": 43,
+    "cast:CASTING": 66,
+    "teleport:NO_TELEPORT": 1
+   },
+   "rttP50": 1.424,
+   "rttP99": 24.702,
+   "rtts": 79367,
+   "cmdRttP99": 29.336,
+   "cmds": 9065,
+   "wsBytesPerCharS": 3353.4,
+   "wsInBytesPerCharS": 3316.8,
+   "loadGenCpuPct": 19.3,
+   "rssPerCharKB": 107.5
+  }
+ ],
+ "machine": {
+  "cpus": 10,
+  "model": "Apple M4",
+  "memGB": 24,
+  "node": "v22.23.4"
+ },
+ "speed": 1,
+ "seed": 1,
+ "population": {
+  "chars": 1000,
+  "configSources": {
+   "shared": 988,
+   "archetype": 12
+  }
+ },
+ "startedAt": "2026-11-04T22:48:44.851Z",
+ "idle": {
+  "bots": 0,
+  "wallS": 6,
+  "fightP50": null,
+  "fightP99": null,
+  "fights": 0,
+  "actP99": null,
+  "tickP99": 0.904,
+  "checkoutP50": null,
+  "checkoutP99": null,
+  "checkouts": 0,
+  "cpuPct": 1,
+  "rssMB": 45.7,
+  "heapMB": 18,
+  "loopP99Ms": 13.492223,
+  "eventsPerS": 0,
+  "dbWritesPerS": 0,
+  "checkpointMsMax": 0,
+  "dbBytes": 0,
+  "invariants": 0,
+  "acts": {}
+ },
+ "finishedAt": "2026-11-04T22:50:54.244Z"
+}

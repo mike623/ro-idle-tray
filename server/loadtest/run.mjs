@@ -93,17 +93,26 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // S6 cheaters: raw WebSocket clients breaking the rules; every reply is tallied by error code.
 const cheats = {};
+let cheatN = 0;
 function cheater(c) {
-  const kind = ['speed', 'forge'][c.view.characterId % 2];
-  const ws = new WebSocket(`${url.replace('http', 'ws')}/ws?character=${c.view.characterId}&token=${tokenOf(c)}`);
-  let n = 0, uid = null, timer;
+  const kind = ['speed', 'forge'][cheatN++ % 2], id = c.view.characterId, map = c.view.snapshot.mapId;
+  const ws = new WebSocket(`${url.replace('http', 'ws')}/ws?character=${id}&token=${tokenOf(c)}`);
+  let n = 0, uid = null, timer, interval = 0, lastOk = 0, recalled = 0;
   ws.onmessage = (ev) => {
     const m = JSON.parse(ev.data);
+    if (m.type === 'snapshot') interval = m.snapshot.derived.attackIntervalMs;
     if (m.type !== 'result') return;
     const k = `${kind}:${m.ok ? 'ok' : m.error}`;
     cheats[k] = (cheats[k] ?? 0) + 1;
     if (m.uid) uid = m.uid;
+    if (m.ok && m.events?.some((e) => e.body.type === 'playerAttack')) { // accepted swings must stay ≥ the ASPD interval apart
+      const t = now();
+      if (lastOk && interval) cheats.minSwingGapVsAspd = Math.min(cheats.minSwingGapVsAspd ?? Infinity, +((t - lastOk) / interval).toFixed(3));
+      lastOk = t;
+    }
     if (m.error === 'NO_TARGET' || m.error === 'IN_FIGHT') uid = null;
+    if (m.error === 'NO_MONSTERS' && Date.now() - recalled > 2000 && (recalled = Date.now())) realFetch(`${url}/api/characters/${id}/commands`, { method: 'POST', // died → back to its map
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${tokenOf(c)}` }, body: JSON.stringify({ command: { type: 'selectMap', mapId: map } }) });
   };
   ws.onopen = () => { timer = setInterval(() => {
     if (kind === 'forge') return ws.send(JSON.stringify({ id: ++n, type: 'attack', uid: 1 + Math.floor(Math.random() * 1e5) }));
