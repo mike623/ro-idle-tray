@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "src-tauri/src/lib.rs": {
-    "mtime": 1793748408.405821,
-    "seen": 1793750603.456434,
-    "ast_hash": "f1dc2cef745e9c958b9730a4664f2feb",
+    "mtime": 1793751704.2582288,
+    "seen": 1793751744.431824,
+    "ast_hash": "ddf366ecf4b1ff14011333d904d23f5f",
     "semantic_hash": ""
   },
   "src-tauri/src/main.rs": {

@@ -19,7 +19,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{
     AppHandle, Emitter, Listener, Manager, WebviewUrl, WebviewWindowBuilder,
     image::Image,
-    tray::{MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 use tauri_plugin_positioner::WindowExt;
 use tauri_plugin_updater::{Update, UpdaterExt};
@@ -621,6 +621,11 @@ pub fn run() {
             let handle = app.handle().clone();
             app.on_menu_event(|app, e| {
                 let id = e.id().as_ref();
+                match id {
+                    "tray-show" => return toggle_panel(app),
+                    "tray-quit" => return app.exit(0),
+                    _ => {}
+                }
                 let (off, rest) = match id.split_once('-') {
                     Some(("online", r)) => (false, r),
                     Some(("offline", r)) => (true, r),
@@ -720,14 +725,23 @@ pub fn run() {
                 });
             });
 
+            // Right click: a small menu (show the panel, quit); left click toggles the panel.
+            let tray_menu = tauri::menu::Menu::with_items(app, &[
+                &tauri::menu::MenuItem::with_id(app, "tray-show", "顯示 / 隱藏面板", true, None::<&str>)?,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &tauri::menu::MenuItem::with_id(app, "tray-quit", "結束 RO Idle Tray", true, Some("CmdOrCtrl+Q"))?,
+            ])?;
             TrayIconBuilder::with_id("main")
                 // Sleepy Jelly, black + alpha; macOS tints template icons for light/dark bars.
                 .icon(Image::from_bytes(include_bytes!("../icons/tray.png"))?)
                 .icon_as_template(true)
                 .tooltip("RO 放置仙境")
+                .menu(&tray_menu)
+                .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, event| {
                     tauri_plugin_positioner::on_tray_event(tray.app_handle(), &event);
                     if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
                         button_state: MouseButtonState::Up,
                         ..
                     } = event
