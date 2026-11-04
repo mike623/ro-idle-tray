@@ -324,28 +324,56 @@ pub async fn ai_list_models(window: WebviewWindow, app: AppHandle) -> Result<Vec
     panel_only(&window)?;
     let cfg = load_config(&app);
     let key = crate::secret::load(&app)?;
+    let text = model_catalog(&cfg, key.as_deref()).await?;
+    let mut models = parse_models(&text)?;
+    models.sort_unstable();
+    Ok(models)
+}
+
+async fn model_catalog(cfg: &AiConfig, key: Option<&str>) -> Result<String, String> {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(10))
         .no_proxy()
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|e| e.to_string())?;
     let mut request = client.get(format!("{}/v1/models?limit=1000", cfg.base_url));
-    if let Some(key) = key.as_deref() {
-        request = request.header("authorization", format!("Bearer {key}"));
+    if let Some(key) = key {
+        request = request.bearer_auth(key);
+        if cfg.uses_anthropic() {
+            request = request.header("x-api-key", key).header("anthropic-version", ANTHROPIC_VERSION);
+        }
     }
-    let res = request
-        .send()
-        .await
-        .map_err(|e| format!("Cannot reach {}: {}", cfg.base_url, error_chain(&e)))?;
+    let res = request.send().await.map_err(|e| {
+        let msg = format!("Cannot reach {}: {}", cfg.base_url, error_chain(&e));
+        key.map_or(msg.clone(), |k| redact(&msg, k))
+    })?;
     let status = res.status().as_u16();
     let text = res.text().await.map_err(|e| e.to_string())?;
     if !(200..300).contains(&status) {
         let msg = error_text(status, &text);
-        return Err(key.as_deref().map_or(msg.clone(), |k| redact(&msg, k)));
+        return Err(key.map_or(msg.clone(), |k| redact(&msg, k)));
     }
-    let mut models = parse_models(&text)?;
-    models.sort_unstable();
-    Ok(models)
+    Ok(text)
+}
+
+/// Exact provider model IDs only: aliases may have different context limits.
+fn model_context_tokens(body: &str, model: &str) -> Option<usize> {
+    let catalog: Value = serde_json::from_str(body).ok()?;
+    let entry = catalog.get("data").or_else(|| catalog.get("models"))?.as_array()?
+        .iter().find(|m| m.get("id").or_else(|| m.get("name")).and_then(Value::as_str) == Some(model))?;
+    // The routed provider or input-only limit may be smaller than the model's window.
+    ["/context_length", "/context_window", "/max_context_length", "/max_context_tokens",
+        "/max_model_len", "/max_input_tokens", "/top_provider/context_length"]
+        .iter().filter_map(|field| entry.pointer(field)?.as_u64())
+        .filter_map(|n| usize::try_from(n).ok())
+        .filter(|n| *n > 0)
+        .min()
+}
+
+pub(crate) async fn detect_context_tokens(cfg: &AiConfig, key: &str) -> Option<usize> {
+    let body = model_catalog(cfg, Some(key)).await.ok()?;
+    model_context_tokens(&body, &cfg.model)
 }
 
 /// Uses the saved settings. Sends the same minimal request twice.
@@ -452,6 +480,21 @@ mod tests {
         assert_eq!(parse_reply(401, r#"{"error":"Missing API key"}"#).unwrap_err(), "HTTP 401: Missing API key");
         assert!(parse_reply(200, "not json").is_err());
         assert!(parse_reply(200, r#"{"error":{"message":"model not found"}}"#).unwrap_err().contains("model not found"));
+    }
+
+    #[test]
+    fn detects_only_selected_models_valid_context_limits() {
+        let catalog = r#"{"data":[{"id":"large","context_length":200000,"top_provider":{"context_length":128000}}, {"id":"small","max_input_tokens":8192}, {"id":"unknown"}]}"#;
+        assert_eq!(model_context_tokens(catalog, "large"), Some(128000));
+        assert_eq!(model_context_tokens(catalog, "small"), Some(8192));
+        assert_eq!(model_context_tokens(catalog, "unknown"), None);
+        assert_eq!(model_context_tokens(catalog, "large-alias"), None);
+        for value in ["null", "0", "-1", "1.5", "\"128000\""] {
+            let body = format!(r#"{{"data":[{{"id":"m","context_length":{value}}}]}}"#);
+            assert_eq!(model_context_tokens(&body, "m"), None);
+        }
+        assert_eq!(model_context_tokens("bad json", "m"), None);
+        assert_eq!(model_context_tokens(r#"{"models":[{"name":"m","context_window":64000}]}"#, "m"), Some(64000));
     }
 
     #[test]

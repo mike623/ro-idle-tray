@@ -21,8 +21,12 @@ async function roster() {
   const idling = signed.filter((p) => p.info.running).length;
   summary = `${signed.length} 角色 · ${idling} 掛機中${context.length ? ` · ${context.length} 群組` : ""}`;
 }
+const skills = await fetch("game-data.json").then(r => {
+  if (!r.ok) throw new Error(`Skill names unavailable: HTTP ${r.status}`);
+  return r.json();
+}).then(data => data.skills).catch(e => { console.error(e); return []; });
 const assistant = window.roIdleAssistant(document.getElementById("assistant"), {
-  roster: () => names, groups: () => groupContext, summary: () => summary,
+  skills, roster: () => names, groups: () => groupContext, summary: () => summary,
   onClose: () => window.__TAURI__.window.getCurrentWindow().hide(),
 });
 // ponytail: one ask at a time; a click during a slow roster load just queues behind it.

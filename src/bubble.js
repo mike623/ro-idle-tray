@@ -15,6 +15,8 @@
     else { host.id = 'ro-idle-assistant'; host.style.cssText = 'all:initial;position:fixed;right:14px;bottom:14px;z-index:2147483647;'; }
     const root = host.attachShadow({mode:'closed'});
     // Assistant window: opts.roster() → known names; opts.groups() → group context; opts.summary() → header line.
+    const skills = new Map((opts.skills ?? []).map(s => [s.id,s]));
+    const skillNames = text => text.replace(/\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b/g,id => skills.get(id)?.name ?? id);
     const roster = () => opts.roster?.() ?? [];
     // The last "@name" in a message names the character it is about (嘈嘈嘈2 beats 嘈嘈嘈).
     const mention = (t='') => roster().map((n) => [t.lastIndexOf(`@${n}`), n]).filter(([i]) => i >= 0).sort((a,b) => b[0] - a[0] || b[1].length - a[1].length)[0]?.[1] ?? null;
@@ -65,6 +67,7 @@
       #plan-q{flex:none;height:32px} #plan-q,#plan-note{width:100%;border:1px solid var(--line);border-radius:8px;background:none;padding:6px 10px;outline:none} #plan-q:focus,#plan-note:focus{border-color:var(--mf)}
       #plan-list{flex:1;min-height:80px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px}
       #plan-list h4{margin:6px 6px 2px;font-size:10px;font-weight:500;color:var(--mf)}
+      #plan-list .guide-row{display:flex;align-items:center} #plan-list .guide-row label{flex:1;min-width:0}
       #plan-list label{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px;font-size:12px;cursor:pointer} #plan-list label:hover{background:var(--muted)}
       #plan-list input{flex:none;accent-color:var(--pri)}
       #plan .lbl{font-size:11px;font-weight:500;color:var(--mf)}
@@ -126,10 +129,25 @@
       };
       tip.append(b);
     };
+    const skillButton = (tip,rows,character) => {
+      if (!rows.length || !character) return;
+      const b = el('button','','套用技能點'); b.type = 'button'; let armed = false;
+      tip.append(el('div','tt','依順序使用現有點數；不足或前置未達會略過'),b);
+      b.onclick = async () => {
+        if (!armed) { armed = true; b.textContent = `確定替 ${character} 加技能？不能退回`; return; }
+        b.disabled = true; b.textContent = '上線並套用中…';
+        try {
+          const result = await invoke('apply_skills',{character,rows});
+          const complete = result.every(r => r.level >= r.target);
+          b.textContent = complete ? '✓ 技能已達目標' : '部分完成／未完成';
+          for (const r of result) tip.append(el('div','',`${skills.get(r.id)?.name ?? r.id} ${r.level}／${r.target}${r.reason ? `：${r.reason}` : ''}`));
+        } catch (e) { b.textContent = `未確認完成：${e.message || e}；請查看遊戲後再試`; }
+      };
+    };
     // Replies use a plain-text convention (see chat.rs preamble): **bold**, `code`, "> " tip lines, final "追問：a｜b".
     const FOLLOW = /^追問[:：]/;
     const inline = (parent,line) => {
-      for (const part of line.split(/(\*\*[^*]+\*\*|`[^`]+`)/)) {
+      for (const part of skillNames(line).split(/(\*\*[^*]+\*\*|`[^`]+`)/)) {
         if (!part) continue;
         if (part.length > 4 && part.startsWith('**') && part.endsWith('**')) parent.append(el('b','',part.slice(2,-2)));
         else if (part.length > 2 && part.startsWith('`') && part.endsWith('`')) {
@@ -143,8 +161,9 @@
     };
     const format = (body,text,character) => {
       body.replaceChildren();
-      const lines = text.split('\n'); let follow = [], tip = null, stats = [];
-      const close = () => { if (tip) statButton(tip,stats,character); tip = null; stats = []; };
+      const lines = text.split('\n'); let follow = [], tip = null, stats = [], skillRows = [];
+      // A block holding only "(無須更動…)"-style asides is no suggestion; drop it.
+      const close = () => { if (tip && !stats.length && [...tip.children].every((c)=>c.className === 'tt' || /^[(（].*[)）]$/.test(c.textContent.trim()))) tip.hidden = true; else if (tip) { statButton(tip,stats,character); skillButton(tip,skillRows,character); } tip = null; stats = []; skillRows = []; };
       if (FOLLOW.test((lines[lines.length - 1] ?? '').trim())) follow = lines.pop().trim().replace(FOLLOW,'').split(/[｜|]/).map((q)=>q.trim()).filter(Boolean).slice(0,2);
       while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
       for (const line of lines) {
@@ -153,6 +172,8 @@
           if (!tip) { tip = el('div','tip'); body.append(tip); if (t.trim() === '建議改法') { tip.append(el('div','tt',t.trim())); continue; } }
           const d = el('div'); inline(d,t); tip.append(d);
           const m = STAT.exec(t.replace(/\*\*|`/g,''));
+          const sk = /^\s*([A-Z][A-Z0-9]*_[A-Z0-9_]+)\s+(?:Lv\.?\s*)?(\d{1,2})\s*$/i.exec(t.replace(/\*\*|`/g,''));
+          if (sk && skills.has(sk[1]) && Number(sk[2]) >= 1 && Number(sk[2]) <= skills.get(sk[1]).maxLv && !skillRows.some(r => r.id === sk[1])) skillRows.push({id:sk[1],target:Number(sk[2])});
           if (m) stats.push({stat: m[1].toLowerCase(), n: Number(m[3]), add: !!m[2]});
         } else { close(); const d = el('div',line.trim() ? '' : 'gap'); inline(d,line); body.append(d); }
       }
@@ -186,13 +207,14 @@
       for (const q of questions) { const b = el('button','',q); b.type = 'button'; b.addEventListener('click',()=>{ input.value = `${name ? `@${name} ` : ''}${q}`; root.querySelector('form').requestSubmit(); }); wrap.append(b); }
       $('messages').append(wrap);
     };
-    // A reply's stat button applies to the character its question named.
+    // A reply's stat button applies to the character its question named, else the last one named before it.
+    let about = null;
     const render = (rows) => {
       $('messages').replaceChildren();
-      let last = null, about = null;
+      let last = null; about = null;
       for (const r of rows) if (!r.message && r.role !== 'summary' && r.text) {
         if (r.event_id) { alertCard(r.text); last = null; }
-        else { if (r.role === 'user') about = mention(r.text); const c = card(r.role,r.text,r.tools,about); last = r.role === 'user' ? null : c; }
+        else { if (r.role === 'user') about = mention(r.text) ?? about; const c = card(r.role,r.text,r.tools,about); last = r.role === 'user' ? null : c; }
       }
       if (!$('messages').childElementCount) { card('assistant','我可以讀取全隊的狀態與戰鬥紀錄。用 @角色 問單一角色。'); starters(STARTERS); }
       else if (last?.follow?.length) starters(last.follow);
@@ -226,7 +248,14 @@
       $('plan-list').replaceChildren(); boxes = [];
       const group = (title,items) => {
         if (!items.length) return; $('plan-list').append(el('h4','',title));
-        for (const t of items) { const l = el('label'), c = el('input'); c.type = 'checkbox'; c.value = t; c.checked = chosen.has(t); boxes.push(c); l.append(c,el('span','',t)); $('plan-list').append(l); }
+        for (const t of items) {
+          const row = el('div','guide-row'), l = el('label'), c = el('input');
+          c.type = 'checkbox'; c.value = t; c.checked = chosen.has(t); boxes.push(c); l.append(c,el('span','',t));
+          const link = el('button','icon','↗'); link.type = 'button';
+          link.title = `在攻略視窗開啟：${t}`; link.setAttribute('aria-label',link.title);
+          link.addEventListener('click',async()=>{ try { await invoke('open_guide',{page:t}); } catch(e) { showError(e); } });
+          row.append(l,link); $('plan-list').append(row);
+        }
       };
       group('本職業',plan.suggested.filter(show)); group('全部攻略',plan.pages.filter((t)=>!plan.suggested.includes(t) && show(t)));
       if (!$('plan-list').childElementCount) $('plan-list').append(el('h4','','沒有符合的攻略'));
@@ -287,7 +316,7 @@
     root.querySelector('form').addEventListener('submit',async(e)=>{
       e.preventDefault(); const text = input.value.trim();
       if (busy || !text) return;
-      const about = mention(text);
+      about = mention(text) ?? about;
       busy = true; $('send').disabled = true; $('new').disabled = true; showError(); $('mentions').replaceChildren();
       input.value = ''; card('user',text); const answer = card('assistant','讀取中…'); let content = '';
       const onEvent = new window.__TAURI__.core.Channel();
