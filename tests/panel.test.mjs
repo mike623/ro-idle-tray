@@ -7,14 +7,10 @@ function get(id) {
 }
 globalThis.document = {getElementById:get, querySelector:get};
 const {showPanel, closeSettings} = await import('../src/panel.js');
-test('settings restores the selected view; the assistant floats over the list and its footer button reflects it', () => {
-  const visible = () => ['.stage','assistant','ai'].filter((id) => !get(id).hidden);
-  for (const name of ['assistant','list']) {
-    showPanel(name);
-    showPanel('ai');
-    assert.deepEqual(visible(), ['ai']);
-    closeSettings();
-    assert.deepEqual(visible(), name === 'assistant' ? ['.stage','assistant'] : ['.stage']);
-    assert.equal(get('assistant-fab').attrs['aria-expanded'], String(name === 'assistant'));
-  }
+test('settings replace the character list and closing them restores it', () => {
+  const visible = () => ['.stage','ai'].filter((id) => !get(id).hidden);
+  showPanel('ai');
+  assert.deepEqual(visible(), ['ai']);
+  closeSettings();
+  assert.deepEqual(visible(), ['.stage']);
 });

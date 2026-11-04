@@ -684,7 +684,7 @@ pub fn run() {
             chat::chat_alert_open,
             chat::chat_alert_ack,
             chat::chat_tutorial,
-            chat::chat_open_panel,
+            chat::open_assistant,
             chat::chat_plan,
             chat::chat_plan_set,
             quit
@@ -1736,10 +1736,30 @@ const AUTO_OFFLINE_AFTER: Duration = Duration::from_secs(60);
 /// settled and the panel shows fresh numbers; auto offline closes it again a minute later.
 const WAKE_EVERY: Duration = Duration::from_secs(3600);
 
+/// RO_IDLE_CAFFEINATE_SECS=7200 keeps every profile online (streaming) for that long after launch,
+/// e.g. to record API traffic. ponytail: ad hoc env switch; add a UI toggle if it sticks.
+fn caffeinated() -> bool {
+    static UNTIL: std::sync::OnceLock<Option<std::time::Instant>> = std::sync::OnceLock::new();
+    UNTIL
+        .get_or_init(|| {
+            let secs: u64 = std::env::var("RO_IDLE_CAFFEINATE_SECS").ok()?.parse().ok()?;
+            Some(std::time::Instant::now() + Duration::from_secs(secs))
+        })
+        .is_some_and(|t| std::time::Instant::now() < t)
+}
+
 /// Offline is the default: a profile whose game window stays closed for a minute goes offline.
 /// Offline earns ~97% of online EXP (e2e 2026-11-03) at no local or server cost.
 fn auto_offline_tick(app: &AppHandle) {
     let profiles = app.state::<Profiles>();
+    if caffeinated() {
+        let waking = profiles.offline.lock().unwrap().clone();
+        if !waking.is_empty() {
+            let h = app.clone();
+            let _ = app.run_on_main_thread(move || waking.into_iter().for_each(|n| set_offline(&h, n, false)));
+        }
+        return;
+    }
     let due = {
         let mut woke = profiles.woke_at.lock().unwrap();
         let due = woke.elapsed() >= WAKE_EVERY;

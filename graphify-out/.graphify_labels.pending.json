@@ -33,9 +33,9 @@
   "31": "refresh",
   "32": "bubble.js",
   "33": "items.js",
-  "34": "CharacterLabel",
+  "34": "assistant.js",
   "35": "run",
-  "36": "write_panel_geometry",
+  "36": "notify",
   "37": "character_report",
   "38": "open_profile",
   "39": "ref_node_assert",
@@ -46,6 +46,8 @@
   "44": "panel.test.mjs",
   "45": "capture.js",
   "46": "run",
-  "47": "knowledge.rs",
-  "48": "Capture gap report (#12)"
+  "47": "tutorial.rs",
+  "48": "Capture gap report (#12)",
+  "49": "character_report",
+  "50": "chat.js"
 }

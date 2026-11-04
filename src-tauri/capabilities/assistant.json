@@ -1,0 +1,6 @@
+{
+  "identifier": "assistant",
+  "description": "The one assistant window (local page).",
+  "windows": ["assistant"],
+  "permissions": ["assistant-commands", "core:default", "core:window:allow-hide"]
+}

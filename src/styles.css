@@ -363,14 +363,11 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .gear[aria-expanded="true"] { border-color: var(--select); color: var(--select); }
 
 /* Assistant cards reuse the panel palette; all model text is rendered as text. */
-/* Assistant: the footer's ✦ 助理 button opens a floating card over the list. */
 .stage { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .stage[hidden] { display: none; }
 /* The assistant's button sits at the footer's right end. */
 .fab { margin-left: auto; padding: 3px 12px; border: 1px solid var(--select); border-radius: 14px; color: var(--ink-blue); background: var(--face); font-weight: 600; font-size: 11px; white-space: nowrap; }
-.fab:hover, .fab[aria-expanded="true"] { background: var(--face-2); }
-.assistant { position: absolute; right: 10px; bottom: 10px; z-index: 6; width: min(400px, calc(100% - 20px)); height: min(600px, calc(100% - 20px)); display: flex; flex-direction: column; padding: 0; overflow: hidden; background: var(--face-2); border: 1px solid var(--edge-mid); border-radius: 10px; box-shadow: 0 12px 36px #000a; user-select: text; -webkit-user-select: text; }
-.assistant[hidden] { display: none; }
+.fab:hover { background: var(--face-2); }
 
 /* Offline profile: game page closed, last data kept. */
 .prow.offline { opacity: 0.55; }

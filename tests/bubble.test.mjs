@@ -17,7 +17,7 @@ class Element {
   get textContent() { return this.text ?? this.children.map((n)=>n.textContent).join(''); }
   set textContent(value) { this.text=value; }
 }
-// panel: true mounts the one assistant like chat.js does; false boots a game window's launcher.
+// panel: true mounts the one assistant like assistant.js does; false boots a game window's launcher.
 function environment({panel=true,unread=0,history=[],replies={}}={}) {
   const elements = new Map();
   const get = (id) => { if(!elements.has(id)) elements.set(id,new Element()); return elements.get(id); };
@@ -55,14 +55,14 @@ function environment({panel=true,unread=0,history=[],replies={}}={}) {
 }
 const answerBody = (e,i) => e.get('messages').children[i].children[1].children[1];
 
-test('a game window only launches the panel assistant, with its badge and nudge',async()=>{
+test('a game window only launches the assistant window, with its badge and nudge',async()=>{
   const e=environment({panel:false,unread:1});
   e.window.events['ro-idle-chat-state']({detail:{name:'Alice'}}); await tick();
   assert.equal(e.get('pill-label').textContent,'問 Alice');
   assert.equal(e.get('badge').textContent,'1');
   assert.equal(e.get('nudge').textContent,'死亡 · 魔菇 Lv16');
   e.get('pill').events.click(); await tick();
-  assert.equal(e.calls.at(-1).cmd,'chat_open_panel');
+  assert.equal(e.calls.at(-1).cmd,'open_assistant');
   assert.equal(e.calls.filter((c)=>c.cmd==='chat_send' || c.cmd==='chat_history').length,0);
 });
 

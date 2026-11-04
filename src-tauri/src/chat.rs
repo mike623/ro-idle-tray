@@ -1160,8 +1160,8 @@ fn window_scope(
     app: &AppHandle,
     requested: Option<&str>,
 ) -> Result<Option<String>, String> {
-    if window.label() == "panel" {
-        // The panel is local and trusted; it may open the chat of any character the tray knows.
+    if matches!(window.label(), "panel" | "assistant") {
+        // The panel and the assistant window are local and trusted; it may open the chat of any character the tray knows.
         let known: Vec<String> = match requested {
             None => Vec::new(),
             Some(_) => app
@@ -1426,12 +1426,59 @@ pub async fn chat_alert_ack(
     )?))
 }
 
-/// Game window bubble: show the panel and ask the one assistant about this character.
+/// The one assistant lives in its own window. The panel and every game window open it beside
+/// themselves; a game window scopes it to its character, the panel to the row it was asked from.
 #[tauri::command]
-pub fn chat_open_panel(window: WebviewWindow, app: AppHandle) -> Result<(), String> {
-    let name = window_scope(&window, &app, None)?.ok_or("Use a game window")?;
-    crate::show_panel(&app);
-    app.emit_to("panel", "ask-character", name).map_err(|e| e.to_string())
+pub async fn open_assistant(
+    window: WebviewWindow,
+    app: AppHandle,
+    character: Option<String>,
+) -> Result<(), String> {
+    let name = window_scope(&window, &app, character.as_deref())?;
+    let w = match app.get_webview_window("assistant") {
+        Some(w) => {
+            app.emit_to("assistant", "ask-character", &name)
+                .map_err(|e| e.to_string())?;
+            w
+        }
+        None => {
+            let ask = serde_json::to_string(&name).map_err(|e| e.to_string())?;
+            tauri::WebviewWindowBuilder::new(&app, "assistant", tauri::WebviewUrl::App("assistant.html".into()))
+                .title("助理")
+                .inner_size(400.0, 640.0)
+                .min_inner_size(320.0, 400.0)
+                .visible(false)
+                .initialization_script(format!("window.ROIDLE_ASK = {ask};"))
+                .build()
+                .map_err(|e| e.to_string())?
+        }
+    };
+    place_beside(&window, &w);
+    let _ = w.show();
+    let _ = w.set_focus();
+    Ok(())
+}
+
+/// Right of the caller if it fits on its screen, else left, else against the screen's right edge.
+fn place_beside(from: &WebviewWindow, w: &WebviewWindow) {
+    let (Ok(p), Ok(s), Ok(size), Ok(Some(m))) =
+        (from.outer_position(), from.outer_size(), w.outer_size(), from.current_monitor())
+    else {
+        return;
+    };
+    let (mx, my) = (m.position().x, m.position().y);
+    let (mw, mh) = (m.size().width as i32, m.size().height as i32);
+    let (ww, wh) = (size.width as i32, size.height as i32);
+    let right = p.x + s.width as i32;
+    let x = if right + ww <= mx + mw {
+        right
+    } else if p.x - ww >= mx {
+        p.x - ww
+    } else {
+        mx + mw - ww
+    };
+    let y = p.y.min(my + mh - wh).max(my);
+    let _ = w.set_position(tauri::PhysicalPosition::new(x, y));
 }
 
 #[tauri::command]

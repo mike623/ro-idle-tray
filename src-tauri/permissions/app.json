@@ -2,7 +2,7 @@
   "permission": [
     {
       "identifier": "panel-commands",
-      "description": "Local tray controls, settings and assistant.",
+      "description": "Local tray controls and settings; opens the assistant window.",
       "commands": {
         "allow": [
           "get_state", "open_account", "toggle_idle", "enter_character",
@@ -10,8 +10,17 @@
           "open_export_folder", "open_atlas", "open_classes", "set_nickname", "set_goal", "get_groups", "set_groups",
           "reorder_profiles", "set_panel_width", "set_pinned", "hide_panel", "profile_menu", "toggle_online", "refresh_all", "recall_all", "apply_stats", "open_guide", "open_items",
           "ai_get_settings", "ai_save_settings", "ai_list_models", "ai_test_connection",
-          "chat_history", "chat_send", "chat_new", "chat_memory", "chat_tutorial", "quit",
-          "chat_character", "chat_alerts", "chat_alert_open", "chat_alert_ack", "chat_plan", "chat_plan_set"
+          "open_assistant", "quit"
+        ]
+      }
+    },
+    {
+      "identifier": "assistant-commands",
+      "description": "The one assistant window: chat, memory, alerts and reading plans.",
+      "commands": {
+        "allow": [
+          "get_state", "chat_history", "chat_send", "chat_new", "chat_memory",
+          "chat_character", "chat_alerts", "chat_alert_open", "chat_alert_ack", "chat_plan", "chat_plan_set", "apply_stats"
         ]
       }
     },
@@ -19,7 +28,7 @@
       "identifier": "game-commands",
       "description": "Character reports and the assistant launcher; handlers validate the calling game profile.",
       "commands": {
-        "allow": ["character_report", "chat_alerts", "chat_tutorial", "chat_open_panel"]
+        "allow": ["character_report", "chat_alerts", "chat_tutorial", "open_assistant"]
       }
     },
     {

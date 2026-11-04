@@ -1,9 +1,9 @@
-// One assistant. The panel mounts the chat (window.roIdleAssistant); "@角色" scopes a question
-// to that character. Each game window gets only a launcher (badge, nudge, tutorial) that
-// opens the panel with "@角色" filled in. Secrets and model calls belong to Rust.
+// One assistant. The assistant window mounts the chat (window.roIdleAssistant); "@角色" scopes a
+// question to that character. Each game window gets only a launcher (badge, nudge, tutorial) that
+// opens the assistant window beside it with "@角色" filled in. Secrets and model calls belong to Rust.
 (() => {
   if (window !== window.top) return;
-  // The panel loads this file with data-embed and mounts it itself.
+  // The assistant window loads this file with data-embed and mounts it itself.
   const embedOnly = document.currentScript?.hasAttribute('data-embed');
   const TOOL_LABELS = {list_characters:'角色列表',get_character:'角色狀態',get_log_summary:'讀取紀錄',game_lookup:'查詢資料',rank_maps:'地圖排名',guide_lookup:'查詢攻略',remember:'記住',update_memory:'更新記憶',forget:'忘記',recall:'回想'};
   const STARTERS = ['誰的狀況最差？','今晚怎麼排？','最近為什麼死亡？'];
@@ -14,7 +14,7 @@
     if (embed) { host.className = 'embed'; host.style.cssText = 'all:initial;display:block;height:100%;'; }
     else { host.id = 'ro-idle-assistant'; host.style.cssText = 'all:initial;position:fixed;right:14px;bottom:14px;z-index:2147483647;'; }
     const root = host.attachShadow({mode:'closed'});
-    // Panel: opts.roster() → known names; opts.groups() → group context; opts.summary() → header line.
+    // Assistant window: opts.roster() → known names; opts.groups() → group context; opts.summary() → header line.
     const roster = () => opts.roster?.() ?? [];
     // The last "@name" in a message names the character it is about (嘈嘈嘈2 beats 嘈嘈嘈).
     const mention = (t='') => roster().map((n) => [t.lastIndexOf(`@${n}`), n]).filter(([i]) => i >= 0).sort((a,b) => b[0] - a[0] || b[1].length - a[1].length)[0]?.[1] ?? null;
@@ -266,8 +266,8 @@
       const who = mention(input.value); if (who) focus(who);
     });
     if (!embed) {
-      // Game window: launcher only. The chat itself lives in the panel.
-      const ask = () => invoke('chat_open_panel').catch(()=>{});
+      // Game window: launcher only. The chat itself lives in the assistant window.
+      const ask = () => invoke('open_assistant').catch(()=>{});
       $('pill').addEventListener('click',ask);
       $('nudge').addEventListener('click',ask);
       window.addEventListener('ro-idle-chat-state',(e)=>{
@@ -289,15 +289,15 @@
       if (busy || !text) return;
       const about = mention(text);
       busy = true; $('send').disabled = true; $('new').disabled = true; showError(); $('mentions').replaceChildren();
-      card('user',text); const answer = card('assistant','讀取中…'); let content = '';
+      input.value = ''; card('user',text); const answer = card('assistant','讀取中…'); let content = '';
       const onEvent = new window.__TAURI__.core.Channel();
       onEvent.onmessage = (event) => {
         if (event.kind === 'text') {content += event.text; format(answer.body,content,about);}
         if (event.kind === 'tool') addTool(answer.chips,event.name);
         scroll();
       };
-      try { render(await invoke('chat_send',{text,groups:opts.groups?.() ?? '',onEvent})); input.value = ''; await memory(); }
-      catch(e) { showError(e); await restore(); }
+      try { render(await invoke('chat_send',{text,groups:opts.groups?.() ?? '',onEvent})); await memory(); }
+      catch(e) { showError(e); await restore(); if (!input.value) input.value = text; }
       finally { busy = false; $('send').disabled = false; $('new').disabled = false; input.focus(); }
     });
     $('box').hidden = false; header(); followLine();
