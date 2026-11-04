@@ -338,6 +338,7 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
 .ai-combo-item[data-active="true"] { background: var(--z-muted); }
 .ai-combo-item[aria-selected="true"] { color: var(--z-fg); }
 .ai-combo-item-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-combo-item-context { flex-shrink: 0; white-space: nowrap; }
 .ai-combo-item svg { flex-shrink: 0; width: 13px; height: 13px; opacity: 0; }
 .ai-combo-item[aria-selected="true"] svg { opacity: 1; }
 .ai-combo-empty { padding: 10px; font-size: 12px; color: var(--z-muted-fg); text-align: center; }

@@ -671,7 +671,7 @@ function aiShowModelContext() {
   context.textContent = tokens != null
     ? `Context: ${tokens.toLocaleString("en-US")} tokens`
     : aiModelCatalog
-      ? `Context: unknown · ${aiModelCatalog.fallbackRequestBytes.toLocaleString("en-US")}-byte fallback`
+      ? `Context: unknown · ${aiModelCatalog.fallbackContextTokens.toLocaleString("en-US")} tokens (fallback)`
       : "Context: unavailable";
 }
 function aiRenderModels() {
@@ -697,7 +697,13 @@ function aiRenderModels() {
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", "m20 6-11 11-5-5");
     check.append(path);
-    item.append(text, check);
+    const context = document.createElement("small");
+    context.className = "ai-combo-item-context ai-hint";
+    const tokens = aiModelCatalog?.contextTokens[m];
+    context.textContent = tokens != null ? `Context: ${tokens.toLocaleString("en-US")} tokens` : aiModelCatalog
+      ? `Context: ${aiModelCatalog.fallbackContextTokens.toLocaleString("en-US")} tokens (fallback)`
+      : "Context: unknown";
+    item.append(text, context, check);
     item.addEventListener("click", () => aiChooseModel(m));
     item.addEventListener("mousemove", () => aiHighlightModel(i));
     return item;

@@ -6,7 +6,6 @@
   // The assistant window loads this file with data-embed and mounts it itself.
   const embedOnly = document.currentScript?.hasAttribute('data-embed');
   const TOOL_LABELS = {list_characters:'角色列表',get_character:'角色狀態',get_log_summary:'讀取紀錄',game_lookup:'查詢資料',rank_maps:'地圖排名',guide_lookup:'查詢攻略',remember:'記住',update_memory:'更新記憶',forget:'忘記',recall:'回想'};
-  const STARTERS = ['誰的狀況最差？','今晚怎麼排？','最近為什麼死亡？'];
   const boot = (opts = {}) => {
     const embed = !!opts.mount;
     if (!embed && document.getElementById('ro-idle-assistant')) return;
@@ -202,21 +201,37 @@
       const row = el('div','ai'), col = el('div','col'); col.append(box); row.append(el('div','av','✦'),col); $('messages').append(row);
     };
     const input = root.querySelector('form input');
-    const starters = (questions) => {
+    const starters = (questions, parent = $('messages'), scoped = true) => {
       const wrap = el('div','starters');
-      for (const q of questions) { const b = el('button','',q); b.type = 'button'; b.addEventListener('click',()=>{ input.value = `${name ? `@${name} ` : ''}${q}`; root.querySelector('form').requestSubmit(); }); wrap.append(b); }
-      $('messages').append(wrap);
+      for (const q of questions) { const b = el('button','',q); b.type = 'button'; b.addEventListener('click',()=>{ input.value = `${scoped && name && !mention(q) ? `@${name} ` : ''}${q}`; root.querySelector('form').requestSubmit(); }); wrap.append(b); }
+      parent.append(wrap);
+    };
+    let starterGeneration = 0, starterSlot = null;
+    const initialQuestions = async () => {
+      const current = starterGeneration;
+      const slot = el('div','at','正在依隊伍狀態整理問題…');
+      starterSlot = slot;
+      $('messages').append(slot);
+      try {
+        const questions = await invoke('chat_starters');
+        if (current !== starterGeneration) return;
+        slot.textContent = '';
+        starters(questions, slot, false);
+      } catch {
+        if (current === starterGeneration) slot.textContent = '暫時無法產生建議問題，你仍可以直接提問。';
+      }
     };
     // A reply's stat button applies to the character its question named, else the last one named before it.
     let about = null;
     const render = (rows) => {
+      starterGeneration++;
       $('messages').replaceChildren();
       let last = null; about = null;
       for (const r of rows) if (!r.message && r.role !== 'summary' && r.text) {
         if (r.event_id) { alertCard(r.text); last = null; }
         else { if (r.role === 'user') about = mention(r.text) ?? about; const c = card(r.role,r.text,r.tools,about); last = r.role === 'user' ? null : c; }
       }
-      if (!$('messages').childElementCount) { card('assistant','我可以讀取全隊的狀態與戰鬥紀錄。用 @角色 問單一角色。'); starters(STARTERS); }
+      if (!$('messages').childElementCount) { card('assistant','我可以讀取全隊的狀態與戰鬥紀錄。用 @角色 問單一角色。'); void initialQuestions(); }
       else if (last?.follow?.length) starters(last.follow);
       scroll();
     };
@@ -311,11 +326,20 @@
     root.addEventListener('keydown',(e)=>{if(e.key === 'Escape') opts.onClose?.();});
     $('new').addEventListener('click',async()=>{
       if (busy) return;
-      try { await invoke('chat_new'); render([]); showError(); } catch(e) { showError(e); }
+      busy = true; $('send').disabled = true; $('new').disabled = true;
+      try {
+        await invoke('chat_new');
+        await focus(null); showPlan(false);
+        input.value = ''; $('mentions').replaceChildren();
+        render([]); showError();
+      } catch(e) { showError(e); }
+      finally { busy = false; $('send').disabled = false; $('new').disabled = false; input.focus(); }
     });
     root.querySelector('form').addEventListener('submit',async(e)=>{
       e.preventDefault(); const text = input.value.trim();
       if (busy || !text) return;
+      starterGeneration++;
+      if (starterSlot) starterSlot.hidden = true;
       about = mention(text) ?? about;
       busy = true; $('send').disabled = true; $('new').disabled = true; showError(); $('mentions').replaceChildren();
       input.value = ''; card('user',text); const answer = card('assistant','讀取中…'); let content = '';

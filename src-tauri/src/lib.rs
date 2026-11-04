@@ -205,14 +205,28 @@ const CHARACTER_HOOK: &str = r#"
     assistApply(id, s, ids).catch(e => console.warn('[ro-idle-tray] assist failed', e)).finally(() => { assistBusy = false; });
   }
   window.__roIdleAssist = async byMap => {
+    if (assistBusy) throw new Error('Assist update in progress; try again');
     const id = streamId, s = cache[id];
-    if (!byMap) { localStorage.removeItem(ASSIST); last = null; if (s) send(s); return 0; }
     if (!s?.config) throw new Error('No character currently in play');
-    localStorage.setItem(ASSIST, JSON.stringify(byMap));
-    last = null;
-    const ids = assistIds(s, byMap);
-    if (ids) await assistApply(id, s, ids); else send(s);
-    return byMap[s.mapId]?.length ?? 0;
+    assistBusy = true;
+    try {
+      if (!byMap) {
+        const ids = new Set(assistMap()?.[s.mapId] ?? []);
+        const config = {...s.config, monsterRules: (s.config.monsterRules ?? []).filter(r =>
+          !ids.has(r.monsterId))};
+        const snapshot = await roIdleUpdateConfig(id, config);
+        localStorage.removeItem(ASSIST);
+        assistNote = 'disabled; current-map monster rules removed';
+        last = null;
+        if (streamId === id) { cache[id] = snapshot ?? {...s, config}; send(cache[id]); }
+        return 0;
+      }
+      localStorage.setItem(ASSIST, JSON.stringify(byMap));
+      last = null;
+      const ids = assistIds(s, byMap);
+      if (ids) await assistApply(id, s, ids); else send(s);
+      return byMap[s.mapId]?.length ?? 0;
+    } finally { assistBusy = false; }
   };
   window.__roIdleApplySkills = async (rows, character) => {
     const id = streamId;
@@ -712,6 +726,7 @@ pub fn run() {
             ai::ai_list_models,
             ai::ai_test_connection,
             chat::chat_history,
+            chat::chat_starters,
             chat::chat_send,
             chat::chat_new,
             chat::chat_character,
@@ -741,7 +756,7 @@ pub fn run() {
                     tauri::async_runtime::spawn(async move {
                         let on = !app.state::<Profiles>().info.lock().unwrap().get(&n).is_some_and(|c| c.assist);
                         let body = match atlas::assist_mode(&app, n, on).await {
-                            Ok(_) if !on => "已關閉（已設定的怪物保持不變）".to_string(),
+                            Ok(_) if !on => "已關閉：已移除本圖怪物控制設定".to_string(),
                             Ok(0) => "已開啟：目前地圖沒有怪物，換圖後自動套用".to_string(),
                             Ok(k) => format!("已開啟：本圖 {k} 種怪物被打才還手，換圖自動套用"),
                             Err(e) => format!("設定失敗：{e}"),

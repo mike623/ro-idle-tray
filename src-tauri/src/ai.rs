@@ -321,7 +321,7 @@ pub fn ai_save_settings(
 pub struct ModelCatalogView {
     models: Vec<String>,
     context_tokens: std::collections::BTreeMap<String, usize>,
-    fallback_request_bytes: usize,
+    fallback_context_tokens: usize,
 }
 
 fn model_catalog_view(text: &str) -> Result<ModelCatalogView, String> {
@@ -333,7 +333,7 @@ fn model_catalog_view(text: &str) -> Result<ModelCatalogView, String> {
     Ok(ModelCatalogView {
         models,
         context_tokens,
-        fallback_request_bytes: crate::chat::FALLBACK_REQUEST_BYTES,
+        fallback_context_tokens: crate::chat::FALLBACK_CONTEXT_TOKENS,
     })
 }
 
@@ -507,7 +507,7 @@ mod tests {
         let view = serde_json::to_value(catalog).unwrap();
         assert_eq!(view["models"], json!(["large", "unknown"]));
         assert_eq!(view["contextTokens"], json!({"large": 128000}));
-        assert_eq!(view["fallbackRequestBytes"], crate::chat::FALLBACK_REQUEST_BYTES);
+        assert_eq!(view["fallbackContextTokens"], crate::chat::FALLBACK_CONTEXT_TOKENS);
     }
 
     #[test]

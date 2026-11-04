@@ -57,3 +57,45 @@ test('assist mode sets map monsters to defend and folds the old lists in like th
     targets: {blacklist: [], level: 1}, escape: {dangerMonsters: [], danger: 'fly'}});
   assert.equal(config.monsterRules[0].action, 'priority');
 });
+
+const injected = await fs.readFile(new URL('../src-tauri/src/lib.rs', import.meta.url), 'utf8');
+const assistSource = injected.slice(injected.indexOf("  const ASSIST ="), injected.indexOf('  window.__roIdleApplySkills'));
+function assistEnvironment(update) {
+  const storage = new Map([['roIdleTray.assist', JSON.stringify({a: [1], b: [2, 3]})]]);
+  const snapshot = {mapId: 'b', config: {monsterRules: [
+    {monsterId: 1, action: 'defend'}, {monsterId: 2, action: 'defend', escape: 'sight'},
+    {monsterId: 3, action: 'priority'}, {monsterId: 99, action: 'defend'}], autoLoot: true}};
+  const ctx = {window: {}, streamId: 'c', cache: {c: snapshot}, last: null, send: () => {}, console,
+    localStorage: {getItem: k => storage.get(k), setItem: (k, v) => storage.set(k, v), removeItem: k => storage.delete(k)}};
+  vm.createContext(ctx);
+  vm.runInContext(source, ctx);
+  ctx.roIdleUpdateConfig = update;
+  vm.runInContext(assistSource, ctx);
+  return {ctx, storage};
+}
+test('disabling assist removes current-map rows and preserves other maps', async () => {
+  let config;
+  const {ctx, storage} = assistEnvironment(async (id, c) => { config = plain(c); return {config: c}; });
+  await ctx.window.__roIdleAssist(null);
+  assert.deepEqual(config.monsterRules, [{monsterId: 1, action: 'defend'},
+    {monsterId: 99, action: 'defend'}]);
+  assert.equal(config.autoLoot, true);
+  assert.equal(storage.size, 0);
+});
+test('failed assist cleanup stays enabled for retry', async () => {
+  const {ctx, storage} = assistEnvironment(async () => { throw new Error('refused'); });
+  await assert.rejects(ctx.window.__roIdleAssist(null), /refused/);
+  assert.equal(storage.size, 1);
+});
+test('assist cleanup blocks concurrent toggles and automatic reapplication', async () => {
+  let finish, calls = 0;
+  const {ctx, storage} = assistEnvironment(() => { calls++; return new Promise(resolve => { finish = resolve; }); });
+  const pending = ctx.window.__roIdleAssist(null);
+  await assert.rejects(ctx.window.__roIdleAssist({b: [2]}), /in progress/);
+  vm.runInContext('autoAssist({mapId: "a", config: {monsterRules: []}})', ctx);
+  assert.equal(calls, 1);
+  assert.equal(storage.size, 1);
+  finish();
+  await pending;
+  assert.equal(storage.size, 0);
+});

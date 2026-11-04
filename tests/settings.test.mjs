@@ -60,21 +60,44 @@ test('the picker keeps the saved name when the list cannot load and prefers it w
 });
 
 
-test('context label follows the selected model and distinguishes unknown capacity from bytes', () => {
+test('context label follows the selected model and labels the fallback for unknown capacity', () => {
   const label = { textContent: '' };
   const context = vm.createContext({
     $: () => label,
     aiModelValue: 'large',
-    aiModelCatalog: { contextTokens: { large: 128000 }, fallbackRequestBytes: 39808 },
+    aiModelCatalog: { contextTokens: { large: 128000 }, fallbackContextTokens: 1000000 },
   });
   const render = main.slice(main.indexOf('function aiShowModelContext()'), main.indexOf('function aiRenderModels()'));
   vm.runInContext(render + 'aiShowModelContext();', context);
   assert.equal(label.textContent, 'Context: 128,000 tokens');
   context.aiModelValue = 'unknown';
   vm.runInContext('aiShowModelContext();', context);
-  assert.equal(label.textContent, 'Context: unknown · 39,808-byte fallback');
+  assert.equal(label.textContent, 'Context: unknown · 1,000,000 tokens (fallback)');
   context.aiModelCatalog = null;
   vm.runInContext('aiShowModelContext();', context);
   assert.equal(label.textContent, 'Context: unavailable');
   assert.match(html, /id="ai-model-context"[^>]*aria-live="polite"/);
+});
+
+test('dropdown options show their own context, including million-token models', () => {
+  const element = () => ({
+    dataset: {}, children: [], value: '',
+    setAttribute() {}, addEventListener() {},
+    append(...children) { this.children.push(...children); },
+    replaceChildren(...children) { this.children = children; },
+  });
+  const elements = Object.fromEntries(['ai-model-search', 'ai-model-list', 'ai-model-empty'].map(id => [id, element()]));
+  const context = vm.createContext({
+    $: id => elements[id],
+    document: { createElement: element, createElementNS: element },
+    aiModelCandidates: () => ['large', 'small', 'unknown'],
+    aiModelCatalog: { contextTokens: { large: 1000000, small: 128000 }, fallbackContextTokens: 1000000 },
+    aiModelValue: 'large', aiModelActive: -1, aiModelFiltered: [],
+  });
+  const render = main.slice(main.indexOf('function aiRenderModels()'), main.indexOf('function aiHighlightModel('));
+  vm.runInContext(render + 'aiRenderModels();', context);
+  assert.deepEqual(elements['ai-model-list'].children.map(item => item.children[1].textContent), [
+    'Context: 1,000,000 tokens', 'Context: 128,000 tokens', 'Context: 1,000,000 tokens (fallback)',
+  ]);
+  assert.equal(elements['ai-model-list'].children[0].dataset.value, 'large');
 });

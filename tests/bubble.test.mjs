@@ -36,6 +36,7 @@ function environment({panel=true,unread=0,history=[],replies={}}={}) {
     if(cmd==='chat_alert_ack') return {unread:0,nudge:''};
     if(cmd==='chat_memory') return {count:1,fact:'Safe farming'};
     if(cmd==='chat_history') return history;
+    if(cmd==='chat_starters') return ['@Alice 下一步去哪練功？'];
     if(cmd==='chat_plan') return {pages:['弓箭手技能說明','爆刺刺客培養攻略','裝備逐件保留判定'],suggested:['弓箭手技能說明'],selected:['裝備逐件保留判定'],note:''};
     if(cmd==='chat_plan_set') return {selected:args.pages,note:args.note};
     if(cmd==='chat_send') return new Promise((resolve)=>{finish=resolve;});
@@ -212,4 +213,74 @@ test('skill IDs display in Chinese and apply affordable targets to the focused c
   assert.deepEqual(plain(e.calls.find(c=>c.cmd==='apply_skills').args),{character:'Bob2',rows:[{id:'MG_FIREBOLT',target:10}]});
   assert.match(tip.textContent,/火箭術 3／10：技能點不足/);
   assert.equal(b.disabled,true);
+});
+
+test('empty chat generates contextual starters without sending a chat message',async()=>{
+  const e=environment();
+  await e.assistant.ask(null); await tick();
+  assert.equal(e.get('messages').children.at(-1).children[0].children[0].textContent, '@Alice 下一步去哪練功？');
+  assert.equal(e.calls.filter(c=>c.cmd==='chat_starters').length,1);
+  assert.equal(e.calls.filter(c=>c.cmd==='chat_send').length,0);
+  await e.assistant.ask(null);
+  assert.equal(e.calls.filter(c=>c.cmd==='chat_starters').length,1);
+  let submitted=false;
+  e.get('form').requestSubmit=()=>{submitted=true;};
+  e.get('messages').children.at(-1).children[0].children[0].events.click();
+  assert.equal(e.get('form input').value,'@Alice 下一步去哪練功？');
+  assert.equal(submitted,true);
+});
+
+test('existing chat uses answer follow-ups without generating initial questions',async()=>{
+  const e=environment({history:[{role:'assistant',text:'你好\n追問：下一步？'}]});
+  await e.assistant.ask(null);
+  assert.equal(e.calls.some(c=>c.cmd==='chat_starters'),false);
+  assert.match(e.get('messages').textContent,/下一步/);
+});
+
+test('late initial questions cannot reappear after the user starts chatting',async()=>{
+  let resolve;
+  const e=environment({replies:{chat_starters:()=>new Promise(r=>{resolve=r;})}});
+  await e.assistant.ask(null);
+  const slot=e.get('messages').children.at(-1);
+  e.get('form input').value='Hello';
+  const sending=e.get('form').events.submit({preventDefault(){}});
+  await tick();
+  resolve(['stale suggestion']); await tick();
+  assert.equal(slot.hidden,true);
+  assert.doesNotMatch(e.get('messages').textContent,/stale suggestion/);
+  e.finish([{role:'user',text:'Hello'},{role:'assistant',text:'Hi'}]); await sending;
+});
+
+test('starter failures leave direct chat available',async()=>{
+  const e=environment({replies:{chat_starters:()=>{throw Error('offline');}}});
+  await e.assistant.ask(null); await tick();
+  assert.match(e.get('messages').textContent,/仍可以直接提問/);
+  assert.notEqual(e.get('send').disabled,true);
+});
+
+test('New chat clears character focus, draft and guide panel',async()=>{
+  const e=environment();
+  await e.assistant.ask('Alice');
+  e.get('plan-btn').events.click();
+  assert.equal(e.get('plan-btn').hidden,false);
+  e.get('mentions').append(new Element());
+  await e.get('new').events.click();
+  assert.equal(e.get('plan-btn').hidden,true);
+  assert.equal(e.get('plan').hidden,true);
+  assert.equal(e.get('form input').value,'');
+  assert.equal(e.get('mentions').childElementCount,0);
+  await e.send('Team advice',[{role:'assistant',text:'Advice\n追問：下一步？'}]);
+  e.get('form').requestSubmit=()=>{};
+  e.get('messages').children.at(-1).children[0].events.click();
+  assert.equal(e.get('form input').value,'下一步？');
+  assert.equal(e.calls.some(c=>c.cmd==='chat_plan_set'),false);
+});
+
+test('failed New chat preserves character and draft',async()=>{
+  const e=environment({replies:{chat_new:()=>{throw Error('disk failed');}}});
+  await e.assistant.ask('Alice');
+  await e.get('new').events.click();
+  assert.equal(e.get('plan-btn').hidden,false);
+  assert.equal(e.get('form input').value,'@Alice ');
+  assert.equal(e.get('send').disabled,false);
 });
