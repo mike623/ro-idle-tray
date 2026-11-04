@@ -21,7 +21,7 @@ Formulas are covered separately in [formulas.md](formulas.md) (`scripts/formula-
 | Away summary | `GET /api/characters/:id/summary?after=` | kills/exp/looted/autoSold/deaths + `estimatedMs`, `estimatedZeny` |
 | Stream | `snapshot`, `events`, `chat`, `chatCursor`, `restart` | `restart` = `{windowMs}`; `chatCursor` = `{cursor}` |
 | Server event | `GET /api/kill-event` | Global kill counter, drop multiplier when reached |
-| Presence | `POST /api/presence` (body `{}`) | ≤1/min on user activity. **All 22 failed in the tray** (`TypeError: Load failed`) — investigate separately |
+| Presence | `POST /api/presence` (body `{}`) | ≤1/min on user activity. All 22 failed in the first session (`TypeError: Load failed`); later sessions return 200 with occasional failures — likely transient |
 | Server-side auto actions | `autoSell`, `autoBuy`, `shopBuy`, `storage`, `identify`, `equip`, `statUp`, `teleport`, `mapChange` events | Done by the server's idle brain, not by client commands |
 
 ## Commands (#12 checklist, one character)
