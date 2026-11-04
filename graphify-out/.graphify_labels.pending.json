@@ -64,5 +64,6 @@
   "62": "window_scope",
   "63": ".on_dispatch",
   "64": "confirm_remove",
-  "65": "ChatEvent"
+  "65": "ChatEvent",
+  "66": "guide.rs"
 }
