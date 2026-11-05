@@ -116,6 +116,26 @@ pub(crate) fn held_profiles(app: &AppHandle) -> Vec<u8> {
     profile_numbers(&same_map(crate::battle_roster(app), &focus))
 }
 
+/// WebKit suspends hidden game windows, so their battle-log stream events queue up and
+/// land in a clump at the 30 s poll (measured 2026-11-04: newest event up to 26 s old on
+/// arrival). While the view is open, nudge the watched windows every second so each
+/// server batch (~6 s of events) is delivered as it arrives.
+fn start_poke(app: &AppHandle) {
+    static STARTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if STARTED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+        return;
+    }
+    let app = app.clone();
+    std::thread::spawn(move || loop {
+        std::thread::sleep(Duration::from_secs(1));
+        for n in held_profiles(&app) {
+            if let Some(w) = app.get_webview_window(&format!("game-profile-{n}")) {
+                let _ = w.eval("void 0");
+            }
+        }
+    });
+}
+
 fn profile_numbers(party: &[Value]) -> Vec<u8> {
     party.iter().filter_map(|c| c["profile"].as_str()?.strip_prefix("profile-")?.parse().ok()).collect()
 }
@@ -124,6 +144,7 @@ fn profile_numbers(party: &[Value]) -> Vec<u8> {
 /// offline (auto offline) windows send no live events, so the view would stand still.
 #[tauri::command]
 pub fn open_battle(app: AppHandle, name: Option<String>) {
+    start_poke(&app);
     if let Some(n) = name.as_deref().filter(|n| !n.is_empty()) {
         *FOCUS.lock().unwrap() = n.to_string();
         for p in profile_numbers(&same_map(crate::battle_roster(&app), n)) {
