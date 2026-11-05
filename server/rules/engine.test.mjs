@@ -265,6 +265,9 @@ test('a support skill cast in a fight buffs the caster; an attack skill with no 
   e.finishCast(s, fixed(0.5));
   assert.deepEqual(s.events.at(-1).body, { type: 'buffStart', buffId: 'AL_INCAGI', durationMs: 80000 });
   assert.equal(s.mob.hpLeft, spore.hp);
+  e.resolveAction(s, { type: 'skill', skill: 'AL_INCAGI', lv: 2, at: 5000 }, fixed(0.5));
+  e.finishCast(s, fixed(0.5)); // recast while running replaces it: one entry, the new expiry
+  assert.deepEqual(s.buffs.filter((b) => b.id === 'AL_INCAGI').map((b) => b.endsAt), [5000 + 853 + 80000]); // DEX 22 cast: floor(1000×128/150)
 
   const steal = { id: 'TF_STEAL', kind: 'attack', attackType: 'weapon', sp: [10], castMs: [], delayMs: [], cooldownMs: [], hits: [1] };
   const t = e.startFight({ char: { ...thief, skills: { TF_STEAL: 1 } }, mob: { ...spore }, uid: 8, skills: { TF_STEAL: steal } });

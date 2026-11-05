@@ -118,7 +118,7 @@ export function finishCast(s, rng) {
   if (cd) c.cooldowns[sk.id] = t + cd;
   if (sk.kind === 'self' || sk.kind === 'support') { // ponytail: support cast in a fight lands on the caster (no ally targets yet)
     const durationMs = lookup(sk.durationMs, lv);
-    s.buffs = s.buffs.filter((b) => b.id !== sk.id || !b.ended);
+    s.buffs = s.buffs.filter((b) => b.id !== sk.id); // a recast replaces the running buff
     s.buffs.push({ id: sk.id, lv, endsAt: t + durationMs });
     restat(s);
     emit(s, t, { type: 'buffStart', buffId: sk.id, durationMs });

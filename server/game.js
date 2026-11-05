@@ -89,7 +89,12 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
   // Server-authoritative buff clock: C.buffs holds absolute expiries ({id, lv, endsAt} on the wall clock, persisted by
   // dump); the snapshot's captured `buffs` ({id, remainingMs, lv}) is computed from it on every read.
   const absoluteBuffs = (s) => (s.buffs ?? []).map(({ id, lv, remainingMs }) => ({ id, lv, endsAt: now() + remainingMs }));
-  /** Expires due buffs (buffEnd at each expiry time, panel and live fight re-derived); refreshes snapshot.buffs. */
+  /**
+   * Expires due buffs (buffEnd at each expiry time, panel and live fight re-derived, snapshot pushed); refreshes
+   * snapshot.buffs. ponytail: expiry lands on the next read/tick/fight step (tick 250 ms), so monster swings in that
+   * window still see the buffed stats, and buffEnd may follow fight events with a later wallMs; split advance() at
+   * expiries if that matters.
+   */
   function buffsNow(C) {
     const t = now(), gone = C.buffs.filter((b) => b.endsAt <= t).sort((a, b) => a.endsAt - b.endsAt);
     if (gone.length) C.buffs = C.buffs.filter((b) => b.endsAt > t);
@@ -99,20 +104,20 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     const F = C.fight;
     if (F && !F.s.over) for (const b of F.s.buffs) if (b.endsAt <= t) b.ended = true;
     buffsChanged(C);
+    touch(C);
     return true;
   }
   function buffsChanged(C) {
     rederive(C);
     const F = C.fight;
-    if (F && !F.s.over) Object.assign(F.s.char, statsOf(combatOf(C)));
+    if (F && !F.s.over) { Object.assign(F.s.char, statsOf(combatOf(C))); F.s.char.hp = Math.min(F.s.char.hp, F.s.char.maxHp); }
   }
   /** Buffs started in the live fight (delivered buffStart events) persist to the character with their expiry. */
   function keepFightBuffs(C, delivered) {
     const started = delivered.filter((x) => x.body.type === 'buffStart').map((x) => C.fight.s.buffs.findLast((b) => b.id === x.body.buffId));
     if (!started.length) return;
     for (const b of started) C.buffs = [...C.buffs.filter((x) => x.id !== b.id), { id: b.id, lv: b.lv, endsAt: b.endsAt }];
-    buffsNow(C);
-    buffsChanged(C); // advance() pushes the snapshot after delivering these events
+    if (!buffsNow(C)) buffsChanged(C); // advance() pushes the snapshot after delivering these events
   }
 
   /** Recomputes the stat panel (formulas.derive reproduces captured `derived` for all 8 captured characters). */
@@ -121,7 +126,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     try {
       Object.assign(s.derived, f.derive({ character: s.character, inventory: s.inventory, equipment: s.equipment, buffs: s.buffs },
         { job: job(C), items: data.items, refine: data.refine }));
-    } catch { /* ponytail: unsupported equipment bonus → keep last panel; add the source to formulas.js when it shows up */ }
+    } catch { /* ponytail: unsupported equipment bonus or buff id → keep last panel; add the source to formulas.js when it shows up */ }
     delete s.derived.vitDefRate; // not a captured panel field; combatOf derives it
     s.derived.vitDefShown = s.derived.vitDef; // ponytail: shown values kept equal; captured differ by Angelus share only
     const c = s.character;
@@ -158,6 +163,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
   function combatOf(C, buffs = C.snapshot.buffs) {
     const s = C.snapshot, { character: c, equipment: eq } = s;
     let d = s.derived;
+    // ponytail: an unsupported equipment bonus or buff makes derive throw; the fight then uses the stored panel
     try { d = { ...d, ...f.derive({ ...s, buffs }, { job: job(C), items: data.items, refine: data.refine }) }; } catch { /* panel as is */ }
     const w = data.items[stack(C, eq.weapon)?.itemId];
     const ammo = data.items[stack(C, eq.ammo)?.itemId];
@@ -178,6 +184,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
   function advance(C) {
     const F = C.fight;
     if (!F) return [];
+    buffsNow(C); // expire first so this step's swings use the unbuffed stats
     const t = now(), s = F.s;
     if (!s.over && s.char.casting && s.char.casting.until <= t) { e.mobTurn(s, s.char.casting.until - 1, g.rng); if (!s.over) e.finishCast(s, g.rng); }
     if (!s.over) e.mobTurn(s, t, g.rng);
@@ -515,7 +522,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
       res = { status: 422, body: { error: { code: 'GAME_RULE', message: `不支援的指令 ${command?.type}` }, view: g.view(C) } };
     } else {
       advance(C); // settle due fight events first so a rule rollback cannot undo granted rewards
-      const backup = structuredClone({ snapshot: C.snapshot, storage: g.storage.get(C.account) ?? null });
+      const backup = structuredClone({ snapshot: C.snapshot, buffs: C.buffs, storage: g.storage.get(C.account) ?? null });
       try {
         commands[command.type](C, command);
         C.commandRevision++;
@@ -523,7 +530,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
         res = { status: 200, body: { ok: true, view: g.view(C) } };
       } catch (err) {
         if (!(err instanceof RuleError)) throw err;
-        C.snapshot = backup.snapshot; // all-or-nothing: a rule failure leaves no partial change
+        C.snapshot = backup.snapshot; C.buffs = backup.buffs; // all-or-nothing: a rule failure leaves no partial change
         if (backup.storage) g.storage.set(C.account, backup.storage);
         res = { status: 422, body: { error: { code: 'GAME_RULE', message: err.message }, view: g.view(C) } };
       }
@@ -562,11 +569,12 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
   g.partyView = (C) => {
     const p = C.partyId != null ? g.parties.get(C.partyId) : null;
     const member = (M) => {
+      buffsNow(M);
       const s = M.snapshot, d = s.derived, eq = s.equipment, top = stack(M, eq.headTop)?.itemId;
       return { id: M.id, name: M.name, mapId: s.mapId, running: M.running, baseLv: s.character.baseLv, job: s.character.job,
         look: { appearance: s.appearance, headgear: top ? { top } : {}, gear: {} },
         vitals: { hp: fl(s.character.hp * 100 / d.maxHp), sp: fl(s.character.sp * 100 / d.maxSp) },
-        buffs: (buffsNow(M), s.buffs.map((b) => ({ id: b.id, lv: b.lv }))) };
+        buffs: s.buffs.map((b) => ({ id: b.id, lv: b.lv })) };
     };
     const own = g.charsOf(C.account).filter((x) => x !== C).map((M) => ({ id: M.id, name: M.name, partyId: M.partyId, running: M.running,
       vending: false, mapId: M.snapshot.mapId, baseLv: M.snapshot.character.baseLv, job: M.snapshot.character.job, invites: [] }));
@@ -585,7 +593,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     const t = now();
     for (const C of g.chars.values()) {
       if (C.fight && !C.fight.settled) advance(C);
-      if (buffsNow(C)) touch(C);
+      buffsNow(C);
       const step = C.snapshot.restSit ? SIT_REGEN_MS : REGEN_MS;
       if (C.fight && !C.fight.s.over) { C.regenAt = t; continue; } // ponytail: no regen while engaged
       if (t - C.regenAt < step) continue;

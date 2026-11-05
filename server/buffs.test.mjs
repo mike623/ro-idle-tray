@@ -49,10 +49,18 @@ test('buffs count down on the wall clock and expire with buffEnd; the panel lose
   assert.deepEqual([t.str, t.int, t.dex], [captured.derived.total.str - 10, captured.derived.total.int - 10, captured.derived.total.dex - 10]);
 });
 
-test('a view between ticks already hides an expired buff (no tick needed)', () => {
+test('a view between ticks already hides an expired buff and pushes the re-derived snapshot', () => {
   const { g, clock, C } = world();
+  const pushed = [];
+  g.subscribe(ID, (name, x) => { if (name === 'snapshot') pushed.push(x); });
+  const rev = C.revision;
   clock.now = T0 + 38_000;
   assert.equal(g.view(C).snapshot.buffs.some((b) => b.id === 'AL_INCAGI'), false);
+  assert.equal(ends(C).length, 1);
+  assert.ok(C.revision > rev);
+  assert.equal(pushed.at(-1).snapshot.buffs.some((b) => b.id === 'AL_INCAGI'), false);
+  assert.equal(pushed.at(-1).snapshot.derived.total.agi, captured.derived.total.agi - 5);
+  g.tick(); // nothing left to expire
   assert.equal(ends(C).length, 1);
 });
 

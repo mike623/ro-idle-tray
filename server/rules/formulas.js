@@ -31,12 +31,15 @@ export const SIZE_TABLE = {
 
 const REBORN = new Set(['lord_knight', 'high_wizard', 'high_priest', 'sniper', 'assassin_cross', 'whitesmith', 'paladin',
   'champion', 'stalker', 'professor', 'clown', 'gypsy', 'creator']);
-// Bundle buff table Pe[] (formulas.md "Buff … Bundle Pe[]"), lv → bonus in the bundle's shape. Only numeric fields,
-// `stats` and `statRate` reach the panel; flags/elements/per-race maps (attackElement, unbreakable, subRace, …) do not.
-// ponytail: second args (BS_ADRENALINE/BS_OVERTHRUST `t`, party-cast variants) taken as self-cast; SA_VOLCANO's Ee[]
-// element rate is not a panel field. Unknown ids throw so callers never silently ignore a stat source.
+// Bundle buff table Pe[] (formulas.md "Buff … Bundle Pe[]"), lv → bonus in the bundle's shape. Numeric fields, `stats`
+// and `statRate` are summed into `bonuses`; derive reads the panel ones (stats, hit, flee, crit, mdef, aspdRate, atk,
+// maxHpRate, vitDefRate, magicPowerRate, …). Unknown ids throw so callers never silently ignore a stat source.
+// ponytail: atkRate/masteryAtk (Concentration, Berserk, True Sight, Overthrust, Call Spirits) are summed but no damage
+// formula reads them yet, and maps/flags (attackElement, elementAtkRate incl. SA_VOLCANO's Ee[], subRace, unbreakable)
+// are dropped; wire them into playerDamage when a captured character uses one. Second args (BS_ADRENALINE/BS_OVERTHRUST
+// `t`) are taken as self-cast.
 const NO_STATS = () => ({});
-export const BUFFS = {
+const BUFFS = {
   ...Object.fromEntries(('LK_AURABLADE LK_PARRYING LK_TENSIONRELAX HP_BASILICA WS_CARTBOOST PA_SACRIFICE WS_MELTDOWN ST_REJECTSWORD '
     + 'ST_CHASEWALK MG_SIGHT AL_RUWACH MG_ENERGYCOAT KN_AUTOCOUNTER AS_POISONREACT MG_SAFETYWALL AL_PNEUMA TF_HIDING AS_CLOAKING '
     + 'PR_SUFFRAGIUM PR_SANCTUARY PR_KYRIE HP_ASSUMPTIO PR_MAGNIFICAT PR_SLOWPOISON CR_FULLPROTECTION PF_DOUBLECASTING CR_AUTOGUARD '
