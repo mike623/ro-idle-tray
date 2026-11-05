@@ -167,7 +167,7 @@
       while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
       for (const line of lines) {
         if (line.startsWith('>')) {
-          const t = line.replace(/^>\s?/,'');
+          const t = line.replace(/^(?:>\s?)+/,''); // models sometimes nest "> > X"
           if (!tip) { tip = el('div','tip'); body.append(tip); if (t.trim() === '建議改法') { tip.append(el('div','tt',t.trim())); continue; } }
           const d = el('div'); inline(d,t); tip.append(d);
           const m = STAT.exec(t.replace(/\*\*|`/g,''));

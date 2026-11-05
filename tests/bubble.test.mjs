@@ -203,7 +203,7 @@ test('guide icons open the article without changing the reading plan and report 
 test('skill IDs display in Chinese and apply affordable targets to the focused character',async()=>{
   const e=environment({replies:{apply_skills:()=>[{id:'MG_FIREBOLT',target:10,level:3,reason:'技能點不足'}]}});
   await e.assistant.ask(null);
-  await e.send('@Bob2 skills?',[{role:'user',text:'@Bob2 skills?'},{role:'assistant',text:'> 建議改法\n> MG_FIREBOLT 10'}]);
+  await e.send('@Bob2 skills?',[{role:'user',text:'@Bob2 skills?'},{role:'assistant',text:'> 建議改法\n> > MG_FIREBOLT 10'}]);
   const tip=answerBody(e,1).children[0], b=tip.children.at(-1);
   assert.match(tip.textContent,/火箭術 10/);
   assert.doesNotMatch(tip.textContent,/MG_FIREBOLT/);
