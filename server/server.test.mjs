@@ -360,9 +360,11 @@ test('an engine bug in the server tick is logged and the server keeps ticking an
 });
 
 test('admin dashboard: state, log backlog with HTTP errors and WS rejects, page', async (t) => {
-  const { srv, base, get } = await boot();
+  const { srv, base, get, cmd } = await boot();
   t.after(() => srv.close());
   await get('/api/characters', {}); // 401 → logged
+  await cmd({ type: 'stop' }); // REST command → logged as intent
+  await cmd({ type: 'start' });
   const c = connect(base);
   t.after(() => c.ws.close());
   await c.open;
@@ -387,6 +389,7 @@ test('admin dashboard: state, log backlog with HTTP errors and WS rejects, page'
   assert.match(text, /401 GET \/api\/characters/);
   assert.match(text, /72397 \S+ → attack uid=nope rejected/);
   assert.match(text, /72397 \S+ → search ok/);
+  assert.match(text, /72397 \S+ → command stop ok/);
   assert.match(text, /"kind":"intent"/);
 
   const page = await fetch(`${base}/admin`);

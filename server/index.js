@@ -141,6 +141,8 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
         case 'commands': {
           if (req.method !== 'POST' || !body?.command) return fail(400, 'INVALID_REQUEST', 'command required');
           const r = game.command(C.id, body);
+          const { type, ...args } = body.command;
+          log(`${C.id} ${C.name} → command ${type} ${brief(args)}${brief(args) ? ' ' : ''}${r.status < 300 ? 'ok' : `rejected ${r.body?.error?.code ?? r.status}`}`, false, 'intent');
           return send(r.status, r.body);
         }
         case 'stream': return stream(req, res, C, url, seenSeq);
