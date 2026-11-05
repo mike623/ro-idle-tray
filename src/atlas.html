@@ -67,6 +67,7 @@ td.share { width: 30%; }
 tr.hit td { background: var(--hit); }
 .tag { font-size: 10px; font-weight: 700; margin-left: 4px; }
 .tag.mvp { color: var(--mvp); } .tag.boss { color: var(--boss); }
+.tag.aggr { color: var(--mvp); border: 1px solid currentColor; border-radius: 3px; padding: 0 2px; font-weight: 400; }
 .sec { font-size: 11px; color: var(--dim); border-top: 1px solid var(--edge); padding-top: 4px; }
 .links { display: flex; flex-wrap: wrap; gap: 4px; }
 .link { font: 11px var(--ui); padding: 1px 6px; border: 1px solid var(--edge); border-radius: 3px; background: var(--face-2); color: var(--text); cursor: pointer; }
@@ -127,6 +128,12 @@ const chosen = new Set();
 const invoke = (command, args) => window.__TAURI__.core.invoke(command, args);
 const $ = id => document.getElementById(id);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+// Aggressive (主動) monsters by name+level, from the bundled game data; tags appear once it loads.
+let AGGR = new Set();
+window.fetch?.("game-data.json").then(r => r.json()).then(d => {
+  AGGR = new Set(d.monsters.filter(m => m.behavior === "aggressive").map(m => `${m.name}|${m.lv}`));
+  render();
+}).catch(() => {});
 const tag = b => b === 2 ? el("span", "tag mvp", "MVP") : b === 1 ? el("span", "tag boss", "BOSS") : null;
 
 function updateChooseCount() {
@@ -214,6 +221,7 @@ function card(m, q) {
       const tr = el("tr");
       if (q && s[0].toLowerCase().includes(q)) tr.className = "hit";
       const nm = el("td"); nm.append(s[0]); const tg = tag(timedRows ? s[5] : s[3]); if (tg) nm.append(tg);
+      if (AGGR.has(`${s[0]}|${s[1]}`)) { const a = el("span", "tag aggr", "主動"); a.title = "Aggressive: attacks on sight"; nm.append(a); }
       tr.append(nm, el("td", "lv", `Lv${s[1]}`), el("td", "n", `×${s[2]}`));
       if (timedRows) {
         tr.append(el("td", "pct", `${s[3]}±${s[4]} min`));
