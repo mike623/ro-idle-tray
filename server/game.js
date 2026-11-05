@@ -145,7 +145,9 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     if (!s.over && s.char.casting && s.char.casting.until <= t) { e.mobTurn(s, s.char.casting.until - 1, g.rng); if (!s.over) e.finishCast(s, g.rng); }
     if (!s.over) e.mobTurn(s, t, g.rng);
     const c = C.snapshot.character;
+    const changed = c.hp !== s.char.hp || c.sp !== s.char.sp;
     c.hp = s.char.hp; c.sp = s.char.sp;
+    if (changed && !s.over) touch(C); // HP/SP bars read the snapshot, not the hit events
     s.events.sort((a, b) => a.t - b.t);
     const due = s.events.filter((x) => x.t <= t);
     s.events = s.events.filter((x) => x.t > t);

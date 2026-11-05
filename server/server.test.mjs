@@ -237,6 +237,22 @@ test('scripted session: connect → search → fight → kill → loot; SSE and 
   c.ws.close();
 });
 
+test('HP bar: fight damage pushes a snapshot with the new HP', async (t) => {
+  const { srv, base } = await boot();
+  t.after(() => srv.close());
+  const c = connect(base);
+  await c.open;
+  await c.next((x) => x.type === 'snapshot');
+  await c.send({ type: 'search' });
+  const C = srv.game.chars.get(ID);
+  const seen = [];
+  srv.game.subscribe(ID, (name, p) => name === 'snapshot' && seen.push(p.snapshot.character.hp));
+  C.fight.s.char.hp -= 100; // a monster hit as the engine records it
+  srv.game.tick();
+  assert.ok(seen.includes(C.fight.s.char.hp), `snapshots ${seen}`);
+  c.ws.close();
+});
+
 test('cheat: attacking faster than ASPD is rejected with the interval', async (t) => {
   const { srv, clock, base } = await boot();
   t.after(() => srv.close());
