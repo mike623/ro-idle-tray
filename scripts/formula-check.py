@@ -156,7 +156,7 @@ def captures(directory):
 
 STATS = ('str', 'agi', 'vit', 'int', 'dex', 'luk')
 ELEMENTS = ('neutral', 'water', 'earth', 'fire', 'wind', 'poison', 'holy', 'dark', 'ghost', 'undead')
-BUFFS = {'AL_INCAGI', 'AL_BLESSING', 'AL_ANGELUS', 'SM_ENDURE', 'MC_LOUD'}
+BUFFS = {'AL_INCAGI', 'AL_BLESSING', 'AL_ANGELUS', 'SM_ENDURE', 'MC_LOUD', 'AS_ENCHANTPOISON'}  # Enchant Poison: attackElement only (bundle Pe[])
 # A stream silent this long (app offline/capture gap) may have missed statUp/jobLv/equip changes: drop its state.
 STALE_GAP_MS = 120_000
 # (monster, item) pairs whose captured rate disagrees with the bundle table; informational, see twin-report.md L1.

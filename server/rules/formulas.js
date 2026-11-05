@@ -31,13 +31,47 @@ export const SIZE_TABLE = {
 
 const REBORN = new Set(['lord_knight', 'high_wizard', 'high_priest', 'sniper', 'assassin_cross', 'whitesmith', 'paladin',
   'champion', 'stalker', 'professor', 'clown', 'gypsy', 'creator']);
-// ponytail: only buffs seen in captures; others throw so callers never silently ignore a stat source.
-const BUFFS = {
-  AL_INCAGI: (o, lv) => { o['stat.agi'] += 2 + lv; },
-  AL_BLESSING: (o, lv) => { for (const s of ['str', 'int', 'dex']) o['stat.' + s] += lv; },
-  MC_LOUD: (o) => { o['stat.str'] += 4; },
-  SM_ENDURE: (o, lv) => { o.mdef += lv; },
-  AL_ANGELUS: (o, lv) => { o.vitDefRate += 5 * lv; },
+// Bundle buff table Pe[] (formulas.md "Buff … Bundle Pe[]"), lv → bonus in the bundle's shape. Only numeric fields,
+// `stats` and `statRate` reach the panel; flags/elements/per-race maps (attackElement, unbreakable, subRace, …) do not.
+// ponytail: second args (BS_ADRENALINE/BS_OVERTHRUST `t`, party-cast variants) taken as self-cast; SA_VOLCANO's Ee[]
+// element rate is not a panel field. Unknown ids throw so callers never silently ignore a stat source.
+const NO_STATS = () => ({});
+export const BUFFS = {
+  ...Object.fromEntries(('LK_AURABLADE LK_PARRYING LK_TENSIONRELAX HP_BASILICA WS_CARTBOOST PA_SACRIFICE WS_MELTDOWN ST_REJECTSWORD '
+    + 'ST_CHASEWALK MG_SIGHT AL_RUWACH MG_ENERGYCOAT KN_AUTOCOUNTER AS_POISONREACT MG_SAFETYWALL AL_PNEUMA TF_HIDING AS_CLOAKING '
+    + 'PR_SUFFRAGIUM PR_SANCTUARY PR_KYRIE HP_ASSUMPTIO PR_MAGNIFICAT PR_SLOWPOISON CR_FULLPROTECTION PF_DOUBLECASTING CR_AUTOGUARD '
+    + 'CR_DEVOTION CG_MARIONETTE PF_FOGWALL PF_MEMORIZE SA_MAGICROD BA_WHISTLE BA_ASSASSINCROSS BA_POEMBRAGI BA_APPLEIDUN DC_HUMMING '
+    + 'DC_FORTUNEKISS DC_SERVICEFORYOU BD_LULLABY BD_RICHMANKIM BD_ETERNALCHAOS BD_DRUMBATTLEFIELD BD_RINGNIBELUNGEN BD_ROKISWEIL '
+    + 'BD_INTOABYSS BD_SIEGFRIED CG_MOONLIT CG_HERMODE SA_AUTOSPELL SA_LANDPROTECTOR MO_EXTREMITYFIST HW_GRAVITATION MO_BLADESTOP '
+    + 'AM_CP_WEAPON AM_CP_SHIELD AM_CP_ARMOR AM_CP_HELM AS_ENCHANTPOISON PR_ASPERSIO PR_BENEDICTIO BS_WEAPONPERFECT BS_MAXIMIZE '
+    + 'SA_FLAMELAUNCHER SA_FROSTWEAPON SA_LIGHTNINGLOADER SA_SEISMICWEAPON CR_PROVIDENCE CR_REFLECTSHIELD SM_MAGNUM ASC_EDP')
+    .split(' ').map((id) => [id, NO_STATS])),
+  LK_CONCENTRATION: (e) => ({ hit: 10 * e, atkRate: 5 * e, defRate: -5 * e, vitDefRate: -5 * e, mdef: 1 }),
+  LK_BERSERK: () => ({ maxHpRate: 200, aspdRate: 30, atkRate: 100 }),
+  HW_MAGICPOWER: (e) => ({ magicPowerRate: 5 * e }),
+  SN_SIGHT: (e) => ({ stats: { str: 5, agi: 5, vit: 5, int: 5, dex: 5, luk: 5 }, atkRate: 2 * e, hit: 3 * e, crit: e }),
+  SN_WINDWALK: (e) => ({ flee: Math.ceil(e / 2) }),
+  AL_BLESSING: (e) => ({ stats: { str: e, int: e, dex: e } }),
+  HAMI_DEFENCE: (e) => ({ stats: { vit: 2 * e } }),
+  AL_INCAGI: (e) => ({ stats: { agi: 2 + e } }),
+  AL_ANGELUS: (e) => ({ vitDefRate: 5 * e }),
+  SM_ENDURE: (e) => ({ mdef: e }),
+  AC_CONCENTRATION: (e) => ({ statRate: { agi: 2 + e, dex: 2 + e } }),
+  MC_LOUD: () => ({ stats: { str: 4 } }),
+  KN_TWOHANDQUICKEN: () => ({ aspdRate: 30 }),
+  PR_IMPOSITIO: (e) => ({ atk: 5 * e }),
+  PR_GLORIA: () => ({ stats: { luk: 30 } }),
+  BS_ADRENALINE: () => ({ aspdRate: 30 }),
+  BS_OVERTHRUST: (e) => ({ atkRate: 5 * e }),
+  WS_OVERTHRUSTMAX: (e) => ({ atkRate: 20 * e }),
+  CR_DEFENDER: (e) => ({ aspdRate: -(25 - 5 * e) }),
+  CR_SPEARQUICKEN: (e) => ({ aspdRate: 20 + e }),
+  MO_CALLSPIRITS: (e) => ({ masteryAtk: 3 * e }),
+  MO_EXPLOSIONSPIRITS: (e) => ({ crit: (75 + 25 * e) / 10 }),
+  SA_VOLCANO: (e) => ({ atk: 10 * e }),
+  SA_DELUGE: (e) => ({ maxHpRate: [5, 9, 12, 14, 15][e - 1] ?? 15 }),
+  SA_VIOLENTGALE: (e) => ({ flee: 3 * e }),
+  MO_STEELBODY: () => ({ aspdRate: -25 }),
 };
 
 const counter = () => new Proxy({}, { get: (o, k) => (k in o || typeof k === 'symbol' ? o[k] : 0) });
@@ -66,7 +100,10 @@ export function bonuses(state, items) {
   }
   for (const { id, lv } of state.buffs) {
     if (!BUFFS[id]) throw new Error(`unsupported buff ${id}`);
-    BUFFS[id](out, lv);
+    for (const [k, v] of Object.entries(BUFFS[id](lv))) {
+      if (typeof v === 'number') out[k] += v;
+      else if (k === 'stats' || k === 'statRate') for (const [s, n] of Object.entries(v)) out[(k === 'stats' ? 'stat.' : 'statRate.') + s] += n;
+    }
   }
   return out;
 }
@@ -74,7 +111,8 @@ export function bonuses(state, items) {
 export function totalStats({ stats, jobLv, skills = {} }, job, bonus) {
   const t = { ...stats };
   for (const b of job.jobBonus) if (b.lv <= jobLv) for (const [k, v] of Object.entries(b.stats)) t[k] += v;
-  for (const k of STATS) t[k] += bonus['stat.' + k];
+  const base = { ...t }; // statRate (Attention Concentrate) scales base + job stats, like the bundle
+  for (const k of STATS) t[k] += bonus['stat.' + k] + fl(base[k] * bonus['statRate.' + k] / 100);
   t.dex += skills.AC_OWL ?? 0;
   return t;
 }

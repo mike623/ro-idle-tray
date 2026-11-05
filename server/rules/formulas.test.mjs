@@ -48,6 +48,21 @@ test('derive reproduces the captured merchant panel', () => {
       hpRegen: 11, spRegen: 2 });
 });
 
+test('bundle buff table (formulas.md "Buff … Bundle Pe[]"): stat, ASPD and no-stat buffs feed derive', () => {
+  const panel = (buffs) => f.derive({ ...merchant, buffs }, { job: merchantJob, items });
+  const plain = panel([]);
+  assert.equal(plain.attackIntervalMs, 1140); // AGI 2, DEX 43: motion 600 − floor(600×51/1000) = 570
+  // Two-Hand Quicken aspdRate 30: floor(570×70/100) = 399 → ASPD 160.1, 798 ms
+  assert.deepEqual([panel([{ id: 'KN_TWOHANDQUICKEN', lv: 10 }]).aspd, panel([{ id: 'KN_TWOHANDQUICKEN', lv: 10 }]).attackIntervalMs], [160.1, 798]);
+  // Blessing Lv10: STR/INT/DEX +10; Inc AGI Lv10: AGI +12
+  assert.deepEqual(panel([{ id: 'AL_BLESSING', lv: 10 }, { id: 'AL_INCAGI', lv: 10 }]).total, { agi: 14, dex: 53, int: 12, luk: 2, str: 44, vit: 33 });
+  assert.equal(panel([{ id: 'PR_GLORIA', lv: 5 }]).crit, 10); // LUK 32 → 1 + floor(96/10)
+  // Enchant Poison only changes the attack element: the panel stays the same (it used to throw "unsupported buff")
+  assert.deepEqual(panel([{ id: 'AS_ENCHANTPOISON', lv: 5 }]), plain);
+  assert.equal(panel([{ id: 'AL_ANGELUS', lv: 10 }]).vitDefRate, 50);
+  assert.throws(() => panel([{ id: 'NOT_A_BUFF', lv: 1 }]), /unsupported buff/);
+});
+
 test('player physical damage follows the fitted order (formulas.md worked example)', () => {
   // statATK33 + floor(17×75%)=45; floor(45×90%)−28+14 refine = 26; double hit = 52.
   assert.equal(f.playerDamage({ statAtk: 33, weaponRoll: 17, wt: 'dagger', size: 'medium', refineAtk: 14,

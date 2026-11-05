@@ -28,15 +28,18 @@ const clamp = (lo, hi, x) => Math.max(lo, Math.min(hi, x));
 
 /**
  * Fight state; resolveAction/finishCast/mobTurn mutate it and append `{t, body}` to `events`.
+ * `restat(buffs)` → char stat fields with those buffs active ([{id, lv}]); called when a buff starts or ends
+ * (the server and the L2 replay re-derive with formulas.derive). Without it the char's stats stay as given.
  */
-export function startFight({ char, mob, uid, skills = {}, items = {}, buffs = [], mobHp = mob.hp, t = 0, gap = 0, aggro = false }) {
-  return { t, uid, skills, items, gap, buffs: buffs.map((b) => ({ ...b, endsAt: t + b.remainingMs })),
+export function startFight({ char, mob, uid, skills = {}, items = {}, buffs = [], mobHp = mob.hp, t = 0, gap = 0, aggro = false, restat }) {
+  return { t, uid, skills, items, gap, restat, buffs: buffs.map((b) => ({ ...b, endsAt: t + b.remainingMs })),
     char: { ...char, nextActAt: t, cooldowns: {} },
     mob: { ...mob, hpLeft: mobHp, aggro, aggroAt: aggro ? t : null, reachAt: t, nextAttackAt: null, skillReadyAt: {} },
     events: [], over: null };
 }
 
 const emit = (s, t, body) => { s.events.push({ t, body }); };
+const restat = (s) => { if (s.restat) Object.assign(s.char, s.restat(s.buffs.filter((b) => !b.ended).map(({ id, lv }) => ({ id, lv })))); };
 const me = (c) => [c.hp, c.sp];
 const playerHit = (c, m) => clamp(5, 95, 80 + c.hit - (m.lv + m.stats.agi));
 
@@ -117,7 +120,7 @@ export function finishCast(s, rng) {
     const durationMs = lookup(sk.durationMs, lv);
     s.buffs = s.buffs.filter((b) => b.id !== sk.id || !b.ended);
     s.buffs.push({ id: sk.id, lv, endsAt: t + durationMs });
-    if (sk.id === 'AL_ANGELUS') c.vitDefRate += 5 * lv; // mirrors expireBuffs; other buff stats come from the snapshot panel
+    restat(s);
     emit(s, t, { type: 'buffStart', buffId: sk.id, durationMs });
     return;
   }
@@ -191,14 +194,13 @@ export function approach({ char, mob, brainChoices = {}, skills = {} }) {
 }
 
 function expireBuffs(s, upTo) {
+  let changed = false;
   for (const b of s.buffs) {
     if (b.ended || b.endsAt > upTo) continue;
-    b.ended = true;
-    // ponytail: only Angelus (soft DEF) is tracked; Inc AGI/Blessing/etc. stay at the snapshot panel values.
-    // Add the buff table from formulas.js `bonuses` + `derive` when a fight outlives its buffs often enough to matter.
-    if (b.id === 'AL_ANGELUS') s.char.vitDefRate -= 5 * (b.lv ?? 0);
+    b.ended = changed = true;
     emit(s, b.endsAt, { type: 'buffEnd', buffId: b.id });
   }
+  if (changed) restat(s);
 }
 
 function brainAction(s, at, choices) {
@@ -221,14 +223,14 @@ function brainAction(s, at, choices) {
  * Times are ms from fight start. Returns the events plus the L2 observables.
  */
 export function simulateFight({ char, mob, buffs = [], brainChoices = {}, rng, skills = {}, items = {}, start = 'found',
-  mobHp = mob.hp, uid = 1, maxMs = 600000 }) {
+  mobHp = mob.hp, uid = 1, maxMs = 600000, restat }) {
   const ap = start === 'found' ? approach({ char, mob, brainChoices, skills }) : { approachMs: 0 };
   // A ranged attacker keeps the gap until the mob walks it; a melee one meets the mob (Provoke lure walks it in).
   const range = char.attackRange ?? 1;
   const meleeMeet = ap.distance && range < ap.distance ? (ap.distance - range) * mob.walkSpeed : 0;
   const arrive = ap.approachMs + meleeMeet;
   const s = startFight({ char, mob, uid, skills, items, buffs, mobHp, gap: meleeMeet ? 0 : Math.max(0, (ap.distance ?? 1) - 1),
-    aggro: mob.behavior === 'aggressive' });
+    aggro: mob.behavior === 'aggressive', restat });
   s.char.nextActAt = arrive;
   s.mob.reachAt = mob.behavior === 'aggressive' ? arrive + s.gap * mob.walkSpeed : arrive;
   if (s.mob.aggro) s.mob.aggroAt = arrive;

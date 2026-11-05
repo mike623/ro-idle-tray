@@ -245,6 +245,18 @@ test('a crit never double-attacks; Angelus recast restores the soft-DEF bonus it
   assert.ok(r.char.vitDefRate === 0 || r.char.vitDefRate === 50, `vitDefRate ${r.char.vitDefRate}`);
 });
 
+test('restat: a buff ending or starting in a fight re-derives the fighter (Inc AGI expiry slows the swings)', () => {
+  const seen = [];
+  const restat = (buffs) => { seen.push(buffs.map((b) => b.id).join()); return { attackIntervalMs: buffs.length ? 600 : 1200 }; };
+  const r = e.simulateFight({ char: { ...thief, attackIntervalMs: 600 }, mob: { ...spore, hp: 5000 }, rng: e.mulberry32(1), restat,
+    buffs: [{ id: 'AL_INCAGI', lv: 10, remainingMs: 3000 }], maxMs: 12000 });
+  const swings = r.events.filter((x) => x.body.type === 'playerAttack').map((x) => x.t);
+  const gaps = swings.slice(1).map((t, i) => [swings[i], t - swings[i]]);
+  assert.ok(gaps.filter(([t]) => t < 3000).every(([, d]) => d === 600), JSON.stringify(gaps));
+  assert.ok(gaps.filter(([t]) => t >= 3000).every(([, d]) => d === 1200), JSON.stringify(gaps));
+  assert.deepEqual(seen, ['']); // called once, at the expiry, with the buffs still active (none)
+});
+
 test('a support skill cast in a fight buffs the caster; an attack skill with no element is neutral (twin run crash)', () => {
   const incagi = { id: 'AL_INCAGI', kind: 'support', attackType: 'magic', sp: [18, 21], castMs: [1000, 1000], delayMs: [1000, 1000],
     cooldownMs: [], durationMs: [60000, 80000] };
