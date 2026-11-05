@@ -308,19 +308,6 @@ async fn apply_character(app: &AppHandle, character: String, call: String, timeo
     let profiles = app.state::<crate::Profiles>();
     let n = profiles.info.lock().unwrap().iter().find(|(_, c)| c.name == character).map(|(&n, _)| n)
         .ok_or("Character not found")?;
-    // Offline: boot its window and wait for the game page to report in (auto offline closes it
-    // again a minute later). ponytail: polls info.updated; 90s covers a slow login.
-    if profiles.offline.lock().unwrap().contains(&n) {
-        let since = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
-        let handle = app.clone();
-        app.run_on_main_thread(move || crate::set_offline(&handle, n, false)).map_err(|e| e.to_string())?;
-        let mut ready = false;
-        for _ in 0..90 {
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            if profiles.info.lock().unwrap().get(&n).is_some_and(|c| c.name == character && c.updated > since) { ready = true; break; }
-        }
-        if !ready { return Err("Character did not come online within 90s".into()); }
-    }
     let lock = app.state::<MoveLock>();
     let _guard = lock.0.try_lock().map_err(|_| "A move is already in progress")?;
     let pending = BTreeMap::from([(n, character)]);
@@ -329,6 +316,37 @@ async fn apply_character(app: &AppHandle, character: String, call: String, timeo
         Some(e) => Err(e),
         None => Ok(result.data.unwrap_or_default()),
     }
+}
+
+/// Offline profiles have no game window: boot each and wait for its game page to report in
+/// (auto offline closes it again a minute later). Ones that never report come back as errors.
+/// ponytail: polls info.updated; 90s covers a slow login.
+async fn wake(app: &AppHandle, pending: &mut BTreeMap<u8, String>) -> Result<Vec<MoveResult>, String> {
+    let profiles = app.state::<crate::Profiles>();
+    let asleep: Vec<u8> = {
+        let off = profiles.offline.lock().unwrap();
+        pending.keys().copied().filter(|n| off.contains(n)).collect()
+    };
+    if asleep.is_empty() {
+        return Ok(Vec::new());
+    }
+    let since = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+    let handle = app.clone();
+    let boot = asleep.clone();
+    app.run_on_main_thread(move || for n in boot { crate::set_offline(&handle, n, false) })
+        .map_err(|e| e.to_string())?;
+    let ready = |n: &u8| profiles.info.lock().unwrap().get(n).is_some_and(|c| c.name == pending[n] && c.updated > since);
+    for _ in 0..90 {
+        if asleep.iter().all(ready) { break; }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }
+    let late: Vec<u8> = asleep.into_iter().filter(|n| !ready(n)).collect();
+    Ok(late.into_iter().map(|n| MoveResult {
+        profile: n,
+        name: pending.remove(&n).unwrap(),
+        error: Some("Character did not come online within 90s".into()),
+        data: None,
+    }).collect())
 }
 
 /// Runs `call` (a JS promise expression) in each pending profile's game window.
@@ -346,7 +364,7 @@ async fn run_move(
             let _ = tx.send(result);
         }
     });
-    let mut results = Vec::new();
+    let mut results = wake(app, &mut pending).await?;
     let event_js = serde_json::to_string(&event).unwrap();
     for (&n, name) in &pending {
         let script = format!(
