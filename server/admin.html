@@ -23,7 +23,9 @@
   #log { height:50vh; overflow:auto; font:12px/1.5 ui-monospace, Menlo, monospace; padding:8px 12px; margin:0; }
   #log .e { color:var(--bad); } #log .w { color:var(--warn); } #log .t { color:var(--muted); }
   input { font:inherit; padding:2px 6px; border:1px solid var(--line); border-radius:4px; background:var(--bg); color:var(--fg); }
-  label { font-weight:400; color:var(--muted); margin-left:auto; }
+  label { font-weight:400; color:var(--muted); }
+  .kinds { display:flex; gap:12px; flex-wrap:wrap; } .q { margin-left:auto; }
+  #log .intent { color:#2563eb; } @media (prefers-color-scheme: dark) { #log .intent { color:#60a5fa; } }
 </style>
 </head>
 <body>
@@ -46,7 +48,12 @@
     </table></div>
   </section>
   <section>
-    <h2>Log <label>filter <input id="q" placeholder="char id, type, 401…"></label></h2>
+    <h2>Log
+      <span class="kinds"><label><input type="checkbox" data-k="intent" checked> → client intents</label>
+      <label><input type="checkbox" data-k="event" checked> ← server events</label>
+      <label><input type="checkbox" data-k="hit"> ← per-hit (attacks, monster hits)</label>
+      <label><input type="checkbox" data-k="sys" checked> system</label></span>
+      <label class="q">filter <input id="q" placeholder="char id, type, 401…"></label></h2>
     <pre id="log"></pre>
   </section>
 </main>
@@ -75,15 +82,17 @@ async function refresh() {
 const lines = [];
 function draw() {
   const q = $('q').value.trim().toLowerCase();
+  const on = new Set([...document.querySelectorAll('[data-k]')].filter((x) => x.checked).map((x) => x.dataset.k));
   const el = $('log'), atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
-  el.innerHTML = lines.filter((r) => !q || r.line.toLowerCase().includes(q)).map((r) => {
-    const cls = /^(5\d\d|4\d\d)|rejected|refused|error/i.test(r.line) ? (/^5|refused/.test(r.line) ? 'e' : 'w') : '';
+  el.innerHTML = lines.filter((r) => on.has(r.kind ?? 'sys') && (!q || r.line.toLowerCase().includes(q))).map((r) => {
+    const cls = /^(5\d\d|4\d\d)|rejected|refused|error/i.test(r.line) ? (/^5|refused/.test(r.line) ? 'e' : 'w') : r.kind === 'intent' ? 'intent' : '';
     return `<span class="t">${new Date(r.t).toLocaleTimeString()}</span> <span class="${cls}">${esc(r.line)}</span>`;
   }).join('\n');
   if (atBottom) el.scrollTop = el.scrollHeight;
 }
-new EventSource('/admin/log').onmessage = (e) => { lines.push(JSON.parse(e.data)); if (lines.length > 1000) lines.shift(); draw(); };
+new EventSource('/admin/log').onmessage = (e) => { lines.push(JSON.parse(e.data)); if (lines.length > 5000) lines.shift(); draw(); };
 $('q').oninput = draw;
+document.querySelectorAll('[data-k]').forEach((x) => (x.onchange = draw));
 refresh(); setInterval(refresh, 2000);
 </script>
 </body>
