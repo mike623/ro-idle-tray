@@ -45,6 +45,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
   g.snapshot = (C) => {
     const s = C.snapshot;
     s.time = now() - C.simEpoch;
+    buffsNow(C);
     if (!C.driven) return s; // a seeded twin stays identical to its capture until something drives it
     const fight = C.fight && !C.fight.s.over ? C.fight : null;
     s.engaged = !!fight;
@@ -68,7 +69,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     return out;
   }
   // hooks for server/offline.js (arrows: touch/party/job are consts defined below)
-  Object.assign(g, { emit, combatOf, addItem, takeItem, die, touch: (C) => touch(C), party: (C) => party(C), job: (C) => job(C),
+  Object.assign(g, { emit, combatOf, buffsNow: (C) => buffsNow(C), addItem, takeItem, die, touch: (C) => touch(C), party: (C) => party(C), job: (C) => job(C),
     progress: (M, mob) => progress(M, mob, 1, 1) });
 
   // ---------- characters ----------
@@ -76,7 +77,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     const s = structuredClone(view.snapshot);
     const C = { id: view.characterId, name: view.name, account, revision: view.revision ?? 0, commandRevision: view.commandRevision ?? 0,
       lastSeq: view.lastSeq ?? 0, running: view.running ?? false, snapshot: s, partyId: null, log: [], commands: new Map(),
-      simEpoch: now() - (s.time ?? 0), fight: null, regenAt: now() };
+      simEpoch: now() - (s.time ?? 0), fight: null, regenAt: now(), buffs: absoluteBuffs(s) };
     g.chars.set(C.id, C);
     return C;
   };
@@ -84,13 +85,45 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
   const job = (C) => data.jobs[C.snapshot.character.job];
   const party = (C) => [...g.chars.values()].filter((x) => x === C || (C.partyId != null && x.partyId === C.partyId));
 
+  // ---------- buffs ----------
+  // Server-authoritative buff clock: C.buffs holds absolute expiries ({id, lv, endsAt} on the wall clock, persisted by
+  // dump); the snapshot's captured `buffs` ({id, remainingMs, lv}) is computed from it on every read.
+  const absoluteBuffs = (s) => (s.buffs ?? []).map(({ id, lv, remainingMs }) => ({ id, lv, endsAt: now() + remainingMs }));
+  /** Expires due buffs (buffEnd at each expiry time, panel and live fight re-derived); refreshes snapshot.buffs. */
+  function buffsNow(C) {
+    const t = now(), gone = C.buffs.filter((b) => b.endsAt <= t).sort((a, b) => a.endsAt - b.endsAt);
+    if (gone.length) C.buffs = C.buffs.filter((b) => b.endsAt > t);
+    C.snapshot.buffs = C.buffs.map(({ id, lv, endsAt }) => ({ id, remainingMs: endsAt - t, lv }));
+    if (!gone.length) return false;
+    emit(C, gone.map((b) => ({ t: b.endsAt, body: { type: 'buffEnd', buffId: b.id } })));
+    const F = C.fight;
+    if (F && !F.s.over) for (const b of F.s.buffs) if (b.endsAt <= t) b.ended = true;
+    buffsChanged(C);
+    return true;
+  }
+  function buffsChanged(C) {
+    rederive(C);
+    const F = C.fight;
+    if (F && !F.s.over) Object.assign(F.s.char, statsOf(combatOf(C)));
+  }
+  /** Buffs started in the live fight (delivered buffStart events) persist to the character with their expiry. */
+  function keepFightBuffs(C, delivered) {
+    const started = delivered.filter((x) => x.body.type === 'buffStart').map((x) => C.fight.s.buffs.findLast((b) => b.id === x.body.buffId));
+    if (!started.length) return;
+    for (const b of started) C.buffs = [...C.buffs.filter((x) => x.id !== b.id), { id: b.id, lv: b.lv, endsAt: b.endsAt }];
+    buffsNow(C);
+    buffsChanged(C);
+    touch(C);
+  }
+
   /** Recomputes the stat panel (formulas.derive reproduces captured `derived` for all 8 captured characters). */
   function rederive(C) {
     const s = C.snapshot;
     try {
       Object.assign(s.derived, f.derive({ character: s.character, inventory: s.inventory, equipment: s.equipment, buffs: s.buffs },
         { job: job(C), items: data.items, refine: data.refine }));
-    } catch { /* ponytail: unsupported buff/bonus → keep last panel; add the source to formulas.js BUFFS when it shows up */ }
+    } catch { /* ponytail: unsupported equipment bonus → keep last panel; add the source to formulas.js when it shows up */ }
+    delete s.derived.vitDefRate; // not a captured panel field; combatOf derives it
     s.derived.vitDefShown = s.derived.vitDef; // ponytail: shown values kept equal; captured differ by Angelus share only
     const c = s.character;
     c.hp = Math.min(c.hp, s.derived.maxHp); c.sp = Math.min(c.sp, s.derived.maxSp);
@@ -122,19 +155,24 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
   }
   const itemStack = (C, itemId) => C.snapshot.inventory.find((x) => x.itemId === itemId && x.qty > 0);
 
-  /** Combat view of a character for the engine (same fields as tests/l2-fights.mjs `charOf`). */
-  function combatOf(C) {
-    const { character: c, derived: d, equipment: eq, buffs } = C.snapshot;
+  /** Combat view of a character for the engine (same fields as tests/l2-fights.mjs `charOf`), with `buffs` active. */
+  function combatOf(C, buffs = C.snapshot.buffs) {
+    const s = C.snapshot, { character: c, equipment: eq } = s;
+    let d = s.derived;
+    try { d = { ...d, ...f.derive({ ...s, buffs }, { job: job(C), items: data.items, refine: data.refine }) }; } catch { /* panel as is */ }
     const w = data.items[stack(C, eq.weapon)?.itemId];
     const ammo = data.items[stack(C, eq.ammo)?.itemId];
-    const angelus = buffs.find((b) => b.id === 'AL_ANGELUS');
     return { job: c.job, baseLv: c.baseLv, jobLv: c.jobLv, hp: c.hp, sp: c.sp, maxHp: d.maxHp, maxSp: d.maxSp, statusAtk: d.statusAtk,
       weapon: w ? { weaponType: w.weaponType, weaponLevel: w.weaponLevel, atk: w.atk } : { weaponType: 'fist', weaponLevel: 0, atk: 0 },
       arrowAtk: ammo?.atk ?? 0, refineAtk: d.refineAtk, atkBonus: d.atkBonus, dex: d.total.dex, int: d.total.int, vit: d.total.vit,
-      vitDefRate: angelus ? 5 * (angelus.lv ?? 10) : 0, matkMin: d.matkMin, matkMax: d.matkMax, hit: d.hit, flee: d.flee, crit: d.crit,
+      vitDefRate: d.vitDefRate ?? 0, matkMin: d.matkMin, matkMax: d.matkMax, hit: d.hit, flee: d.flee, crit: d.crit,
       perfectDodge: d.perfectDodge, hardDef: d.hardDef, attackIntervalMs: d.attackIntervalMs, moveSpeedMs: d.moveSpeedMs,
       attackRange: d.attackRange, skills: c.skills };
   }
+
+  const STAT_KEYS = ['maxHp', 'maxSp', 'statusAtk', 'refineAtk', 'atkBonus', 'dex', 'int', 'vit', 'vitDefRate', 'matkMin', 'matkMax',
+    'hit', 'flee', 'crit', 'perfectDodge', 'hardDef', 'attackIntervalMs', 'moveSpeedMs'];
+  const statsOf = (x) => Object.fromEntries(STAT_KEYS.map((k) => [k, x[k]]));
 
   // ---------- fights ----------
   /** Runs the fight forward to `now()`: cast completions, monster swings, then delivers due events, kill/death. */
@@ -150,6 +188,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     const due = s.events.filter((x) => x.t <= t);
     s.events = s.events.filter((x) => x.t > t);
     const out = emit(C, due);
+    keepFightBuffs(C, due);
     if (s.over === 'kill' && !F.settled) out.push(...onKill(C, F));
     if (s.over === 'death' && !F.settled) out.push(...onDeath(C, F));
     return out;
@@ -236,7 +275,9 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
       // same opening geometry as engine.simulateFight
       const meleeMeet = enc.distance && c.attackRange < enc.distance ? (enc.distance - c.attackRange) * mob.walkSpeed : 0;
       const arrive = foundAt + enc.approachMs + meleeMeet;
-      const s = e.startFight({ char: c, mob, uid, skills: data.skills, buffs: C.snapshot.buffs, t: foundAt,
+      const s = e.startFight({ char: c, mob, uid, skills: data.skills, t: foundAt,
+        buffs: C.buffs.map(({ id, lv, endsAt }) => ({ id, lv, remainingMs: endsAt - foundAt })),
+        restat: (buffs) => statsOf(combatOf(C, buffs)),
         gap: meleeMeet ? 0 : Math.max(0, (enc.distance ?? 1) - 1), aggro: mob.behavior === 'aggressive' });
       s.char.nextActAt = arrive;
       s.mob.reachAt = mob.behavior === 'aggressive' ? arrive + s.gap * mob.walkSpeed : arrive;
@@ -521,7 +562,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
       return { id: M.id, name: M.name, mapId: s.mapId, running: M.running, baseLv: s.character.baseLv, job: s.character.job,
         look: { appearance: s.appearance, headgear: top ? { top } : {}, gear: {} },
         vitals: { hp: fl(s.character.hp * 100 / d.maxHp), sp: fl(s.character.sp * 100 / d.maxSp) },
-        buffs: s.buffs.map((b) => ({ id: b.id, lv: b.lv })) };
+        buffs: (buffsNow(M), s.buffs.map((b) => ({ id: b.id, lv: b.lv }))) };
     };
     const own = g.charsOf(C.account).filter((x) => x !== C).map((M) => ({ id: M.id, name: M.name, partyId: M.partyId, running: M.running,
       vending: false, mapId: M.snapshot.mapId, baseLv: M.snapshot.character.baseLv, job: M.snapshot.character.job, invites: [] }));
@@ -540,6 +581,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     const t = now();
     for (const C of g.chars.values()) {
       if (C.fight && !C.fight.settled) advance(C);
+      if (buffsNow(C)) touch(C);
       const step = C.snapshot.restSit ? SIT_REGEN_MS : REGEN_MS;
       if (C.fight && !C.fight.s.over) { C.regenAt = t; continue; } // ponytail: no regen while engaged
       if (t - C.regenAt < step) continue;
@@ -562,7 +604,8 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     for (const [k, v] of d.storage ?? []) g.storage.set(k, v);
     if (d.killEvent) g.killEvent = d.killEvent;
     g.nextUid = d.nextUid ?? 1;
-    for (const C of d.chars ?? []) g.chars.set(C.id, { ...C, commands: new Map(), fight: null, simEpoch: now() - C.snapshot.time, regenAt: now() });
+    for (const C of d.chars ?? []) g.chars.set(C.id, { ...C, commands: new Map(), fight: null, simEpoch: now() - C.snapshot.time, regenAt: now(),
+      buffs: C.buffs ?? absoluteBuffs(C.snapshot) }); // pre-buff-clock dumps: remainingMs counts from the restore
   };
   return g;
 }

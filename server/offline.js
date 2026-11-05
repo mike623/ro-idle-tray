@@ -114,6 +114,7 @@ export function attachOffline(g) {
   const count = (x) => { const n = Math.floor(x); return n + (rng() < x - n ? 1 : 0); };
   /** Settles the away time; returns the settlement record (also kept for /summary), or null when nothing was due. */
   g.checkout = (C) => {
+    g.buffsNow(C); // buffs ran out on the wall clock while away: buffEnd at their expiry, panel re-derived first
     const t = now(), o = state(C);
     if (isLive(C)) { o.settledAtMs = t; return null; }
     const from = awayFrom(C);
