@@ -237,6 +237,27 @@ test('scripted session: connect → search → fight → kill → loot; SSE and 
   c.ws.close();
 });
 
+test('live bars: HP, activity and target HP changes push a snapshot', async (t) => {
+  const { srv, base, clock } = await boot();
+  t.after(() => srv.close());
+  const c = connect(base);
+  await c.open;
+  await c.next((x) => x.type === 'snapshot');
+  const C = srv.game.chars.get(ID);
+  const seen = [];
+  srv.game.subscribe(ID, (name, p) => name === 'snapshot' && seen.push(structuredClone(p.snapshot)));
+  await c.send({ type: 'search' });
+  assert.ok(seen.some((s) => s.activity === 'searching'), 'activity pushed');
+  C.fight.s.char.hp -= 100; // a monster hit as the engine records it
+  srv.game.tick();
+  assert.ok(seen.some((s) => s.character.hp === C.fight.s.char.hp), 'hp pushed');
+  clock.now = C.fight.s.char.nextActAt;
+  assert.equal((await c.send({ type: 'attack', uid: C.fight.uid })).ok, true);
+  assert.equal(seen.at(-1).activity, 'attacking');
+  if (!C.fight.s.over) assert.equal(seen.at(-1).target.hp, C.fight.s.mob.hpLeft, 'target hp pushed');
+  c.ws.close();
+});
+
 test('cheat: attacking faster than ASPD is rejected with the interval', async (t) => {
   const { srv, clock, base } = await boot();
   t.after(() => srv.close());
@@ -360,13 +381,16 @@ test('an engine bug in the server tick is logged and the server keeps ticking an
 });
 
 test('admin dashboard: state, log backlog with HTTP errors and WS rejects, page', async (t) => {
-  const { srv, base, get } = await boot();
+  const { srv, base, get, cmd } = await boot();
   t.after(() => srv.close());
   await get('/api/characters', {}); // 401 → logged
+  await cmd({ type: 'stop' }); // REST command → logged as intent
+  await cmd({ type: 'start' });
   const c = connect(base);
   t.after(() => c.ws.close());
   await c.open;
   await c.send({ type: 'attack', uid: 'nope' }); // rejected → logged
+  await c.send({ type: 'search' }); // accepted intent → logged too
   const s = await get('/admin/state', {});
   assert.equal(s.status, 200);
   const me = s.body.characters.find((x) => x.id === ID);
@@ -380,10 +404,14 @@ test('admin dashboard: state, log backlog with HTTP errors and WS rejects, page'
   assert.match(r.headers.get('content-type'), /event-stream/);
   const reader = r.body.getReader();
   let text = '';
-  while (!/\n\n[\s\S]*\n\n/.test(text)) text += new TextDecoder().decode((await reader.read()).value);
+  const until = Date.now() + 2000;
+  while (!/→ search/.test(text) && Date.now() < until) text += new TextDecoder().decode((await Promise.race([reader.read(), new Promise((r) => setTimeout(() => r({ value: new Uint8Array() }), 200))])).value);
   ac.abort();
   assert.match(text, /401 GET \/api\/characters/);
-  assert.match(text, /72397.*attack.*rejected/);
+  assert.match(text, /72397 \S+ → attack uid=nope rejected/);
+  assert.match(text, /72397 \S+ → search ok/);
+  assert.match(text, /72397 \S+ → command stop ok/);
+  assert.match(text, /"kind":"intent"/);
 
   const page = await fetch(`${base}/admin`);
   assert.match(page.headers.get('content-type'), /text\/html/);

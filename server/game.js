@@ -112,8 +112,7 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     if (!started.length) return;
     for (const b of started) C.buffs = [...C.buffs.filter((x) => x.id !== b.id), { id: b.id, lv: b.lv, endsAt: b.endsAt }];
     buffsNow(C);
-    buffsChanged(C);
-    touch(C);
+    buffsChanged(C); // advance() pushes the snapshot after delivering these events
   }
 
   /** Recomputes the stat panel (formulas.derive reproduces captured `derived` for all 8 captured characters). */
@@ -183,12 +182,16 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     if (!s.over && s.char.casting && s.char.casting.until <= t) { e.mobTurn(s, s.char.casting.until - 1, g.rng); if (!s.over) e.finishCast(s, g.rng); }
     if (!s.over) e.mobTurn(s, t, g.rng);
     const c = C.snapshot.character;
+    const changed = c.hp !== s.char.hp || c.sp !== s.char.sp;
     c.hp = s.char.hp; c.sp = s.char.sp;
     s.events.sort((a, b) => a.t - b.t);
     const due = s.events.filter((x) => x.t <= t);
     s.events = s.events.filter((x) => x.t > t);
     const out = emit(C, due);
     keepFightBuffs(C, due);
+    // HP/SP, target HP and activity bars read the snapshot, not the events.
+    // ponytail: one snapshot per fight step (~2-4/s per fighting char); coalesce per tick if bandwidth matters
+    if ((changed || due.length) && !s.over) touch(C);
     if (s.over === 'kill' && !F.settled) out.push(...onKill(C, F));
     if (s.over === 'death' && !F.settled) out.push(...onDeath(C, F));
     return out;
@@ -286,11 +289,12 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
       C.fight = { uid, mob, s, loot: [] };
       C.snapshot.restSit = false;
       C.snapshot.activity = 'searching';
+      touch(C);
       return { ok: true, uid, events: advance(C) };
     },
     attack(C, a) {
       const F = target(C, a.uid);
-      C.snapshot.activity = 'attacking';
+      if (C.snapshot.activity !== 'attacking') { C.snapshot.activity = 'attacking'; touch(C); }
       return engineResult(C, e.resolveAction(F.s, { type: 'attack', at: now() }, g.rng));
     },
     cast(C, a) {

@@ -58,19 +58,20 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
   const counters = { http: 0, httpErrors: 0, wsActions: 0, wsRejected: 0, events: 0 };
   const logRing = [];
   const tails = new Set();
-  const log = (line, toConsole = logErrors) => {
-    const rec = { t: Date.now(), line };
+  // kind: sys (connects, HTTP errors) · intent (client → server action) · event (server → client) · hit (per-hit event noise)
+  const log = (line, toConsole = logErrors, kind = 'sys') => {
+    const rec = { t: Date.now(), kind, line };
     logRing.push(rec);
-    if (logRing.length > 1000) logRing.shift();
+    if (logRing.length > 5000) logRing.shift();
     for (const w of tails) w(rec);
     if (toConsole) console.log(line);
   };
-  const QUIET = new Set(['playerAttack', 'monsterAttack', 'mobSkill', 'searching', 'found']); // per-hit noise stays out of the log
+  const QUIET = new Set(['playerAttack', 'monsterAttack', 'mobSkill', 'searching', 'found']); // per-hit noise: hidden by default on the dashboard
   const prevEmit = game.onEmit;
   game.onEmit = (C, out) => {
     prevEmit?.(C, out);
     counters.events += out.length;
-    for (const e of out) if (!QUIET.has(e.body.type)) log(`${C.id} ${C.name} ${e.body.type} ${brief(e.body)}`, false);
+    for (const e of out) log(`${C.id} ${C.name} ← ${e.body.type} ${brief(e.body)}`, false, QUIET.has(e.body.type) ? 'hit' : 'event');
   };
 
   const accountOf = (req, url) => {
@@ -140,6 +141,8 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
         case 'commands': {
           if (req.method !== 'POST' || !body?.command) return fail(400, 'INVALID_REQUEST', 'command required');
           const r = game.command(C.id, body);
+          const { type, ...args } = body.command;
+          log(`${C.id} ${C.name} → command ${type} ${brief(args)}${brief(args) ? ' ' : ''}${r.status < 300 ? 'ok' : `rejected ${r.body?.error?.code ?? r.status}`}`, false, 'intent');
           return send(r.status, r.body);
         }
         case 'stream': return stream(req, res, C, url, seenSeq);
@@ -244,7 +247,9 @@ export async function startServer({ port = 8787, db = 'server/data.sqlite', now 
         r = { ok: false, error: 'INVARIANT' };
       }
       counters.wsActions++;
-      if (!r.ok) { counters.wsRejected++; log(`${C.id} ${C.name} ${a.type} rejected ${r.error ?? ''}`, false); }
+      if (!r.ok) counters.wsRejected++;
+      const { id: _id, type, ...args } = a ?? {};
+      log(`${C.id} ${C.name} → ${type} ${brief(args)}${brief(args) ? ' ' : ''}${r.ok ? 'ok' : `rejected ${r.error ?? ''}`}`, false, 'intent');
       out({ type: 'result', id: a.id, ...r });
     });
     ws.on('close', () => {
