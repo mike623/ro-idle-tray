@@ -237,19 +237,24 @@ test('scripted session: connect → search → fight → kill → loot; SSE and 
   c.ws.close();
 });
 
-test('HP bar: fight damage pushes a snapshot with the new HP', async (t) => {
-  const { srv, base } = await boot();
+test('live bars: HP, activity and target HP changes push a snapshot', async (t) => {
+  const { srv, base, clock } = await boot();
   t.after(() => srv.close());
   const c = connect(base);
   await c.open;
   await c.next((x) => x.type === 'snapshot');
-  await c.send({ type: 'search' });
   const C = srv.game.chars.get(ID);
   const seen = [];
-  srv.game.subscribe(ID, (name, p) => name === 'snapshot' && seen.push(p.snapshot.character.hp));
+  srv.game.subscribe(ID, (name, p) => name === 'snapshot' && seen.push(structuredClone(p.snapshot)));
+  await c.send({ type: 'search' });
+  assert.ok(seen.some((s) => s.activity === 'searching'), 'activity pushed');
   C.fight.s.char.hp -= 100; // a monster hit as the engine records it
   srv.game.tick();
-  assert.ok(seen.includes(C.fight.s.char.hp), `snapshots ${seen}`);
+  assert.ok(seen.some((s) => s.character.hp === C.fight.s.char.hp), 'hp pushed');
+  clock.now = C.fight.s.char.nextActAt;
+  assert.equal((await c.send({ type: 'attack', uid: C.fight.uid })).ok, true);
+  assert.equal(seen.at(-1).activity, 'attacking');
+  if (!C.fight.s.over) assert.equal(seen.at(-1).target.hp, C.fight.s.mob.hpLeft, 'target hp pushed');
   c.ws.close();
 });
 

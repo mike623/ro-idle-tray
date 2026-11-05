@@ -147,11 +147,13 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
     const c = C.snapshot.character;
     const changed = c.hp !== s.char.hp || c.sp !== s.char.sp;
     c.hp = s.char.hp; c.sp = s.char.sp;
-    if (changed && !s.over) touch(C); // HP/SP bars read the snapshot, not the hit events
     s.events.sort((a, b) => a.t - b.t);
     const due = s.events.filter((x) => x.t <= t);
     s.events = s.events.filter((x) => x.t > t);
     const out = emit(C, due);
+    // HP/SP, target HP and activity bars read the snapshot, not the events.
+    // ponytail: one snapshot per fight step (~2-4/s per fighting char); coalesce per tick if bandwidth matters
+    if ((changed || due.length) && !s.over) touch(C);
     if (s.over === 'kill' && !F.settled) out.push(...onKill(C, F));
     if (s.over === 'death' && !F.settled) out.push(...onDeath(C, F));
     return out;
@@ -247,11 +249,12 @@ export function createGame({ now = Date.now, rng = Math.random, maxDrivers = 8 }
       C.fight = { uid, mob, s, loot: [] };
       C.snapshot.restSit = false;
       C.snapshot.activity = 'searching';
+      touch(C);
       return { ok: true, uid, events: advance(C) };
     },
     attack(C, a) {
       const F = target(C, a.uid);
-      C.snapshot.activity = 'attacking';
+      if (C.snapshot.activity !== 'attacking') { C.snapshot.activity = 'attacking'; touch(C); }
       return engineResult(C, e.resolveAction(F.s, { type: 'attack', at: now() }, g.rng));
     },
     cast(C, a) {
