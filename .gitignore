@@ -32,3 +32,4 @@ src-tauri/target
 # Claude Code worktrees and local state
 .claude/
 graphify-out/cache/
+.scratch/

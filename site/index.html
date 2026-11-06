@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RO Idle Tray</title>
+<meta name="description" content="macOS menu-bar companion for ro-idle.app: run several accounts, watch every character from one panel, and ask an assistant that knows the game data.">
+<link rel="icon" href="icon.png">
+<meta property="og:title" content="RO Idle Tray">
+<meta property="og:description" content="macOS menu-bar companion for ro-idle.app.">
+<meta property="og:image" content="media/tray.png">
+<style>
+  /* Palette taken from the app's styles.css, which copies ro-idle.app's own. */
+  :root {
+    --ground-1: #7fb85a; --ground-2: #6aa548; --ground-3: #8cc46a;
+    --face: #fff; --face-2: #f4f6fb; --edge-mid: #b4c0da; --edge-dark: #7f8fb5; --win-border: #7d8fbc;
+    --text: #1b1b1b; --text-dim: #5d6272;
+    --title-1: #f7f9fe; --title-2: #dbe4f5; --title-3: #bccbe8; --title-text: #1d2d5a;
+    --btn-1: #fff; --btn-2: #dfe5f2; --btn-3: #c4cee4; --btn-border: #8394bd; --btn-text: #1d2b52;
+    --select: #4f72c4; --accent: #a85a00; --exp: #f0c43a;
+    --ui-font: "PMingLiU", "新細明體", "Microsoft JhengHei", "微軟正黑體", "PingFang TC", -apple-system, "Segoe UI", Arial, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground-1: #24361c; --ground-2: #1c2b16; --ground-3: #2b4022;
+      --face: #1e222b; --face-2: #252a35; --edge-mid: #444d63; --edge-dark: #586381; --win-border: #4a5570;
+      --text: #dde2ec; --text-dim: #a3abbd;
+      --title-1: #343c50; --title-2: #2b3244; --title-3: #232937; --title-text: #d6def2;
+      --btn-1: #3a4256; --btn-2: #30374a; --btn-3: #282e3e; --btn-border: #56617d; --btn-text: #dde2ec;
+      --select: #8fa8ff; --accent: #f0a040;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; font: 16px/1.6 var(--ui-font); color: var(--text);
+    background: linear-gradient(180deg, var(--ground-3), var(--ground-1) 30%, var(--ground-2)); }
+  /* White text needs a darker field than the game green: ~6:1 against white. */
+  header.hero, footer { background: linear-gradient(180deg, #3f7a2a, #33661f); }
+  @media (prefers-color-scheme: dark) { header.hero, footer { background: linear-gradient(180deg, #1c2b16, #141f10); } }
+  a { color: var(--select); }
+  a:focus-visible, .btn:focus-visible { outline: 2px solid var(--select); outline-offset: 2px; }
+  .skip { position: absolute; left: -999px; } .skip:focus { left: 16px; top: 16px; z-index: 10; background: var(--face); padding: 8px 12px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+  /* RO window chrome: gradient title bar over a white face, thin blue-grey border. */
+  .win { background: var(--face); border: 1px solid var(--win-border); border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px #0000002e; }
+  .win > h2, .win > h3, .titlebar { margin: 0; padding: 8px 14px; font-size: 15px; line-height: 1.4; color: var(--title-text);
+    background: linear-gradient(180deg, var(--title-1), var(--title-2) 55%, var(--title-3)); border-bottom: 1px solid var(--edge-dark); }
+  .body { padding: 16px; }
+
+  .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 6px; font: inherit; font-weight: 700;
+    text-decoration: none; color: var(--btn-text); border: 1px solid var(--btn-border); background: linear-gradient(180deg, var(--btn-1), var(--btn-2) 60%, var(--btn-3)); }
+  .btn:hover { filter: brightness(1.05); }
+  .btn.primary { color: #fff; border-color: #34529c; background: linear-gradient(180deg, #6d8fe0, #4f72c4 60%, #3e5fae); }
+  .btn svg { width: 18px; height: 18px; flex: none; }
+
+  header.hero { padding: 56px 0 36px; margin-bottom: 24px; }
+  .hero-grid { display: grid; grid-template-columns: 1fr; gap: 28px; align-items: center; }
+  @media (min-width: 900px) { .hero-grid { grid-template-columns: 1fr 1.05fr; } }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand img { width: 64px; height: 64px; }
+  .brand h1 { margin: 0; font-size: clamp(30px, 5vw, 42px); line-height: 1.1; color: #fff; text-shadow: 0 1px 2px #0000004d; }
+  .lede { font-size: 18px; color: #fff; text-shadow: 0 1px 2px #00000055; max-width: 34em; }
+  .cta { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 10px; }
+  .note { font-size: 14px; color: #fff; opacity: .92; text-shadow: 0 1px 2px #00000055; }
+  .note code { background: #00000033; padding: 1px 5px; border-radius: 4px; }
+
+  figure { margin: 0; }
+  .shot { display: block; width: 100%; height: auto; background: var(--face-2); }
+  figcaption { font-size: 13px; color: var(--text-dim); padding: 8px 14px; border-top: 1px solid var(--edge-mid); }
+
+  nav.toc { margin: 8px 0 28px; }
+  nav.toc ul { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+  nav.toc a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 18px; font-size: 14px; text-decoration: none;
+    color: var(--btn-text); background: var(--face); border: 1px solid var(--btn-border); }
+
+  section.feature { margin: 0 0 28px; scroll-margin-top: 16px; }
+  .feature .body { display: grid; grid-template-columns: 1fr; gap: 20px; align-items: start; }
+  @media (min-width: 820px) {
+    .feature.tall .body { grid-template-columns: minmax(0, 1fr) 380px; }
+    .feature.tall.flip .body { grid-template-columns: 380px minmax(0, 1fr); }
+    .feature.tall.flip figure { order: -1; }
+  }
+  .feature figure { border: 1px solid var(--edge-mid); border-radius: 8px; overflow: hidden; }
+  .feature h3 { margin: 0 0 6px; font-size: 20px; color: var(--title-text); }
+  @media (prefers-color-scheme: dark) { .feature h3 { color: var(--text); } }
+  .feature p { margin: 0 0 10px; }
+  .feature ul { margin: 0; padding-left: 20px; }
+  .feature li { margin: 4px 0; }
+  .zh { color: var(--text-dim); font-size: 14px; }
+
+  .grid2 { display: grid; gap: 20px; grid-template-columns: 1fr; margin-bottom: 28px; }
+  @media (min-width: 820px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+  pre { margin: 0; padding: 12px 14px; overflow-x: auto; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--face-2); border: 1px solid var(--edge-mid); border-radius: 6px; }
+  ol { padding-left: 20px; margin: 0; }
+
+  footer { padding: 24px 0 40px; margin-top: 12px; color: #fff; font-size: 14px; text-shadow: 0 1px 2px #00000055; }
+  footer a { color: #fff; }
+  html[data-lang="en"] .zh-t, html[data-lang="zh"] .en { display: none !important; }
+  .lang { position: absolute; top: 12px; right: 16px; display: flex; border: 1px solid var(--btn-border); border-radius: 6px; overflow: hidden; }
+  .lang button { min-height: 36px; padding: 0 12px; border: 0; font: inherit; font-size: 14px; cursor: pointer; color: var(--btn-text); background: var(--face); }
+  .lang button[aria-pressed="true"] { color: #fff; background: var(--select); }
+  header.hero { position: relative; }
+</style>
+</head>
+<body>
+<a class="skip" href="#features"><span class="en">Skip to features</span><span class="zh-t">跳到功能介紹</span></a>
+
+<header class="hero">
+  <div class="lang" role="group" aria-label="Language / 語言"><button type="button" data-set="en" aria-pressed="true">EN</button><button type="button" data-set="zh" aria-pressed="false">繁中</button></div>
+  <div class="wrap hero-grid">
+    <div>
+      <div class="brand"><img src="icon.png" alt="" width="64" height="64"><h1>RO Idle Tray</h1></div>
+      <p class="lede"><span class="en">A macOS menu-bar companion for <a href="https://ro-idle.app/" style="color:#fff">ro-idle.app</a>. Run several accounts side by side, watch every character from one panel, and ask an assistant that knows the game data.</span><span class="zh-t"><a href="https://ro-idle.app/" style="color:#fff">RO 放置仙境 ro-idle.app</a> 的 macOS 選單列小幫手。多帳號同時掛機、一個面板看全部角色，還有懂遊戲資料的 AI 助理。</span></p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/mike623/ro-idle-tray/releases/latest">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 21h14"/></svg>
+          <span class="en">Download for macOS</span><span class="zh-t">下載 macOS 版</span></a>
+        <a class="btn" href="https://github.com/mike623/ro-idle-tray">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+          <span class="en">Source on GitHub</span><span class="zh-t">GitHub 原始碼</span></a>
+      </div>
+      <p class="note"><span class="en">Free and open source. The build is not Apple-notarized: the first time, right-click the app › <b>Open</b> › <b>Open</b>.</span><span class="zh-t">免費、開源。程式未經 Apple 公證：第一次開啟請在 App 上按右鍵 › <b>打開</b> › <b>打開</b>。</span></p>
+    </div>
+    <figure class="win">
+      <div class="titlebar"><span class="en">Lives in the menu bar</span><span class="zh-t">常駐在選單列</span></div>
+      <img class="shot" src="media/tray.gif" width="640" height="720" alt="Clicking the RO Idle Tray icon in the macOS menu bar drops down the character panel in dark mode; hovering a row shows its details and the attention filter narrows the list.">
+    </figure>
+  </div>
+</header>
+
+<main class="wrap" id="features">
+  <nav class="toc" aria-label="Features / 功能">
+    <ul>
+      <li><a href="#panel"><span class="en">Character panel</span><span class="zh-t">角色面板</span></a></li>
+      <li><a href="#bulk"><span class="en">Bulk actions</span><span class="zh-t">一鍵全隊</span></a></li>
+      <li><a href="#assistant"><span class="en">AI assistant</span><span class="zh-t">AI 助理</span></a></li>
+      <li><a href="#settings"><span class="en">Any model</span><span class="zh-t">任選模型</span></a></li>
+      <li><a href="#atlas"><span class="en">Map atlas</span><span class="zh-t">地圖圖鑑</span></a></li>
+      <li><a href="#items"><span class="en">Item editor</span><span class="zh-t">道具設定</span></a></li>
+      <li><a href="#classes"><span class="en">Class chart</span><span class="zh-t">職業圖</span></a></li>
+      <li><a href="#assist"><span class="en">Assist &amp; lure</span><span class="zh-t">輔助與拉怪</span></a></li>
+      <li><a href="#plan"><span class="en">Guides</span><span class="zh-t">攻略</span></a></li>
+      <li><a href="#upkeep"><span class="en">Upkeep</span><span class="zh-t">自動維護</span></a></li>
+      <li><a href="#api">API</a></li>
+    </ul>
+  </nav>
+
+  <section class="feature tall win" id="panel">
+    <h2><span class="en">Character panel</span><span class="zh-t">角色面板</span></h2>
+    <div class="body">
+      <div>
+        <h3><span class="en">Every character, one list</span><span class="zh-t">所有角色，一張清單</span></h3>
+        <p><span class="en">Name, Base/Job level, map, HP/SP and EXP for every character across every account, updated live from the game page.</span><span class="zh-t">每個帳號、每隻角色的名稱、Base/Job 等級、地圖、HP/SP 與經驗值，直接從遊戲網頁即時更新。</span></p>
+        <ul>
+          <li><span class="en">Characters that need a look float to the top: stopped while others idle, HP under 25%, or too heavy to attack.</span><span class="zh-t">需要注意的角色會浮到最上面：別人在掛機它卻停了、HP 低於 25%、或負重過重無法攻擊。</span></li>
+          <li><span class="en">Hover a row for full details: weight, Zeny, unspent stat points, current target.</span><span class="zh-t">游標移到角色上看詳細：負重、Zeny、未分配屬性點、目前目標。</span></li>
+          <li><span class="en">Filter by 需要注意 / 掛機中 / 離線, group rows, drag to reorder, add nicknames and a job goal.</span><span class="zh-t">依「需要注意／掛機中／離線」篩選，可分群組、拖曳排序、加暱稱與職業方向。</span></li>
+          <li><span class="en">Start or stop idling per character with one click.</span><span class="zh-t">每隻角色一鍵開始或停止掛機。</span></li>
+        </ul>
+      </div>
+      <figure><img class="shot" src="media/panel.gif" width="360" height="640" loading="lazy" alt="The panel lists five characters; hovering a row opens a detail popup, the attention filter is toggled, and a stopped character is started with the play button."></figure>
+    </div>
+  </section>
+
+  <section class="feature tall flip win" id="bulk">
+    <h2><span class="en">Bulk actions</span><span class="zh-t">一鍵全隊</span></h2>
+    <div class="body">
+      <div>
+        <h3><span class="en">Move the whole party at once</span><span class="zh-t">全隊一起行動</span></h3>
+        <ul>
+          <li><span class="en"><b>Idle All / Stop All</b> starts every stopped character, or stops everyone when all are idling.</span><span class="zh-t"><b>Idle All / Stop All</b>：讓停下來的角色全部開始掛機；全都在掛機時則全部停止。</span></li>
+          <li><span class="en"><b>Recall</b> sends everyone back to their save point; it asks once before acting.</span><span class="zh-t"><b>Recall</b>：全員回儲存點，執行前會先確認一次。</span></li>
+                  </ul>
+      </div>
+      <figure><img class="shot" src="media/bulk.gif" width="360" height="640" loading="lazy" alt="Idle All starts the stopped character, then Recall is clicked twice and reports 回城 4/4."></figure>
+    </div>
+  </section>
+
+  <section class="feature tall win" id="assistant">
+    <h2><span class="en">AI assistant</span><span class="zh-t">AI 助理</span></h2>
+    <div class="body">
+      <div>
+        <h3><span class="en">Ask about one character or the whole party</span><span class="zh-t">問單一角色，或問全隊</span></h3>
+        <p><span class="en">The assistant reads live state, battle logs, skills and the game's own monster, map and item data before it answers. Type <code>@角色</code> to scope a question.</span><span class="zh-t">回答前，助理會先讀角色即時狀態、戰鬥紀錄、技能，以及遊戲本身的怪物、地圖、道具資料。輸入 <code>@角色</code> 就只問那一隻。</span></p>
+        <ul>
+          <li><span class="en">Stat and skill suggestions come with a button that writes them into the game's 自動配點, after a confirm.</span><span class="zh-t">配點與技能建議附一顆按鈕，確認後直接寫入遊戲的「自動配點」。</span></li>
+          <li><span class="en">Each lookup it made is listed above the reply.</span><span class="zh-t">回覆上方會列出它查了哪些資料。</span></li>
+          <li><span class="en">Keeps a small, editable Markdown memory of what it learned about your characters.</span><span class="zh-t">會把學到的角色資訊記在可自行編輯的 Markdown 記憶裡。</span></li>
+          <li><span class="en">Short lessons appear when the log shows a real problem, such as repeated cast interruptions.</span><span class="zh-t">戰鬥紀錄出現實際問題（例如詠唱一直被打斷）時，會跳出簡短教學。</span></li>
+        </ul>
+      </div>
+      <figure><img class="shot" src="media/assistant.gif" width="420" height="640" loading="lazy" alt="The question '@米亞 為什麼一直倒地？' is sent; three lookups run, the answer streams in with a VIT/INT suggestion, and the apply button confirms the change."></figure>
+    </div>
+  </section>
+
+  <section class="feature tall flip win" id="settings">
+    <h2><span class="en">Bring any model</span><span class="zh-t">任選模型</span></h2>
+    <div class="body">
+      <div>
+        <h3><span class="en">Your provider, your key</span><span class="zh-t">自己的服務、自己的金鑰</span></h3>
+        <p><span class="en">Point it at any Anthropic- or OpenAI-compatible endpoint, by default a local <a href="https://github.com/router-for-me/CLIProxyAPI">CLIProxyAPI</a>. Pick from the provider's live model list; the context size is detected for you.</span><span class="zh-t">可接任何相容 Anthropic 或 OpenAI 的端點，預設是本機的 <a href="https://github.com/router-for-me/CLIProxyAPI">CLIProxyAPI</a>。從服務提供的模型清單挑選，上下文長度自動偵測。</span></p>
+        <ul>
+          <li><span class="en">API keys are encrypted on disk and never reach the game windows.</span><span class="zh-t">API 金鑰加密存在本機，遊戲視窗永遠拿不到。</span></li>
+          <li><span class="en">Optional Tavily key adds web search (search and page extraction only).</span><span class="zh-t">可選填 Tavily 金鑰啟用網路搜尋（只開放搜尋與擷取網頁）。</span></li>
+          <li><span class="en"><b>Test connection</b> also checks that prompt caching works.</span><span class="zh-t"><b>Test connection</b> 也會檢查提示快取是否生效。</span></li>
+        </ul>
+      </div>
+      <figure><img class="shot" src="media/settings.gif" width="360" height="640" loading="lazy" alt="The settings view opens, a model is picked from the list, and Test connection reports OK with prompt caching working."></figure>
+    </div>
+  </section>
+
+  <section class="feature win" id="atlas">
+    <h2><span class="en">Map &amp; monster atlas</span><span class="zh-t">地圖與怪物分布</span></h2>
+    <div class="body">
+      <div>
+        <h3><span class="en">Find where to farm, then go there</span><span class="zh-t">找到練功點，直接過去</span></h3>
+        <p><span class="en">All 226 maps and their spawns, offline. Search a monster to get the maps sorted by its spawn share, with aggressive, boss and MVP tags. <b>Move all</b> or <b>Move selected</b> sends characters there using the game's own map command.</span><span class="zh-t">離線收錄全部 226 張地圖與怪物分布。搜尋怪物，地圖會依出現比例排序，並標出主動怪、BOSS、MVP。<b>Move all</b> 或 <b>Move selected</b> 用遊戲本身的移動指令把角色送過去。</span></p>
+      </div>
+      <figure><img class="shot" src="media/atlas.gif" width="960" height="620" loading="lazy" alt="Searching 狼 lists maps by spawn share; Move all sends four characters to the top map."></figure>
+    </div>
+  </section>
+
+  <section class="feature win" id="items">
+    <h2><span class="en">Item settings for everyone</span><span class="zh-t">全角色道具設定</span></h2>
+    <div class="body">
+      <div>
+        <h3><span class="en">Edit once, apply to every character</span><span class="zh-t">改一次，套用到每隻角色</span></h3>
+        <p><span class="en">Merges every character's loot, storage, sell, potion and restock rules into one table. Give a character its own row where it differs, then apply to all. Hover an item for its description, weight and sell price.</span><span class="zh-t">把每隻角色的撿取、存倉、販賣、喝水、補貨規則合併成一張表。個別角色不同的地方可以單獨設定，再一次套用到全部。游標移到道具上可看說明、重量與收購價。</span></p>
+      </div>
+      <figure><img class="shot" src="media/items.gif" width="960" height="560" loading="lazy" alt="The item table shows potions and loot with checkboxes per rule; one is toggled and 套用到全部角色 applies it to four characters."></figure>
+    </div>
+  </section>
+
+  <section class="feature win" id="classes">
+    <h2><span class="en">Class chart &amp; guides</span><span class="zh-t">職業圖與攻略</span></h2>
+    <div class="body">
+      <div>
+        <h3><span class="en">Plan the job path</span><span class="zh-t">規劃轉職路線</span></h3>
+        <p><span class="en">Novice to 4th class on one zoomable chart, plus player guides from <a href="https://ned-lin-9527.github.io/Ragnarok/">ned-lin-9527.github.io/Ragnarok</a>. Set a final job per character and the assistant plans stats and skills toward it.</span><span class="zh-t">從初學者到四轉，一張可縮放的職業圖，另附 <a href="https://ned-lin-9527.github.io/Ragnarok/">ned-lin-9527.github.io/Ragnarok</a> 的玩家攻略。為每隻角色設定最終職業，助理會依此規劃配點與技能。</span></p>
+      </div>
+      <figure><img class="shot" src="media/classes.gif" width="960" height="600" loading="lazy" alt="The class chart zooms from fit to 124% and pans across the Merchant line."></figure>
+    </div>
+  </section>
+
+  <section class="feature tall flip win" id="assist">
+    <h2><span class="en">Assist &amp; lure modes</span><span class="zh-t">輔助模式與拉怪模式</span></h2>
+    <div class="body">
+      <div>
+        <h3><span class="en">Right-click a character</span><span class="zh-t">在角色上按右鍵</span></h3>
+        <ul>
+          <li><span class="en"><b>Assist</b> (🛡): every monster on the current map is set to fight back only when hit. Good for support characters.</span><span class="zh-t"><b>輔助模式</b>（🛡）：本圖所有怪物設為「被打才還手」，適合輔助職業。</span></li>
+          <li><span class="en"><b>Lure</b> (🧲): every monster on the current map is set to be pulled, for a tank that gathers mobs.</span><span class="zh-t"><b>拉怪模式</b>（🧲）：本圖所有怪物設為「引怪」，給負責拉怪的坦。</span></li>
+          <li><span class="en">Both re-apply by themselves after every map change. Pick the same item again to turn it off.</span><span class="zh-t">換圖後會自動重新套用；再點一次同一個選項即可關閉。</span></li>
+        </ul>
+      </div>
+      <figure><img class="shot" src="media/assist.gif" width="640" height="720" loading="lazy" alt="Right-clicking 阿凱 opens the menu and 輔助模式 adds a shield badge; right-clicking 米亞 and choosing 拉怪模式 adds a magnet badge."></figure>
+    </div>
+  </section>
+
+  <section class="feature win" id="plan">
+    <h2><span class="en">Guides to follow</span><span class="zh-t">跟隨攻略</span></h2>
+    <div class="body">
+      <div>
+        <h3><span class="en">Pin guides to a character</span><span class="zh-t">替角色釘選攻略</span></h3>
+        <p><span class="en">Click 📖 under the chat to pick up to three guides from <a href="https://ned-lin-9527.github.io/Ragnarok/">ned-lin-9527.github.io/Ragnarok</a> and add your own note. The assistant reads them on every question about that character.</span><span class="zh-t">點對話框下方的 📖，從 <a href="https://ned-lin-9527.github.io/Ragnarok/">ned-lin-9527.github.io/Ragnarok</a> 挑最多三篇攻略，再加上自己的指示。之後問這隻角色的每個問題，助理都會一併參考。</span></p>
+        <ul>
+          <li><span class="en">Guides for the character's job are suggested first; search the rest.</span><span class="zh-t">先推薦該職業的攻略，其他可搜尋。</span></li>
+          <li><span class="en">Click ↗ on any guide to open it in its own window.</span><span class="zh-t">按任一攻略旁的 ↗，在獨立視窗開啟。</span></li>
+        </ul>
+      </div>
+      <figure><img class="shot" src="media/plan.gif" width="1000" height="640" loading="lazy" alt="Typing @米亞 shows the guide button; two wizard guides are ticked, a note is typed, ↗ opens the ID巫師 guide page beside the chat, and saving shows what 米亞 now follows."></figure>
+    </div>
+  </section>
+  <section class="feature tall win" id="upkeep">
+    <h2><span class="en">Hands-off upkeep</span><span class="zh-t">自動維護</span></h2>
+    <div class="body">
+      <div>
+        <h3><span class="en">It keeps itself running</span><span class="zh-t">自己會顧好自己</span></h3>
+        
+        <ul>
+          <li><span class="en"><b>Offline wake.</b> Offline characters keep their last data, greyed out, and wake once an hour to refresh it.</span><span class="zh-t"><b>離線喚醒</b>：離線角色保留最後的資料（灰色顯示），每小時自動上線一次更新。</span></li>
+          <li><span class="en"><b>Refresh</b> wakes every offline character now, one by one; each goes offline again a minute later.</span><span class="zh-t"><b>Refresh</b>：立刻逐一喚醒所有離線角色，一分鐘後各自再離線。</span></li>
+          <li><span class="en"><b>Auto-update.</b> A new release shows an <i>Update to v…</i> button; nothing installs until you click it.</span><span class="zh-t"><b>自動更新</b>：有新版本時會出現 <i>Update to v…</i> 按鈕，按下去才安裝。</span></li>
+          <li><span class="en"><b>More</b> menu: guide, class chart, export folder, add profile, start at login.</span><span class="zh-t"><b>More</b> 選單：攻略、職業圖、匯出資料夾、新增設定檔、登入時啟動。</span></li>
+        </ul>
+      </div>
+      <figure><img class="shot" src="media/upkeep.gif" width="360" height="640" loading="lazy" alt="An offline row is hovered, Refresh is clicked, the Update to v0.2.8 button is pointed at, and the More menu opens."></figure>
+    </div>
+  </section>
+  <section class="feature  win" id="api">
+    <h2><span class="en">Local read-only API</span><span class="zh-t">本機唯讀 API</span></h2>
+    <div class="body">
+      <div>
+        <h3><span class="en">Script your own tools</span><span class="zh-t">自己寫工具</span></h3>
+        <p><span class="en">Latest character snapshots, battle logs and per-hour summaries on <code>127.0.0.1:47615</code>, behind a bearer token. Read-only: it never changes the game.</span><span class="zh-t">在 <code>127.0.0.1:47615</code> 提供最新角色資料、戰鬥紀錄與每小時統計，需要 bearer token。唯讀，不會動到遊戲。</span></p>
+        <ul>
+          <li><span class="en"><code>/characters</code>, <code>/characters/:name</code>, <code>/characters/:name/log</code>, <code>/characters/:name/summary</code></span><span class="zh-t"><code>/characters</code>、<code>/characters/:name</code>、<code>/characters/:name/log</code>、<code>/characters/:name/summary</code></span></li>
+        </ul>
+      </div>
+      <figure><img class="shot" src="media/api.gif" width="960" height="620" loading="lazy" alt="A terminal runs curl against /characters, listing three characters, then /characters/米亞/summary showing EXP per hour, kills, deaths, potions and warnings."></figure>
+    </div>
+  </section>
+  <section class="win" id="more" style="margin-bottom:28px">
+    <h2><span class="en">Also in the box</span><span class="zh-t">其他功能</span></h2>
+    <div class="body">
+      <ul>
+        <li><span class="en"><b>Isolated accounts.</b> Each profile has its own browser storage, so Google sign-ins never mix.</span><span class="zh-t"><b>帳號隔離</b>：每個設定檔有獨立的瀏覽器資料，Google 登入不會混在一起。</span></li>
+        <li><span class="en"><b>Online / Offline per character</b> from the same right-click menu.</span><span class="zh-t"><b>每隻角色 Online／Offline</b>，同樣在右鍵選單切換。</span></li>
+        <li><span class="en"><b>Pin</b> keeps the panel above other windows and Spaces.</span><span class="zh-t"><b>釘選</b>讓面板浮在其他視窗與桌面空間上方。</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="win" id="install" style="margin-bottom:28px">
+    <h2><span class="en">Install</span><span class="zh-t">安裝</span></h2>
+    <div class="body">
+      <ol>
+        <li><span class="en">Download the <code>.dmg</code> from <a href="https://github.com/mike623/ro-idle-tray/releases/latest">the latest release</a> and drag the app to Applications.</span><span class="zh-t">從<a href="https://github.com/mike623/ro-idle-tray/releases/latest">最新版本</a>下載 <code>.dmg</code>，把 App 拖進「應用程式」。</span></li>
+        <li><span class="en">The build is not Apple-notarized, so the first time: right-click the app › <b>Open</b> › <b>Open</b>.</span><span class="zh-t">程式未經 Apple 公證，第一次請在 App 上按右鍵 › <b>打開</b> › <b>打開</b>。</span></li>
+        <li><span class="en">Click the tray icon, sign in with Google once per profile, and your characters appear in the panel.</span><span class="zh-t">點選單列圖示，每個設定檔用 Google 登入一次，角色就會出現在面板上。</span></li>
+      </ol>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><span class="en">RO Idle Tray is an unofficial fan project. It is not affiliated with ro-idle.app or Gravity. The game stays on ro-idle.app and sign-in stays with the site. Demos above use made-up characters.</span><span class="zh-t">RO Idle Tray 是非官方的玩家自製專案，與 ro-idle.app 及 Gravity 無關。遊戲仍在 ro-idle.app 上執行，登入也由網站處理。上方示範使用虛構角色。</span></p>
+    <p><a href="https://github.com/mike623/ro-idle-tray">GitHub</a> · <a href="https://github.com/mike623/ro-idle-tray/releases">Releases</a> · <a href="https://github.com/mike623/ro-idle-tray/issues">Issues</a></p>
+  </div>
+</footer>
+<script>
+  // Language: saved choice, else the browser's (any zh → 繁中).
+  const setLang = (l) => {
+    document.documentElement.dataset.lang = l;
+    document.documentElement.lang = l === "zh" ? "zh-Hant" : "en";
+    document.querySelectorAll("[data-set]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.set === l)));
+  };
+  let saved = null;
+  try { saved = localStorage.getItem("lang"); } catch {}
+  setLang(saved ?? (/^zh/i.test(navigator.language) ? "zh" : "en"));
+  document.querySelectorAll("[data-set]").forEach((b) => b.addEventListener("click", () => {
+    setLang(b.dataset.set);
+    try { localStorage.setItem("lang", b.dataset.set); } catch {}
+  }));
+</script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!doctype html>
+<!-- Demo stage for e2e/record.mjs: curl against the local read-only API (src-tauri/src/api.rs).
+     Responses follow its shapes; the data is the same made-up party as e2e/mock-tauri.js. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { background: radial-gradient(120% 90% at 70% 0%, #3b4a6b, #1c2333 55%, #11151f); display: grid; place-items: center; }
+  .term { width: 880px; height: 560px; border-radius: 10px; overflow: hidden; background: #15181f; box-shadow: 0 18px 50px rgba(0, 0, 0, .55); display: flex; flex-direction: column; border: 1px solid #333a48; }
+  .bar { height: 28px; flex: none; display: flex; align-items: center; gap: 7px; padding: 0 10px; background: #252a35; color: #aab; font: 13px -apple-system, system-ui, sans-serif; }
+  .bar i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; } .bar i:nth-child(2) { background: #febc2e; } .bar i:nth-child(3) { background: #28c840; }
+  .bar span { flex: 1; text-align: center; margin-right: 50px; }
+  pre { margin: 0; padding: 14px 16px; flex: 1; overflow: auto; color: #d7dbe4; font: 14px/1.5 Menlo, ui-monospace, monospace; white-space: pre-wrap; }
+  .p { color: #7fd27f; } .k { color: #8fa8ff; } .s { color: #f0c43a; } .n { color: #ff9e64; } .c { display: inline-block; width: 8px; background: #d7dbe4; animation: b 1s steps(1) infinite; } @keyframes b { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+<div class="term"><div class="bar"><i></i><i></i><i></i><span>zsh — RO Idle Tray API</span></div><pre id="out"></pre></div>
+<script>
+  const out = document.getElementById("out");
+  const color = (json) => json.replace(/("[^"]*")(\s*:)?|\b(-?\d+(?:\.\d+)?|true|false|null)\b/g,
+    (m, str, colon, num) => str ? `<span class="${colon ? "k" : "s"}">${str}</span>${colon ?? ""}` : `<span class="n">${num}</span>`);
+  const steps = [
+    ['curl -s -H "Authorization: Bearer $TOKEN" 127.0.0.1:47615/characters | jq -c ".[] | {name, class, base, map, running}"',
+      true, [{ name: "伊莉絲", class: "騎士", base: 78, map: "妙勒妙勒尼山脈 南邊山麓", running: true },
+       { name: "小雪", class: "祭司", base: 74, map: "妙勒妙勒尼山脈 南邊山麓", running: true },
+       { name: "米亞", class: "巫師", base: 69, map: "妙勒妙勒尼山脈 南邊山麓", running: true }]],
+    ['curl -s -H "Authorization: Bearer $TOKEN" "127.0.0.1:47615/characters/米亞/summary?minutes=60" | jq "{baseExpPerHour, kills, deaths: (.deaths|length), potions, warnings}"',
+      false, [{ baseExpPerHour: 118400, kills: 214, deaths: 2, potions: 31, warnings: { "low hp": 5 } }]],
+  ];
+  const show = (h) => { out.innerHTML = h; out.scrollTop = out.scrollHeight; };
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  (async () => {
+    let html = "";
+    for (const [cmd, compact, rows] of steps) {
+      await wait(500);
+      for (let i = 0; i <= cmd.length; i += 2) { show(`${html}<span class="p">❯</span> ${cmd.slice(0, i)}<span class="c">&nbsp;</span>`); await wait(22); }
+      html += `<span class="p">❯</span> ${cmd}\n`;
+      await wait(400);
+      html += rows.map((r) => color(compact ? JSON.stringify(r) : JSON.stringify(r, null, 2))).join("\n") + "\n\n";
+      show(html);
+    }
+    show(`${html}<span class="p">❯</span> <span class="c">&nbsp;</span>`);
+    window.done = true;
+  })();
+</script>
+</body>
+</html>

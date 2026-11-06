@@ -1,0 +1,69 @@
+<!doctype html>
+<!-- Demo stage for e2e/record.mjs: a macOS-style menu bar with the tray icon; clicking it
+     drops the real panel (index.html, mocked) below, the way the app does. -->
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<style>
+  html, body { margin: 0; height: 100%; font: 13px -apple-system, system-ui, sans-serif; }
+  body { background: radial-gradient(120% 90% at 70% 0%, #3b4a6b, #1c2333 55%, #11151f); overflow: hidden; }
+  .bar { height: 26px; display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 0 14px;
+    background: rgba(20, 24, 34, .72); backdrop-filter: blur(20px); color: #fff; }
+  .bar span { opacity: .9; }
+  #tray { width: 26px; height: 22px; border: 0; border-radius: 5px; background: transparent; display: grid; place-items: center; cursor: pointer; }
+  #tray[aria-expanded="true"] { background: rgba(255, 255, 255, .22); }
+  #tray img { width: 18px; height: 18px; filter: invert(1); }
+  #panel { position: absolute; top: 32px; width: 360px; height: 640px; border: 0; border-radius: 10px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .55); opacity: 0; transform: translateY(-6px); transition: opacity .18s ease-out, transform .18s ease-out; pointer-events: none; }
+  /* Stand-in for the native macOS context menu (labels copied from lib.rs profile_menu). */
+  .menu { position: absolute; min-width: 300px; padding: 5px; border-radius: 8px; background: rgba(42, 44, 52, .9); backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, .14); box-shadow: 0 12px 34px rgba(0, 0, 0, .5); color: #f2f2f5; font-size: 13px; z-index: 5; }
+  .menu button { display: flex; width: 100%; gap: 6px; padding: 3px 10px 3px 6px; border: 0; border-radius: 4px; background: none; color: inherit; font: inherit; text-align: left; cursor: default; }
+  .menu button:hover { background: #2f6ee0; }
+  .menu button:disabled { color: rgba(255, 255, 255, .35); background: none; }
+  .menu b { width: 14px; font-weight: 400; }
+  .menu hr { border: 0; border-top: 1px solid rgba(255, 255, 255, .14); margin: 5px 8px; }
+  #panel.open { opacity: 1; transform: none; pointer-events: auto; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <button id="tray" type="button" aria-label="RO Idle Tray" aria-expanded="false"><img src="/src-tauri/icons/tray.png" alt=""></button>
+  <span>100%</span><span>週四 11月6日 12:40</span>
+</div>
+<iframe id="panel" src="/index.html" title="RO Idle Tray panel"></iframe>
+<script>
+  const tray = document.getElementById("tray"), panel = document.getElementById("panel");
+  const place = () => { panel.style.left = `${Math.min(tray.getBoundingClientRect().left - 150, innerWidth - 370)}px`; };
+  place();
+  let menu = null;
+  const close = () => { menu?.remove(); menu = null; };
+  addEventListener("message", ({ data }) => {
+    if (!data?.menu) return;
+    close();
+    const r = panel.getBoundingClientRect();
+    menu = Object.assign(document.createElement("div"), { className: "menu" });
+    menu.setAttribute("role", "menu");
+    const item = (label, checked, enabled, mode) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.disabled = !enabled; b.setAttribute("role", "menuitemcheckbox"); b.setAttribute("aria-checked", String(checked));
+      b.innerHTML = `<b>${checked ? "✓" : ""}</b><span></span>`; b.lastChild.textContent = label;
+      b.addEventListener("click", () => { if (mode) panel.contentWindow.postMessage({ assist: data.menu, mode }, "*"); close(); });
+      return b;
+    };
+    menu.append(item("Online（背景保持遊戲網頁）", !data.offline, true), item("Offline（完全關閉背景網頁）", data.offline, true), document.createElement("hr"),
+      item("輔助模式（本圖怪物被打才還手，換圖自動套用）", data.assist === "defend", !data.offline, "defend"),
+      item("拉怪模式（本圖怪物全部引怪，換圖自動套用）", data.assist === "lure", !data.offline, "lure"));
+    document.body.append(menu);
+    menu.style.left = `${Math.min(r.left + data.x, innerWidth - menu.offsetWidth - 8)}px`;
+    menu.style.top = `${r.top + data.y}px`;
+  });
+  addEventListener("pointerdown", (e) => { if (menu && !menu.contains(e.target)) close(); });
+  tray.addEventListener("click", () => {
+    const open = !panel.classList.contains("open");
+    panel.classList.toggle("open", open);
+    tray.setAttribute("aria-expanded", String(open));
+  });
+</script>
+</body>
+</html>

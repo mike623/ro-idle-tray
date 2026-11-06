@@ -297,6 +297,7 @@ button:focus-visible, .nick-input:focus-visible { outline: 2px solid var(--selec
   background: var(--z-bg); color: var(--z-fg); font: 12px ui-monospace, "SF Mono", Menlo, monospace;
 }
 .ai-field > input:not([type="hidden"]) { width: 100%; }
+.ai-field > select { width: 100%; min-width: 0; }
 .ai-field input::placeholder { color: var(--z-muted-fg); }
 .ai-field > input:not([type="hidden"]):focus { outline: none; border-color: var(--z-ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--z-ring) 35%, transparent); }
 

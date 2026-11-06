@@ -10,7 +10,11 @@
 
 macOS menu-bar companion for [ro-idle.app](https://ro-idle.app/): run several accounts side by side, watch every character from one panel, and ask an AI assistant that knows the game data.
 
+**English** · [繁體中文](README.zh-TW.md) · [Website](https://mike623.github.io/ro-idle-tray/)
+
 [Features](#features) • [Install](#install) • [Development](#development) • [References](#references) • [Release](#release)
+
+<img src="site/media/tray.gif" alt="Clicking the tray icon drops down the character panel" width="560">
 
 </div>
 
@@ -18,19 +22,24 @@ The game stays hosted remotely and sign-in stays with the site. The tray wraps i
 
 ## Features
 
-- **Multiple accounts.** Each profile gets its own WebView data directory, so Google cookies never mix. Sign in once per profile; the session is kept.
-- **Character panel.** One list for all characters with name, Base/Job level, map and status. Characters needing attention float up; filter by status, switch to a compact view, or pin the panel above other windows.
-- **Bulk actions.** Idle All / Stop All, send everyone back to their save point, or wake every offline character to refresh its data.
-- **Per-character modes.** Online (keep the game page alive in the background) or Offline, plus **assist** (fight back only when hit) and **lure** (pull every monster on the map). Modes re-apply automatically after a map change.
-- **Map & monster atlas.** Offline atlas of maps, spawns and aggressive monsters, with EXP-efficiency map ranking. Move a character from the atlas using the game's own map command.
-- **Item settings editor.** Edit every character's 道具設定 (items + recovery) in one table and apply to all.
-- **Class chart & guides.** Novice-to-4th class progression chart, and player guides from [ned-lin-9527.github.io/Ragnarok](https://ned-lin-9527.github.io/Ragnarok/) cached for a day.
-- **AI assistant (助理).** Chat in its own window; `@角色` scopes a question to one character. It reads game data, battle logs and skills, suggests stat/skill plans that apply with one click, and keeps an editable Markdown memory. Short lessons pop up when the log shows a real problem.
-- **Local read-only API.** `http://127.0.0.1:47615` (bearer token) serves the latest character snapshots and mirrored battle logs for your own scripts.
-- **Auto-updates.** Checks GitHub Releases on launch and every 6 h. An `Update to vX.Y.Z…` item appears; nothing installs until you click it.
-
 > [!NOTE]
-> The assistant is model-agnostic. It talks to any Anthropic Messages-compatible endpoint, by default a local [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI), so any model it proxies works. Web search goes through Tavily's hosted MCP server (search and extract only). API keys are encrypted at rest in the app config dir and never reach the game windows.
+> Every clip below is recorded by `e2e/record.mjs` from the app's own windows, with made-up characters.
+
+| | |
+|---|---|
+| **Character panel.** Every character across every account in one list: Base/Job level, map, HP/SP, EXP. Characters needing attention float up (stopped while others idle, HP under 25%, too heavy). Hover for details, filter by status, group and drag to reorder, add nicknames and a job goal. | <img src="site/media/panel.gif" width="300" alt="Character panel"> |
+| **Bulk actions.** Idle All / Stop All, and Recall everyone to their save point (asks once first). | <img src="site/media/bulk.gif" width="300" alt="Idle All and Recall"> |
+| **Assist & lure modes.** Right-click a character: **輔助模式** sets every monster on the map to fight back only when hit (🛡); **拉怪模式** pulls them all (🧲). Both re-apply after each map change. | <img src="site/media/assist.gif" width="300" alt="Right-click menu with assist and lure"> |
+| **AI assistant (助理).** Its own window; `@角色` scopes a question. Reads live state, battle logs, skills and game data, lists every lookup, and stat/skill suggestions apply to the game's 自動配點 with one confirmed click. Keeps an editable Markdown memory; short lessons pop up when the log shows a real problem. | <img src="site/media/assistant.gif" width="300" alt="Assistant answering with a stat suggestion"> |
+| **Guides to follow.** 📖 pins up to three guides from [ned-lin-9527.github.io/Ragnarok](https://ned-lin-9527.github.io/Ragnarok/) plus your own note to a character; ↗ opens a guide in its own window. | <img src="site/media/plan.gif" width="300" alt="Guide picker and guide window"> |
+| **Any model.** Any Anthropic- or OpenAI-compatible endpoint, by default a local [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI). Live model list with detected context size; Test connection also checks prompt caching. | <img src="site/media/settings.gif" width="300" alt="AI provider settings"> |
+| **Map & monster atlas.** All maps and spawns offline; search a monster to rank maps by its spawn share, with aggressive/boss/MVP tags. Move all or selected characters there with the game's own map command. | <img src="site/media/atlas.gif" width="300" alt="Atlas search and Move all"> |
+| **Item settings editor.** Every character's 道具設定 (loot, storage, sell, potions, restock) merged into one table, with per-character overrides; apply to all. | <img src="site/media/items.gif" width="300" alt="Item settings table"> |
+| **Class chart.** Novice to 4th class on one zoomable, draggable chart. | <img src="site/media/classes.gif" width="300" alt="Class chart"> |
+| **Hands-off upkeep.** Offline characters keep their last data and wake hourly; Refresh wakes them all now. A new release shows an `Update to vX.Y.Z` button (checked on launch and every 6 h); nothing installs until you click. | <img src="site/media/upkeep.gif" width="300" alt="Offline row, Refresh, Update button, More menu"> |
+| **Local read-only API.** `http://127.0.0.1:47615` behind a bearer token: `/characters`, `/characters/:name`, `…/log`, `…/summary`. | <img src="site/media/api.gif" width="300" alt="curl against the local API"> |
+
+Each profile also has its own WebView data directory, so Google sign-ins never mix, and API keys are encrypted at rest and never reach the game windows. Web search (optional) goes through Tavily's hosted MCP server, search and extract only.
 
 ## Install
 
@@ -64,6 +73,17 @@ npm run tauri build
 > [!TIP]
 > Dev builds record raw API traffic to `<app config>/capture/*.jsonl` (`src/capture.js`; auth calls are never recorded). `scripts/capture-gaps.py` and `scripts/formula-check.py` analyse those captures for the offline-backend work in [`docs/offline-backend`](docs/offline-backend).
 
+### Demo recordings
+
+`e2e/record.mjs` drives the app's own windows in headless Chromium with a mocked Tauri bridge (`e2e/mock-tauri.js`, made-up data) and writes one GIF per feature to `site/media/`. Needs `ffmpeg` and, once, `npx playwright install chromium-headless-shell`.
+
+```sh
+node e2e/record.mjs          # all scenes
+node e2e/record.mjs atlas    # one scene
+```
+
+The landing page is `site/index.html` (English / 繁體中文); `.github/workflows/pages.yml` publishes `site/` to GitHub Pages on every push to `main` that touches it.
+
 ### Project layout
 
 | Path | Contents |
@@ -72,6 +92,7 @@ npm run tauri build
 | `src-tauri/src/` | Rust backend: tray and windows (`lib.rs`), chat and AI provider, knowledge tools, alerts, local API, encrypted secrets |
 | `scripts/extract-maps.mjs` | Extracts monsters, maps, skills and items from the game bundle into `src/game-data.json` / `src/item-info.json` |
 | `tests/` | Node test suites for the frontend helpers |
+| `e2e/`, `site/` | Demo recorder and the GitHub Pages landing page |
 
 ## References
 
