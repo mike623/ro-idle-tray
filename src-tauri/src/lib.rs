@@ -1,5 +1,4 @@
 mod api;
-mod battle;
 mod tutorial;
 mod alerts;
 mod memory;
@@ -72,13 +71,10 @@ const CHARACTER_HOOK: &str = r#"
       running, stopping: running === true && s.pendingStop != null,
       map: domText('地圖') ?? (typeof s.mapId === 'string' ? s.mapId : null),
       action: domText('行動'),
-      assist: !!assistMap(), assistNote,
+      assist: assistMap() ? assistAction() : null, assistNote,
       // Base stats + the 自動配點 plan, so the chat agent can suggest absolute targets.
       stats: c.stats && typeof c.stats === 'object' ? c.stats : null,
       statsAuto: s.config?.statsAddAuto?.enabled ? s.config.statsAddAuto.list ?? [] : null,
-      // Battle view: character look and map for the sprite renderer and map backdrop.
-      look: s.appearance && typeof s.appearance === 'object' ? s.appearance : null,
-      mapId: typeof s.mapId === 'string' ? s.mapId : null,
       // Learned skills {AL_HEAL: 9, ...}, unspent skill points and the auto-skill setup.
       skills: c.skills && typeof c.skills === 'object' ? c.skills : null,
       skillPoints: Number.isInteger(c.skillPoints) ? c.skillPoints : 0,
@@ -180,19 +176,21 @@ const CHARACTER_HOOK: &str = r#"
     const snapshot = await roIdleApplyItems(id, cache[id], items, overrides);
     if (snapshot && streamId === id) { cache[id] = snapshot; send(snapshot); }
   };
-  // Row menu's 輔助模式 toggle: every monster on the current map → 被打才還手, re-applied after each
-  // map switch while on. byMap = {mapId: [monsterId]}, kept in this profile's storage; null = off.
-  const ASSIST = 'roIdleTray.assist';
+  // Row menu's 輔助模式 / 拉怪模式 toggle: every monster on the current map → 被打才還手 (defend) or
+  // 引怪 (lure), re-applied after each map switch while on. byMap = {mapId: [monsterId]}, kept in
+  // this profile's storage; null = off. The action is stored beside it.
+  const ASSIST = 'roIdleTray.assist', ASSIST_ACTION = 'roIdleTray.assistAction';
   let assistBusy = false, assistAt = 0, assistNote = null;
   function assistMap() { try { return JSON.parse(localStorage.getItem(ASSIST)); } catch { return null; } }
+  function assistAction() { try { return localStorage.getItem(ASSIST_ACTION) || 'defend'; } catch { return 'defend'; } }
   function assistIds(s, byMap) {
     const ids = byMap?.[s?.mapId];
-    const done = new Set((s?.config?.monsterRules ?? []).filter(r => r.action === 'defend').map(r => r.monsterId));
+    const done = new Set((s?.config?.monsterRules ?? []).filter(r => r.action === assistAction()).map(r => r.monsterId));
     return ids?.some(id => !done.has(id)) ? ids : null;
   }
   async function assistApply(id, s, ids) {
     try {
-      const snapshot = await roIdleUpdateConfig(id, roIdleAssistConfig(s.config, ids));
+      const snapshot = await roIdleUpdateConfig(id, roIdleAssistConfig(s.config, ids, assistAction()));
       assistNote = `applied ${ids.length} on ${s.mapId}`;
       if (snapshot && streamId === id) { cache[id] = snapshot; send(snapshot); }
     } catch (e) { assistNote = `failed on ${s.mapId}: ${e.message || e}`; last = null; send(s); throw e; }
@@ -204,7 +202,7 @@ const CHARACTER_HOOK: &str = r#"
     assistBusy = true; assistAt = Date.now();
     assistApply(id, s, ids).catch(e => console.warn('[ro-idle-tray] assist failed', e)).finally(() => { assistBusy = false; });
   }
-  window.__roIdleAssist = async byMap => {
+  window.__roIdleAssist = async (byMap, action = 'defend') => {
     if (assistBusy) throw new Error('Assist update in progress; try again');
     const id = streamId, s = cache[id];
     if (!s?.config) throw new Error('No character currently in play');
@@ -215,13 +213,13 @@ const CHARACTER_HOOK: &str = r#"
         const config = {...s.config, monsterRules: (s.config.monsterRules ?? []).filter(r =>
           !ids.has(r.monsterId))};
         const snapshot = await roIdleUpdateConfig(id, config);
-        localStorage.removeItem(ASSIST);
+        localStorage.removeItem(ASSIST); localStorage.removeItem(ASSIST_ACTION);
         assistNote = 'disabled; current-map monster rules removed';
         last = null;
         if (streamId === id) { cache[id] = snapshot ?? {...s, config}; send(cache[id]); }
         return 0;
       }
-      localStorage.setItem(ASSIST, JSON.stringify(byMap));
+      localStorage.setItem(ASSIST, JSON.stringify(byMap)); localStorage.setItem(ASSIST_ACTION, action);
       last = null;
       const ids = assistIds(s, byMap);
       if (ids) await assistApply(id, s, ids); else send(s);
@@ -381,9 +379,9 @@ struct CharacterLabel {
     running: Option<bool>,
     #[serde(default)]
     stopping: bool,
-    /// 輔助模式 on: current-map monsters kept at 被打才還手 across map switches.
+    /// 輔助模式 ("defend") / 拉怪模式 ("lure") on: current-map monsters kept at that action across map switches.
     #[serde(default)]
-    assist: bool,
+    assist: Option<String>,
     /// Last 輔助模式 apply result, for the dev log only.
     #[serde(default, skip_serializing)]
     assist_note: Option<String>,
@@ -404,11 +402,6 @@ struct CharacterLabel {
     skill_setup: Option<serde_json::Value>,
     /// Map name as the game shows it (地圖), e.g. 普隆德拉原野 09.
     map: Option<String>,
-    /// Map id (mjolnir_09) and appearance {sex, hair, hairColor}, for the battle view.
-    #[serde(default)]
-    map_id: Option<String>,
-    #[serde(default)]
-    look: Option<serde_json::Value>,
     /// The game's job id (thief, lord_knight); `class` holds the display name.
     #[serde(default)]
     job_key: String,
@@ -672,7 +665,6 @@ fn profile_number(app: &AppHandle, id: &str) -> Option<u8> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .register_asynchronous_uri_scheme_protocol("roasset", battle::protocol)
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
@@ -703,9 +695,6 @@ pub fn run() {
             open_export_folder,
             open_atlas,
             open_classes,
-            battle::open_battle,
-            battle::battle_party,
-            battle::battle_backfill,
             atlas::atlas_characters,
             atlas::move_all,
             atlas::move_selected,
@@ -751,18 +740,22 @@ pub fn run() {
                     "tray-quit" => return app.exit(0),
                     _ => {}
                 }
-                if let Some(n) = id.strip_prefix("assist-").and_then(|r| r.parse::<u8>().ok()) {
+                let mode = [("assist-", "defend"), ("lure-", "lure")].into_iter()
+                    .find_map(|(p, a)| Some((id.strip_prefix(p)?.parse::<u8>().ok()?, a)));
+                if let Some((n, action)) = mode {
                     let app = app.clone();
                     tauri::async_runtime::spawn(async move {
-                        let on = !app.state::<Profiles>().info.lock().unwrap().get(&n).is_some_and(|c| c.assist);
-                        let body = match atlas::assist_mode(&app, n, on).await {
+                        let current = app.state::<Profiles>().info.lock().unwrap().get(&n).and_then(|c| c.assist.clone());
+                        let on = current.as_deref() != Some(action);
+                        let (title, what) = if action == "lure" { ("拉怪模式", "引怪") } else { ("輔助模式", "被打才還手") };
+                        let body = match atlas::assist_mode(&app, n, on.then_some(action)).await {
                             Ok(_) if !on => "已關閉：已移除本圖怪物控制設定".to_string(),
                             Ok(0) => "已開啟：目前地圖沒有怪物，換圖後自動套用".to_string(),
-                            Ok(k) => format!("已開啟：本圖 {k} 種怪物被打才還手，換圖自動套用"),
+                            Ok(k) => format!("已開啟：本圖 {k} 種怪物{what}，換圖自動套用"),
                             Err(e) => format!("設定失敗：{e}"),
                         };
-                        println!("[ro-idle-tray] profile-{n} assist: {body}");
-                        toast(&app, n, "輔助模式", &body);
+                        println!("[ro-idle-tray] profile-{n} {action}: {body}");
+                        toast(&app, n, title, &body);
                     });
                     return;
                 }
@@ -1837,15 +1830,13 @@ fn auto_offline_tick(app: &AppHandle) {
     // which needs every page) holds it at a full minute.
     let visible = |label: &str| app.get_webview_window(label).is_some_and(|w| w.is_visible().unwrap_or(false));
     let hold_all = visible("items");
-    // The battle view holds the party it is watching online (bypasses auto offline).
-    let watched = battle::held_profiles(app);
     let offline = profiles.offline.lock().unwrap().clone();
     let now = std::time::Instant::now();
     let going: Vec<u8> = {
         let mut at = profiles.active_at.lock().unwrap();
         profiles.ids.lock().unwrap().iter().copied().filter(|n| !offline.contains(n)).filter(|&n| {
             let t = at.entry(n).or_insert(now);
-            if hold_all || watched.contains(&n) || visible(&format!("game-profile-{n}")) {
+            if hold_all || visible(&format!("game-profile-{n}")) {
                 *t = now;
             }
             t.elapsed() >= AUTO_OFFLINE_AFTER
@@ -1867,11 +1858,13 @@ fn profile_menu(window: tauri::Window, app: AppHandle, n: u8) -> Result<(), Stri
         .map_err(|e| e.to_string())?;
     let off_item = CheckMenuItem::with_id(&app, format!("offline-{n}"), "Offline（完全關閉背景網頁）", true, off, None::<&str>)
         .map_err(|e| e.to_string())?;
-    let on = app.state::<Profiles>().info.lock().unwrap().get(&n).is_some_and(|c| c.assist);
-    let assist = CheckMenuItem::with_id(&app, format!("assist-{n}"), "輔助模式（本圖怪物被打才還手，換圖自動套用）", !off, on, None::<&str>)
+    let mode = app.state::<Profiles>().info.lock().unwrap().get(&n).and_then(|c| c.assist.clone());
+    let assist = CheckMenuItem::with_id(&app, format!("assist-{n}"), "輔助模式（本圖怪物被打才還手，換圖自動套用）", !off, mode.as_deref() == Some("defend"), None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let lure = CheckMenuItem::with_id(&app, format!("lure-{n}"), "拉怪模式（本圖怪物全部引怪，換圖自動套用）", !off, mode.as_deref() == Some("lure"), None::<&str>)
         .map_err(|e| e.to_string())?;
     let sep = tauri::menu::PredefinedMenuItem::separator(&app).map_err(|e| e.to_string())?;
-    let menu = Menu::with_items(&app, &[&on_item, &off_item, &sep, &assist]).map_err(|e| e.to_string())?;
+    let menu = Menu::with_items(&app, &[&on_item, &off_item, &sep, &assist, &lure]).map_err(|e| e.to_string())?;
     window.popup_menu(&menu).map_err(|e| e.to_string())
 }
 
@@ -1881,19 +1874,4 @@ fn set_all_offline(app: AppHandle, off: bool) {
     for n in ids {
         set_offline(&app, n, off);
     }
-}
-
-/// Every loaded character, for the battle view's party roster.
-pub(crate) fn battle_roster(app: &AppHandle) -> Vec<serde_json::Value> {
-    let profiles = app.state::<Profiles>();
-    let info = profiles.info.lock().unwrap();
-    let mut list: Vec<_> = info.iter().collect();
-    list.sort_by_key(|(n, _)| **n);
-    list.into_iter()
-        .map(|(n, c)| serde_json::json!({
-            "profile": format!("profile-{n}"), "name": c.name, "class": c.class, "jobKey": c.job_key,
-            "base": c.base, "job": c.job, "hp": c.hp, "maxHp": c.max_hp, "sp": c.sp, "maxSp": c.max_sp,
-            "map": c.map, "mapId": c.map_id, "look": c.look,
-        }))
-        .collect()
 }

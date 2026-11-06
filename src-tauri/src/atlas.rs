@@ -271,14 +271,15 @@ pub async fn items_apply(app: AppHandle) -> Result<Vec<MoveResult>, String> {
     run_move(&app, &call, pending, 20).await
 }
 
-/// Row menu's 輔助模式 toggle: on = current-map monsters all 被打才還手, re-applied on each map switch.
+/// Row menu's 輔助模式 / 拉怪模式 toggle: Some(action) = current-map monsters all set to that
+/// action ("defend" 被打才還手, "lure" 引怪), re-applied on each map switch; None = off.
 /// Ok = how many monsters were set.
-pub async fn assist_mode(app: &AppHandle, n: u8, on: bool) -> Result<u64, String> {
+pub async fn assist_mode(app: &AppHandle, n: u8, action: Option<&str>) -> Result<u64, String> {
     let lock = app.state::<MoveLock>();
     let _guard = lock.0.try_lock().map_err(|_| "A move is already in progress")?;
     let pending = pending_profiles(app, Some(&BTreeSet::from([n])))?;
-    let by_map = if on { crate::knowledge::map_monsters() } else { serde_json::Value::Null };
-    let call = format!("window.__roIdleAssist({by_map})");
+    let by_map = if action.is_some() { crate::knowledge::map_monsters() } else { serde_json::Value::Null };
+    let call = format!("window.__roIdleAssist({by_map}, {})", serde_json::json!(action.unwrap_or("defend")));
     let result = run_move(app, &call, pending, 20).await?.pop().ok_or("Character not in play")?;
     match result.error {
         Some(e) => Err(e),

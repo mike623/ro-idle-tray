@@ -71,16 +71,16 @@ async function roIdleApplyItems(characterId, snapshot, items, overrides = {}) {
   return roIdleUpdateConfig(characterId, {...snapshot.config, ...roIdleItemsFor(items, overrides, snapshot.character?.name)});
 }
 
-// "Assist mode" the game lacks: every given monster set to 被打才還手 (defend) in its 怪物控制 table.
+// "Assist mode" the game lacks: every given monster set to 被打才還手 (defend), or 引怪 (lure), in its 怪物控制 table.
 // Same merge the game's table does on save: the old blacklist / danger lists fold into monsterRules.
-function roIdleAssistConfig(config, monsterIds) {
+function roIdleAssistConfig(config, monsterIds, action = 'defend') {
   const rules = (config.monsterRules ?? []).map(r => ({...r}));
   const has = new Set(rules.map(r => r.monsterId));
   for (const id of config.targets?.blacklist ?? []) if (!has.has(id)) { rules.push({monsterId: id, action: 'defend'}); has.add(id); }
   for (const id of config.escape?.dangerMonsters ?? []) if (!has.has(id)) { rules.push({monsterId: id, action: 'attack', escape: 'sight'}); has.add(id); }
   for (const id of monsterIds) {
     const r = rules.find(x => x.monsterId === id);
-    if (r) r.action = 'defend'; else rules.push({monsterId: id, action: 'defend'});
+    if (r) r.action = action; else rules.push({monsterId: id, action});
   }
   return {...config, monsterRules: rules,
     targets: {...config.targets, blacklist: []}, escape: {...config.escape, dangerMonsters: []}};

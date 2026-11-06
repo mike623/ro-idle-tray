@@ -140,11 +140,12 @@ fn rank_in(data: &Value, members: &[Value]) -> Value {
         }
         let efficiency = exp_hp / total;
         let ratio = damage_ratio / total;
-        let density = total / map["area"].as_f64().unwrap_or(129600.0).max(1.0) * 10000.0;
-        let score = efficiency * density * (1.0 + bonus)
+        // The game has no coordinates: each search draws a monster by its share of the
+        // map's spawn count, so map area does not change encounter rate.
+        let score = efficiency * (1.0 + bonus)
             / (1.0 + ratio + aggressive / total)
             / (1.0 + warnings.len() as f64 * 10.0);
-        maps.push(json!({"id":map["id"],"name":map["name"],"score":score,"baseExpPerMonsterHp":efficiency,"rawAttackToWeakestHp":ratio,"aggressiveFraction":aggressive/total,"densityPer10000Area":density,"travelSeconds":map["travelFromTownMs"].as_f64().unwrap_or(0.0)/1000.0,"warnings":warnings}));
+        maps.push(json!({"id":map["id"],"name":map["name"],"score":score,"baseExpPerMonsterHp":efficiency,"rawAttackToWeakestHp":ratio,"aggressiveFraction":aggressive/total,"travelSeconds":map["travelFromTownMs"].as_f64().unwrap_or(0.0)/1000.0,"warnings":warnings}));
     }
     maps.sort_by(|a, b| {
         b["score"]
@@ -170,6 +171,10 @@ mod tests {
         assert_eq!(result["party"]["evenShareEligible"], false);
         assert_eq!(result["party"]["sameMapExpBonus"], 0.2);
         assert_eq!(result["maps"][0]["id"], "safe");
+        // Area must not matter: encounters are drawn by spawn share, not position.
+        let mut wide = data.clone();
+        wide["maps"][0]["area"] = json!(129600);
+        assert_eq!(rank_in(&wide, &members)["maps"][0]["score"], result["maps"][0]["score"]);
         assert_eq!(result["maps"][1]["warnings"][0]["monster"], "Danger");
         let mut eligible = members.to_vec();
         eligible[1]["base"] = json!(25);

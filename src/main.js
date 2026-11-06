@@ -264,7 +264,9 @@ function card(n, info, othersIdling, why) {
   q(".name").title = `${info.name}${nick ? `「${nick}」` : ""} · ${info.class ?? ""} · Account ${n} — click to copy name`;
   const nameEl = q(".name");
   nameEl.addEventListener("click", (e) => { e.stopPropagation(); copyName(nameEl, info.name); });
-  if (info.assist) nameEl.after(Object.assign(el("span", "assist", "🛡"), { title: "輔助模式：本圖怪物被打才還手，換圖自動套用（右鍵選單可關閉）" }));
+  if (info.assist) nameEl.after(info.assist === "lure"
+    ? Object.assign(el("span", "assist", "🧲"), { title: "拉怪模式：本圖怪物全部引怪，換圖自動套用（右鍵選單可關閉）" })
+    : Object.assign(el("span", "assist", "🛡"), { title: "輔助模式：本圖怪物被打才還手，換圖自動套用（右鍵選單可關閉）" }));
   const nickBtn = q(".nick");
   nickBtn.textContent = nick ?? "＋";
   nickBtn.classList.toggle("unset", !nick);
@@ -371,10 +373,6 @@ function card(n, info, othersIdling, why) {
   const ask = q(".ask");
   ask.setAttribute("aria-label", `問 ${info.name} 的助理`);
   ask.addEventListener("click", (e) => { e.stopPropagation(); document.dispatchEvent(new CustomEvent("ask-character", { detail: info.name })); });
-
-  const live = q(".live");
-  live.setAttribute("aria-label", `戰鬥畫面（${info.name}）`);
-  live.addEventListener("click", (e) => { e.stopPropagation(); invoke("open_battle", { name: info.name }); });
 
   const go = q(".go");
   go.setAttribute("aria-label", `Open game window（${info.name}）`);

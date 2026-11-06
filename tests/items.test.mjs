@@ -73,6 +73,15 @@ function assistEnvironment(update) {
   vm.runInContext(assistSource, ctx);
   return {ctx, storage};
 }
+test('lure mode sets map monsters to lure and switching modes reapplies', async () => {
+  let config;
+  const {ctx, storage} = assistEnvironment(async (id, c) => { config = plain(c); return {config: c}; });
+  await ctx.window.__roIdleAssist({b: [2, 3]}, 'lure');
+  assert.deepEqual(config.monsterRules.filter(r => [2, 3].includes(r.monsterId)).map(r => r.action), ['lure', 'lure']);
+  assert.equal(storage.get('roIdleTray.assistAction'), 'lure');
+  await ctx.window.__roIdleAssist(null);
+  assert.equal(storage.size, 0);
+});
 test('disabling assist removes current-map rows and preserves other maps', async () => {
   let config;
   const {ctx, storage} = assistEnvironment(async (id, c) => { config = plain(c); return {config: c}; });
